@@ -1,4 +1,8 @@
+#!/usr/bin/env cargo-script
 use std::collections::HashMap;
+use std::env;
+use std::fs;
+use std::io::Error;
 #[derive(PartialEq, Eq, Debug, Clone)]
 enum TokenType {
     Int,     // 整数値
@@ -307,16 +311,39 @@ impl Decoder {
     }
 }
 
+fn read_file(file_name: &str) -> Result<String, Error> {
+    // ファイルを読み込む
+    let contents = fs::read_to_string(file_name)?;
+
+    Ok(contents)
+}
 fn main() -> Result<(), String> {
-    let src = String::from("12+1");
-    let tokens = tokenize(&src)?;
-    let mut parser = Parser::new(&tokens);
-    println!("tokens: {:?}", tokens);
-    let node = parser.expr()?;
-    println!("node: {:?}", node);
-    // 式を評価して結果を表示
-    let result = parser.eval(&node)?;
-    println!("Result: {}", result);
-    println!("");
+    let args: Vec<String> = env::args().collect();
+    // プログラム名も含まれるため、最低限2つ以上の引数が必要
+    if args.len() < 2 {
+        eprintln!("ファイル名を指定してください");
+        return Err(format!("ファイル名がないお;;"));
+    }
+    let file_name = &args[1];
+    match read_file(file_name) {
+        Ok(contents) => {
+            println!("ファイルの内容:\n{}", contents);
+            // contentsを使って必要な処理を行う
+            let src = String::from(contents.trim());
+            let tokens = tokenize(&src)?;
+            let mut parser = Parser::new(&tokens);
+            println!("tokens: {:?}", tokens);
+            let node = parser.expr()?;
+            println!("node: {:?}", node);
+            // 式を評価して結果を表示
+            let result = parser.eval(&node)?;
+            println!("Result: {}", result);
+            println!("");
+        }
+        Err(e) => {
+            eprintln!("ファイルを読み込めませんでした: {}", e);
+            // エラー処理を行う
+        }
+    }
     Ok(())
 }
