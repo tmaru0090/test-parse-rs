@@ -1,19 +1,26 @@
+pub mod decoder;
+pub mod node;
 pub mod parser;
+pub mod scope_manager;
 pub mod tokenizer;
 pub mod types;
 
 mod tests {
+    use crate::decoder::*;
     use crate::parser::*;
+    use crate::scope_manager::*;
     use crate::tokenizer::*;
     use std::env;
 
     #[test]
     fn test() -> Result<(), String> {
         let input = r#"
-let a = 1919
-let b = 1000
-let d = 0
-let c = a+b+
+    {
+
+        l a = 2+2*(20-40);
+        l b = a;
+        l c = a+b;
+    }
             "#;
         println!("ファイルの内容:\n{}", input);
         let temp_src = String::from(input);
@@ -25,7 +32,8 @@ let c = a+b+
         println!("tokens: {:?}", tokens);
         let mut scope_manager = ScopeManager::new();
         // パース
-        let nodes = program(&mut parser)?;
+        let nodes = parser.program()?;
+        println!("{:?}", nodes);
         let mut decoder = Decoder::new(&parser, &mut scope_manager);
         // 実行
         decoder.decode(&nodes)?;

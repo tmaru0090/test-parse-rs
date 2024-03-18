@@ -1,25 +1,9 @@
+use crate::node::Node;
 use crate::tokenizer::*;
 use crate::types::*;
 use std::collections::HashMap;
-use std::env;
-use std::fs;
-use std::io::Error;
 use std::str::FromStr;
-#[derive(PartialEq, Eq, Debug, Clone)]
-pub struct Node {
-    node_type: NodeType,
-    value: String,
-    child: Vec<Box<Node>>,
-}
-impl Node {
-    fn new(node_type: NodeType, child: Vec<Box<Node>>, value: String) -> Node {
-        Node {
-            node_type,
-            value,
-            child,
-        }
-    }
-}
+
 impl FromStr for VarType {
     type Err = ();
 
@@ -56,6 +40,115 @@ impl<'a> Parser<'a> {
     pub fn peek_next(&self, current_pos: usize) -> Option<&Token> {
         self.tokens.get(current_pos + 1)
     }
+    /*
+    fn block(&mut self) -> Result<Box<Node>, String> {
+        let mut statements = Vec::new();
+
+        // 波かっこの開始を確認
+        if self.current_tokens().token_type != TokenType::LBlockDelimiter {
+            return Err("Expected '{' at the beginning of block".to_string());
+        }
+        self.next_tokens(); // 次のトークンに進む
+
+        loop {
+            if self.current_tokens().token_type == TokenType::RBlockDelimiter {
+                break; // ブロックの終わりに到達したらループを抜ける
+            }
+
+            let statement = self.expr()?; // ステートメントを解析
+            statements.push(statement);
+
+            // セミコロンの有無を確認
+            if self.current_tokens().token_type != TokenType::Semi {
+                return Err("Expected ';' at the end of statement".to_string());
+            }
+            self.next_tokens(); // セミコロンを読み進める
+        }
+
+        // 波かっこの終了を確認
+        if self.current_tokens().token_type != TokenType::RBlockDelimiter {
+            return Err("Expected '}' at the end of block".to_string());
+        }
+        self.next_tokens(); // 次のトークンに進む
+
+        Ok(Box::new(Node::new(
+            NodeType::Block(statements),
+            Vec::new(),
+            "".to_string(),
+        )))
+    }
+    */
+
+    fn block(&mut self) -> Result<Box<Node>, String> {
+        let mut statements = Vec::new();
+
+        // 波かっこの開始を確認
+        if self.current_tokens().token_type != TokenType::LBlockDelimiter {
+            return Err("Expected '{' at the beginning of block".to_string());
+        }
+        self.next_tokens(); // 次のトークンに進む
+
+        loop {
+            if self.current_tokens().token_type == TokenType::RBlockDelimiter {
+                break; // ブロックの終わりに到達したらループを抜ける
+            }
+
+            let statement = self.expr()?; // ステートメントを解析
+            statements.push(statement.clone());
+
+            // セミコロンの有無を確認
+            if self.current_tokens().token_type != TokenType::Semi {
+                return Err("Expected ';' at the end of statement".to_string());
+            }
+            self.next_tokens(); // セミコロンを読み進める
+
+            // デバッグ出力
+            println!("Parsed statement: {:?}", statement.clone());
+        }
+
+        // 波かっこの終了を確認
+        if self.current_tokens().token_type != TokenType::RBlockDelimiter {
+            return Err("Expected '}' at the end of block".to_string());
+        }
+        self.next_tokens(); // 次のトークンに進む
+
+        Ok(Box::new(Node::new(
+            NodeType::Block(statements),
+            Vec::new(),
+            "".to_string(),
+        )))
+    }
+    /*
+    fn block(&mut self) -> Result<Box<Node>, String> {
+        let mut statements = Vec::new();
+        // 新しいスコープを作成
+        // 波かっこの開始を確認
+        if self.current_tokens().token_type != TokenType::LBlockDelimiter {
+            return Err("Expected '{' at the beginning of block".to_string());
+        }
+        self.next_tokens(); // 次のトークンに進む
+
+        while self.current_tokens().token_type != TokenType::RBlockDelimiter {
+             let statement = self.expr()?; // 波かっこの中身を解析
+            statements.push(statement);
+            // 式の最後にセミコロンがあるかどうかの確認
+            if self.current_tokens().token_type != TokenType::Semi {
+                return Err("Expected ';' at the end of statement".to_string());
+            }
+            self.next_tokens(); // セミコロンを読み進める
+        }
+
+        if self.current_tokens().token_type != TokenType::RBlockDelimiter {
+            return Err("Expected '}' at the end of block".to_string());
+        }
+        self.next_tokens(); // 次のトークンに進む
+
+        Ok(Box::new(Node::new(
+            NodeType::Block(statements),
+            Vec::new(),
+            "".to_string(),
+        )))
+    }*/
     pub fn expr(&mut self) -> Result<Box<Node>, String> {
         let mut node = self.term()?;
         while self.current_tokens().token_type == TokenType::Add
@@ -73,6 +166,7 @@ impl<'a> Parser<'a> {
                 current_token.value,
             ));
         }
+
         Ok(node)
     }
     fn term(&mut self) -> Result<Box<Node>, String> {
@@ -110,7 +204,7 @@ impl<'a> Parser<'a> {
                 self.next_tokens();
                 let ident = current_token.value.clone();
                 Ok(Box::new(Node::new(
-                    NodeType::Var(ident.clone()),
+                    NodeType::Var(ident.clone(), VarType::Int(0)),
                     vec![],
                     ident,
                 )))
@@ -141,9 +235,9 @@ impl<'a> Parser<'a> {
 
                     // 式の結果を取得して変数にセット
                     let result = self.eval(&expr_node)?;
-                    self.variables.insert(var_name.clone(), result);
+                    self.variables.insert(var_name.clone(), result.clone());
                     Ok(Box::new(Node::new(
-                        NodeType::Var(var_name.clone()),
+                        NodeType::Var(var_name.clone(), result),
                         vec![],
                         var_name,
                     )))
@@ -151,6 +245,12 @@ impl<'a> Parser<'a> {
                     Err("Expected identifier after 'int' declaration".to_string())
                 }
             }
+            TokenType::Semi => {
+                //println!("{:?}",self.current_tokens());
+                //self.next_tokens();
+                Ok(Box::new(Node::new(NodeType::Semi, vec![], ";".to_string())))
+            }
+
             TokenType::Eof => Ok(Box::new(Node::new(
                 NodeType::Error,
                 vec![],
@@ -231,7 +331,7 @@ impl<'a> Parser<'a> {
             }
 
             // 他のパターンもVarTypeに応じて返り値の型を変更します
-            NodeType::Var(variable_name) => {
+            NodeType::Var(variable_name, _) => {
                 if let Some(value) = self.variables.get(variable_name) {
                     Ok(value.clone()) // 変数名に対応する値を返す
                 } else {
@@ -244,102 +344,22 @@ impl<'a> Parser<'a> {
             _ => Err("Invalid operation".to_string()),
         }
     }
-}
 
-pub struct ScopeManager {
-    pub scopes: Vec<HashMap<String, VarType>>, // スコープ毎の変数名と値の関連付けを管理するVec
-}
+    pub fn program(&mut self) -> Result<Vec<Box<Node>>, String> {
+        let mut nodes: Vec<Box<Node>> = Vec::new();
 
-impl ScopeManager {
-    pub fn new() -> ScopeManager {
-        ScopeManager {
-            scopes: vec![HashMap::new()],
-        } // 初期スコープを作成
-    }
-
-    fn create_scope(&mut self) {
-        self.scopes.push(HashMap::new()); // 新しいスコープを作成して追加
-    }
-
-    fn destroy_scope(&mut self) {
-        self.scopes.pop(); // 最後のスコープを削除
-    }
-
-    fn set_variable(&mut self, name: String, value: VarType) -> Result<(), String> {
-        if let Some(scope) = self.scopes.last_mut() {
-            scope.insert(name, value); // 現在のスコープに変数を追加
-            Ok(())
-        } else {
-            Err("No scope exists".to_string())
-        }
-    }
-
-    fn get_variable(&self, name: &str) -> Option<VarType> {
-        for scope in self.scopes.iter().rev() {
-            if let Some(value) = scope.get(name) {
-                return Some(value.clone()); // スコープから変数を取
+        while self.current_tokens().token_type != TokenType::Eof {
+            // 波かっこの開始をチェック
+            if self.current_tokens().token_type == TokenType::LBlockDelimiter {
+                let block_node = self.block()?; // 波かっこの解析
+                nodes.push(block_node);
+            } else {
+                let expr_node = self.expr()?; // 通常の式の解析
+                nodes.push(expr_node);
             }
         }
-        None
+        Ok(nodes)
     }
 }
 
-pub struct Decoder<'a> {
-    pub parser: &'a Parser<'a>,
-    pub scope_manager: &'a mut ScopeManager,
-}
 
-impl<'a> Decoder<'a> {
-    pub fn new(parser: &'a Parser, scope_manager: &'a mut ScopeManager) -> Decoder<'a> {
-        Decoder {
-            parser,
-            scope_manager,
-        }
-    }
-
-    pub fn decode(&mut self, program: &Vec<Box<Node>>) -> Result<(), String> {
-        // 今回は単純に宣言された変数のリストを表示
-        for (index, node) in program.iter().enumerate() {
-            match &node.node_type {
-                NodeType::VarDecl => {
-                    if let Some(node) = node.child.get(0) {
-                        if let NodeType::Var(name) = &node.node_type {
-                            let var_name = name;
-                            let result = self.parser.eval(node)?;
-                            self.scope_manager.set_variable(var_name.clone(), result)?;
-                        }
-                    }
-                }
-                _ => (),
-            }
-            self.parser.print_var(node, index)?;
-        }
-
-        Ok(())
-    }
-}
-// ファイルから内容を取得
-pub fn read_file(file_name: &str) -> Result<String, Error> {
-    // ファイルを読み込む
-    let contents = fs::read_to_string(file_name)?;
-    // すべての式を評価して結果を表示
-
-    Ok(contents)
-}
-
-// トークン化データからプログラムノードのリストを返す
-pub fn program(parser: &mut Parser) -> Result<Vec<Box<Node>>, String> {
-    let mut nodes: Vec<Box<Node>> = Vec::new();
-
-    // トークン列をすべて処理する
-    loop {
-        let node = parser.expr()?;
-        nodes.push(node);
-
-        // 次のトークンがEOFかどうかチェック
-        if parser.current_tokens().token_type == TokenType::Eof {
-            break;
-        }
-    }
-    Ok(nodes)
-}

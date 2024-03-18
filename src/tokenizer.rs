@@ -19,7 +19,7 @@ impl Tokenizer {
         let mut pos = 0;
         while pos < input.len() {
             let mut c = input.chars().nth(pos).expect("Index out of bounds");
-            if c == ' ' || c == '\n' {
+            if c == ' ' || c == '\n' || c == '\t' {
                 pos += 1;
                 continue;
             } else if c.is_digit(10) {
@@ -32,15 +32,16 @@ impl Tokenizer {
                     }
                 }
                 tokens.push(Token::new(TokenType::Int, num));
-            } else if c.is_alphabetic() {
+            } else if c.is_alphabetic() || c.is_alphanumeric() || c == '_' {
                 let mut ident = String::new();
-                while pos < input.len() && c.is_alphabetic() {
+                while pos < input.len() && (c.is_alphabetic() || c.is_alphanumeric() || c == '_') {
                     ident.push(c);
                     pos += 1;
                     if pos < input.len() {
                         c = input.chars().nth(pos).expect("Index out of bounds");
                     }
                 }
+                //let first_string = ident.chars().next().unwrap();
                 if ident == "let" || ident == "l" {
                     tokens.push(Token::new(TokenType::LetDecl, ident));
                 } else {
@@ -56,6 +57,8 @@ impl Tokenizer {
                     '/' => tokens.push(Token::new(TokenType::Div, "/".to_string())),
                     '(' => tokens.push(Token::new(TokenType::LParen, "(".to_string())),
                     ')' => tokens.push(Token::new(TokenType::RParen, ")".to_string())),
+                    '{' => tokens.push(Token::new(TokenType::LBlockDelimiter, "{".to_string())),
+                    '}' => tokens.push(Token::new(TokenType::RBlockDelimiter, "}".to_string())),
                     _ => {
                         tokens.push(Token::new(TokenType::Error, "Error!".to_string()));
                         return Err(format!("この文字はトークンではありませんよ {}", c));

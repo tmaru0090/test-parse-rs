@@ -1,7 +1,17 @@
 use std::env;
+use test_parse::decoder::*;
 use test_parse::parser::*;
+use test_parse::scope_manager::*;
 use test_parse::tokenizer::*;
 
+// ファイルから内容を取得
+pub fn read_file(file_name: &str) -> Result<String, Box<dyn std::error::Error>> {
+    // ファイルを読み込む
+    let contents = std::fs::read_to_string(file_name)?;
+    // すべての式を評価して結果を表示
+
+    Ok(contents)
+}
 //  メインエントリ
 fn main() -> Result<(), String> {
     // 引数を処理
@@ -23,7 +33,7 @@ fn main() -> Result<(), String> {
             println!("tokens: {:?}", tokens);
             let mut scope_manager = ScopeManager::new();
             // パース
-            let nodes = program(&mut parser)?;
+            let nodes = parser.program()?;
             let mut decoder = Decoder::new(&parser, &mut scope_manager);
             // 実行
             decoder.decode(&nodes)?;

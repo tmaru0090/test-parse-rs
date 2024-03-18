@@ -1,3 +1,5 @@
+use crate::node::Node;
+
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum TokenType {
     LBlockDelimiter, // {
@@ -18,19 +20,21 @@ pub enum TokenType {
     Eof,             // トークンの終わり
     Error,           // エラー時
 }
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum NodeType {
-    Var(String), // 変数
-    VarDecl,     // 変数宣言
-    VarAssign,   // 変数代入
-    Add,         // +
-    Sub,         // -
-    Mul,         // *
-    Div,         // /
-    Num(String), // 値
-    Error,       // エラー
+    Var(String, VarType), // 変数名と値のペアを保持する場合
+    VarDecl,              // 変数宣言
+    VarAssign,            // 変数代入
+    Add,                  // +
+    Sub,                  // -
+    Mul,                  // *
+    Div,                  // /
+    Num(String),          // 値
+    Error,                // エラー
+    Semi,                 // 式の終わり
+    Block(Vec<Box<Node>>),
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum VarType {
     Int(i64),
     String(String),

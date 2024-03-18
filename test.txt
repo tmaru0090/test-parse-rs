@@ -1,1 +1,6 @@
-let a = 100
+{
+	l _test = 1;
+	l r = _test+10;
+	l c = 1999+r+_test;
+}
+
