@@ -50,8 +50,8 @@ impl<'a> Parser<'a> {
 
         Box::new(node)
     }
-    pub fn new_number(value:i32) -> Box<Node> {
-        let node = Node::new(NodeType::Number(value),None);
+    pub fn new_number(value: i32) -> Box<Node> {
+        let node = Node::new(NodeType::Number(value), None);
         Box::new(node)
     }
 

@@ -1,7 +1,6 @@
 
 fn test(){
-	let a = 199;
-	return a+10000;
+	return system_1();	
 }
 test();
 
