@@ -2,28 +2,24 @@
 use crate::parser::Node;
 use crate::types::NodeType;
 use std::collections::HashMap;
+use std::iter::zip;
 
 use anyhow::Result as R;
 use log::info;
 
- 
 pub struct Decoder {
     global_variables: HashMap<String, i32>,
     local_variables_stack: Vec<HashMap<String, i32>>,
-    func_lists: HashMap<String, Box<Node>>, // 関数の定義を保持
-    last_var_name: Option<String>, // 最後に代入された変数名を保持
+    func_lists: HashMap<String, (Vec<String>, Box<Node>)>, // 関数の定義を保持
+    last_var_name: Option<String>,                         // 最後に代入された変数名を保持
 }
-
-
-
-
-
 
 impl Decoder {
     pub fn evaluate(&mut self, node: &Box<Node>) -> R<i32, String> {
         match &node.node_value() {
             NodeType::Function(func_name, args, body) => {
-                self.func_lists.insert(func_name.to_string(), body.clone());
+                self.func_lists
+                    .insert(func_name.clone(), (args.clone(), body.clone()));
                 info!("define function: {:?}", func_name);
                 Ok(0)
             }
@@ -32,22 +28,20 @@ impl Decoder {
                 info!("Return: {:?}", value);
                 Ok(value)
             }
-            /*
             NodeType::Call(func_name, args) => {
-                if let Some(body) = self.func_lists.get(func_name).cloned() {
+                if let Some((args_name_v, body)) = self.func_lists.get(func_name).cloned() {
                     // 新しいローカル変数のスコープを作成し、引数をローカル変数として追加
                     let mut local_vars = HashMap::new();
-                    for (i, arg) in args.iter().enumerate() {
+                    for (arg_name, arg) in args_name_v.iter().zip(args.iter()) {
                         let arg_value = self.evaluate(&Box::new(arg.clone()))?;
-                        if let NodeType::Variable(arg_name) = &arg.node_value() {
-                            local_vars.insert(arg_name.clone(), arg_value);
-                        } else {
-                            local_vars.insert(format!("args{}", i), arg_value);
-                        }
+                        local_vars.insert(arg_name.clone(), arg_value);
                     }
-                    info!("Local variables for function {}: {:?}", func_name, local_vars);
+                    info!(
+                        "Local variables for function {}: {:?}",
+                        func_name, local_vars
+                    );
                     self.local_variables_stack.push(local_vars);
-                    
+
                     // 関数本体を評価
                     let result = self.evaluate(&body);
 
@@ -59,64 +53,21 @@ impl Decoder {
                     Err(format!("Undefined function: {}", func_name))
                 }
             }
-                */   
-NodeType::Call(func_name, args) => {
-    if let Some(body) = self.func_lists.get(func_name).cloned() {
-        // 新しいローカル変数のスコープを作成し、引数をローカル変数として追加
-        let mut local_vars = HashMap::new();
-        for (i, arg) in args.iter().enumerate() {
-            let arg_value = self.evaluate(&Box::new(arg.clone()))?;
-            if let NodeType::Variable(arg_name) = &arg.node_value() {
-                local_vars.insert(arg_name.clone(), arg_value); // 引数名を使用してローカル変数に追加
-            } else {
-                local_vars.insert(format!("arg{}", i), arg_value); // これは使わない
-            }
-        }
-        info!("Local variables for function {}: {:?}", func_name, local_vars);
-        self.local_variables_stack.push(local_vars);
-
-        // 関数本体を評価
-        let result = self.evaluate(&body);
-
-        // ローカル変数のスコープを削除
-        self.local_variables_stack.pop();
-
-        result
-    } else {
-        Err(format!("Undefined function: {}", func_name))
-    }
-}
             NodeType::Number(value) => Ok(*value),
- /*
             NodeType::Variable(name) => {
-                // ローカル変数を先にチェックし、次にグローバル変数をチェック
-                if let Some(value) = self
-                    .local_variables_stack
-                    .last()
-                    .and_then(|vars| vars.get(name))
-                {
-                    Ok(*value)
-                } else if let Some(value) = self.global_variables.get(name) {
+                // ローカル変数スタックのすべてのスコープを逆順でチェック
+                for local_vars in self.local_variables_stack.iter().rev() {
+                    if let Some(value) = local_vars.get(name) {
+                        return Ok(*value);
+                    }
+                }
+                // グローバル変数のチェック
+                if let Some(value) = self.global_variables.get(name) {
                     Ok(*value)
                 } else {
                     Err(format!("Undefined variable: {}", name))
                 }
             }
-            */
-NodeType::Variable(name) => {
-    // ローカル変数スタックのすべてのスコープを逆順でチェック
-    for local_vars in self.local_variables_stack.iter().rev() {
-        if let Some(value) = local_vars.get(name) {
-            return Ok(*value);
-        }
-    }
-    // グローバル変数のチェック
-    if let Some(value) = self.global_variables.get(name) {
-        Ok(*value)
-    } else {
-        Err(format!("Undefined variable: {}", name))
-    }
-}
             NodeType::Assign(var_node, expr_node) => {
                 let value = self.evaluate(expr_node)?;
                 if let NodeType::Variable(var_name) = &var_node.node_value() {
@@ -146,7 +97,7 @@ NodeType::Variable(name) => {
             }
             NodeType::Add | NodeType::Sub | NodeType::Mul | NodeType::Div => {
                 let current_node = node;
-                
+
                 let left_node = {
                     let temp_node = current_node.node_next();
                     temp_node
@@ -218,12 +169,29 @@ impl Decoder {
 
 
 
+
 /*
+use crate::parser::Node;
+use crate::types::NodeType;
+use std::collections::HashMap;
+use std::iter::zip;
+
+use anyhow::Result as R;
+use log::info;
+
+pub struct Decoder {
+    global_variables: HashMap<String, i32>,
+    local_variables_stack: Vec<HashMap<String, i32>>,
+    func_lists: HashMap<String, (Vec<String>, Box<Node>)>, // 関数の定義を保持
+    last_var_name: Option<String>,                         // 最後に代入された変数名を保持
+}
+
 impl Decoder {
     pub fn evaluate(&mut self, node: &Box<Node>) -> R<i32, String> {
         match &node.node_value() {
             NodeType::Function(func_name, args, body) => {
-                self.func_lists.insert(func_name.to_string(), body.clone());
+                self.func_lists
+                    .insert(func_name.clone(), (args.clone(), body.clone()));
                 info!("define function: {:?}", func_name);
                 Ok(0)
             }
@@ -233,18 +201,19 @@ impl Decoder {
                 Ok(value)
             }
             NodeType::Call(func_name, args) => {
-                if let Some(body) = self.func_lists.get(func_name).cloned() {
+                if let Some((args_name_v, body)) = self.func_lists.get(func_name).cloned() {
                     // 新しいローカル変数のスコープを作成し、引数をローカル変数として追加
                     let mut local_vars = HashMap::new();
                     for (i, arg) in args.iter().enumerate() {
                         let arg_value = self.evaluate(&Box::new(arg.clone()))?;
-                        if let NodeType::Variable(arg_name) = &arg.node_value() {
-                            local_vars.insert(arg_name.clone(), arg_value);
-                        } else {
-                            local_vars.insert(format!("arg{}", i), arg_value);
+                        for args_name in &args_name_v {
+                            local_vars.insert(args_name.clone(), arg_value);
                         }
                     }
-                    info!("Local variables for function {}: {:?}", func_name, local_vars);
+                    info!(
+                        "Local variables for function {}: {:?}",
+                        func_name, local_vars
+                    );
                     self.local_variables_stack.push(local_vars);
 
                     // 関数本体を評価
@@ -260,14 +229,14 @@ impl Decoder {
             }
             NodeType::Number(value) => Ok(*value),
             NodeType::Variable(name) => {
-                // ローカル変数を先にチェックし、次にグローバル変数をチェック
-                if let Some(value) = self
-                    .local_variables_stack
-                    .last()
-                    .and_then(|vars| vars.get(name))
-                {
-                    Ok(*value)
-                } else if let Some(value) = self.global_variables.get(name) {
+                // ローカル変数スタックのすべてのスコープを逆順でチェック
+                for local_vars in self.local_variables_stack.iter().rev() {
+                    if let Some(value) = local_vars.get(name) {
+                        return Ok(*value);
+                    }
+                }
+                // グローバル変数のチェック
+                if let Some(value) = self.global_variables.get(name) {
                     Ok(*value)
                 } else {
                     Err(format!("Undefined variable: {}", name))
@@ -302,6 +271,7 @@ impl Decoder {
             }
             NodeType::Add | NodeType::Sub | NodeType::Mul | NodeType::Div => {
                 let current_node = node;
+
                 let left_node = {
                     let temp_node = current_node.node_next();
                     temp_node
@@ -336,7 +306,7 @@ impl Decoder {
             _ => Err("Unsupported node type".to_string()),
         }
     }
- pub fn decode(&mut self, nodes: &Vec<Node>) -> R<(), String> {
+    pub fn decode(&mut self, nodes: &Vec<Node>) -> R<(), String> {
         for node in nodes {
             match &node.node_value() {
                 NodeType::Assign(var_node, expr_node) => {
@@ -356,17 +326,14 @@ impl Decoder {
         }
         Ok(())
     }
-
 }
-impl Decoder{
-    pub fn new()->Self{
+impl Decoder {
+    pub fn new() -> Self {
         Decoder {
             global_variables: HashMap::new(),
             local_variables_stack: Vec::new(),
             func_lists: HashMap::new(),
             last_var_name: None,
         }
-
     }
-}
-*/
+}*/
