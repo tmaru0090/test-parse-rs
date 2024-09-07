@@ -32,43 +32,22 @@ impl<'a> Parser<'a> {
     }
 
     pub fn new_add(left: Box<Node>, right: Box<Node>) -> Box<Node> {
-        let node = Node::new(
-            NodeType::Add,
-            Some(Box::new(Node::new(
-                left.node_value(),
-                Some(Box::new(*right)),
-            ))),
-        );
+        let node = Node::new(NodeType::Add(left, right), None);
+
         Box::new(node)
     }
     pub fn new_sub(left: Box<Node>, right: Box<Node>) -> Box<Node> {
-        let node = Node::new(
-            NodeType::Sub,
-            Some(Box::new(Node::new(
-                left.node_value(),
-                Some(Box::new(*right)),
-            ))),
-        );
+        let node = Node::new(NodeType::Sub(left, right), None);
         Box::new(node)
     }
     pub fn new_mul(left: Box<Node>, right: Box<Node>) -> Box<Node> {
-        let node = Node::new(
-            NodeType::Mul,
-            Some(Box::new(Node::new(
-                left.node_value(),
-                Some(Box::new(*right)),
-            ))),
-        );
+        let node = Node::new(NodeType::Mul(left, right), None);
+
         Box::new(node)
     }
     pub fn new_div(left: Box<Node>, right: Box<Node>) -> Box<Node> {
-        let node = Node::new(
-            NodeType::Div,
-            Some(Box::new(Node::new(
-                left.node_value(),
-                Some(Box::new(*right)),
-            ))),
-        );
+        let node = Node::new(NodeType::Div(left, right), None);
+
         Box::new(node)
     }
 
@@ -116,7 +95,6 @@ impl<'a> Parser<'a> {
     fn next_token(&mut self) {
         self.i += 1;
     }
-
     fn term(&mut self) -> R<Box<Node>> {
         let mut node = self.factor()?;
         while matches!(
@@ -128,15 +106,11 @@ impl<'a> Parser<'a> {
             let rhs = self.factor()?;
             node = Box::new(Node::new(
                 match op.token_type() {
-                    TokenType::Mul => NodeType::Mul,
-                    TokenType::Div => NodeType::Div,
+                    TokenType::Mul => NodeType::Mul(node, rhs),
+                    TokenType::Div => NodeType::Div(node, rhs),
                     _ => panic!("Unexpected token: {:?}", op),
                 },
-                // 左辺と右辺を正しくリンク
-                Some(Box::new(Node::new(
-                    node.node_value.clone(),
-                    Some(Box::new(*rhs)),
-                ))),
+                None,
             ));
         }
         Ok(node)
@@ -153,20 +127,15 @@ impl<'a> Parser<'a> {
             let rhs = self.term()?;
             node = Box::new(Node::new(
                 match op.token_type() {
-                    TokenType::Add => NodeType::Add,
-                    TokenType::Sub => NodeType::Sub,
+                    TokenType::Add => NodeType::Add(node, rhs),
+                    TokenType::Sub => NodeType::Sub(node, rhs),
                     _ => panic!("Unexpected token: {:?}", op),
                 },
-                // 左辺と右辺を正しくリンク
-                Some(Box::new(Node::new(
-                    node.node_value.clone(),
-                    Some(Box::new(*rhs)),
-                ))),
+                None,
             ));
         }
         Ok(node)
     }
-
     fn parse_function_call(&mut self, token: Token) -> R<Box<Node>> {
         self.next_token(); // '(' をスキップ
         let mut args = Vec::new();

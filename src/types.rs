@@ -27,10 +27,10 @@ pub enum TokenType {
 #[derive(PartialEq, Debug, Clone)]
 pub enum NodeType {
     /*記号*/
-    Add, // +
-    Sub, // -
-    Mul, // x
-    Div, // ÷
+    Add(Box<Node>, Box<Node>), // +
+    Sub(Box<Node>, Box<Node>), // -
+    Mul(Box<Node>, Box<Node>), // x
+    Div(Box<Node>, Box<Node>), // ÷
     /*変数*/
     Assign(Box<Node>, Box<Node>), // 代入
     Block(Vec<Node>),

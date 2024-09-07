@@ -31,6 +31,7 @@ impl Decoder {
         self.func_lists.insert(name.clone(), (args, body));
         Ok(())
     }
+
     pub fn evaluate(&mut self, node: &Box<Node>) -> R<VariableValue, String> {
         match &node.node_value() {
             NodeType::Function(func_name, args, body) => {
@@ -140,45 +141,30 @@ impl Decoder {
                 self.local_variables_stack.pop();
                 Ok(value)
             }
-            NodeType::Add | NodeType::Sub | NodeType::Mul | NodeType::Div => {
-                let current_node = node;
-
-                let left_node = {
-                    let temp_node = current_node.node_next();
-                    temp_node
-                        .as_ref()
-                        .map(|n| n.clone())
-                        .ok_or_else(|| "Missing left operand".to_string())?
-                };
-                let right_node = {
-                    let temp_node = left_node.node_next();
-                    temp_node
-                        .as_ref()
-                        .map(|n| n.clone())
-                        .ok_or_else(|| "Missing right operand".to_string())?
-                };
-
-                let left_value = self.evaluate(&left_node)?;
-                let right_value = self.evaluate(&right_node)?;
+            NodeType::Add(left, right)
+            | NodeType::Sub(left, right)
+            | NodeType::Mul(left, right)
+            | NodeType::Div(left, right) => {
+                let left_value = self.evaluate(left)?;
+                let right_value = self.evaluate(right)?;
                 match (&node.node_value(), left_value, right_value) {
-                    (NodeType::Add, VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                    (NodeType::Add(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
                         Ok(VariableValue::Int32(l + r))
                     }
-                    (NodeType::Sub, VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                    (NodeType::Sub(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
                         Ok(VariableValue::Int32(l - r))
                     }
-                    (NodeType::Mul, VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                    (NodeType::Mul(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
                         Ok(VariableValue::Int32(l * r))
                     }
-                    (NodeType::Div, VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                    (NodeType::Div(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
                         if r == 0 {
                             Err("Division by zero.".to_string())
                         } else {
                             Ok(VariableValue::Int32(l / r))
                         }
                     }
-
-                    (NodeType::Add, VariableValue::Str(l), VariableValue::Str(r)) => {
+                    (NodeType::Add(_, _), VariableValue::Str(l), VariableValue::Str(r)) => {
                         Ok(VariableValue::Str(l + &r))
                     }
                     _ => Err("Unsupported operation or mismatched types".to_string()),
@@ -187,6 +173,7 @@ impl Decoder {
             _ => Err("Unsupported node type".to_string()),
         }
     }
+
     pub fn decode(&mut self, nodes: &Vec<Node>) -> R<(), String> {
         for node in nodes {
             match &node.node_value() {

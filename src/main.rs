@@ -73,7 +73,7 @@ fn main() -> R<()> {
     tokens = tokenizer.tokenize()?;
     info!("tokens: ");
     info!("{:?}", tokens);
-
+    let mut parser = Parser::new(&tokens);
     let nodes = parser.parse()?;
 
     info!("nodes: ");
