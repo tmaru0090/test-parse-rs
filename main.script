@@ -1,0 +1,4 @@
+test(a){
+	return 1000;
+}
+return test(1000);

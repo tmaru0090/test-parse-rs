@@ -1,0 +1,327 @@
+use anyhow::Result as R;
+use property_rs::Property;
+
+use std::collections::HashMap;
+#[derive(PartialEq, Debug, Clone)]
+enum TokenType {
+    /*記号*/
+    Add,   // +
+    Sub,   // -
+    Mul,   // x
+    Div,   // ÷  
+    LeftParen, // (
+    RightParen, // ) 
+    Comma, // ,
+    Equals, // =
+    AtSign, // @ 
+    Semi,   // ;
+    /*識別子*/
+    Ident, 
+    /*その他*/ 
+    Eof, // トークンの終わり
+}
+
+#[derive(PartialEq, Debug, Clone)]
+enum NodeType {
+    /*記号*/
+    Add,   // +
+    Sub,   // -
+    Mul,   // x
+    Div,   // ÷  
+    LeftParen, // (
+    RightParen, // ) 
+    Comma, // ,
+    Equals, // =
+    AtSign, // @ 
+    Semi,   // ;
+    
+    /*変数*/
+    VarInt(i32),
+    VarString(String),
+    Assign(Box<Node>, Box<Node>), // 代入
+    Variable(String), // 変数
+    Number(i32), // 数値
+}
+
+#[derive(Debug, Property, Clone)]
+struct Token {
+    #[property(get)]
+    token_value: String,
+    #[property(get)]
+    token_type: TokenType,
+}
+
+impl Token {
+    fn new(token_value: String, token_type: TokenType) -> Self {
+        Token { token_value, token_type }
+    }
+}
+
+struct Tokenizer {
+    input: String,
+}
+
+impl Tokenizer {
+    fn new(input: String) -> Self {
+        Tokenizer { input }
+    }
+
+    fn is_symbol(&self, c: char) -> bool {
+        match c {
+            '+' | '-' | '*' | '/' | '(' | ')' | ',' | '=' | ';' | '@'  => true,
+            _ => false,
+        }
+    }
+    
+    fn tokenize(&mut self) -> R<Vec<Token>> {
+        let mut tokens: Vec<Token> = Vec::new();
+        let input = self.input.clone();
+        let mut i = 0;
+
+        while i < input.len() {
+            let c = input.chars().nth(i).expect("index out of bounds.");
+
+            if c == ' ' || c == '\n' || c == '\t' {
+                i += 1;
+                continue;
+            }
+
+            if c.is_digit(10) {
+                let mut number = String::new();
+                while i < input.len() {
+                    let c = input.chars().nth(i).expect("index out of bounds.");
+                    if c.is_digit(10) {
+                        number.push(c);
+                        i += 1;
+                    } else {
+                        break;
+                    }
+                }
+                tokens.push(Token::new(number, TokenType::Ident));
+            } else if c.is_alphanumeric() || c == '_' {
+                let mut ident = String::new();
+                while i < input.len() {
+                    let c = input.chars().nth(i).expect("index out of bounds.");
+                    if c.is_alphanumeric() || c == '_' {
+                        ident.push(c);
+                        i += 1;
+                    } else {
+                        break;
+                    }
+                }
+                tokens.push(Token::new(ident, TokenType::Ident));
+            } else if self.is_symbol(c) {
+                let token_type = match c {
+                    '+' => TokenType::Add,
+                    '-' => TokenType::Sub,
+                    '*' => TokenType::Mul,
+                    '/' => TokenType::Div,
+                    '(' => TokenType::LeftParen,
+                    ')' => TokenType::RightParen,
+                    ',' => TokenType::Comma,
+                    '=' => TokenType::Equals,
+                    '@' => TokenType::AtSign,
+                    ';' => TokenType::Semi,
+                    _ => panic!("Unexpected symbol: {:?}", c),
+                };
+                tokens.push(Token::new(c.to_string(), token_type));
+                i += 1;
+            } else {
+                panic!("Failed to tokenize: {:?}", c);
+            }
+        }
+        tokens.push(Token::new(String::from(""), TokenType::Eof));
+        Ok(tokens)
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+struct Node {
+    node_value: NodeType,
+    node_next: Option<Box<Node>>,
+}
+
+impl Node {
+    fn new(node_value: NodeType, node_next: Option<Box<Node>>) -> Self {
+        Node {
+            node_value,
+            node_next,
+        }
+    }
+}
+
+struct Parser<'a> {
+    tokens: &'a Vec<Token>,
+    i: usize,
+}
+
+impl<'a> Parser<'a> {
+    fn new(tokens: &'a Vec<Token>) -> Self {
+        Parser { tokens, i: 0 }
+    }
+
+    fn current_token(&self) -> &Token {
+        &self.tokens[self.i]
+    }
+
+    fn next_token(&mut self) {
+        self.i += 1;
+    }
+
+    fn factor(&mut self) -> R<Box<Node>> {
+        let token = self.current_token().clone();
+        match token.token_type {
+            TokenType::Ident => {
+                if let Ok(number) = token.token_value.parse::<i32>() {
+                    self.next_token();
+                    Ok(Box::new(Node::new(NodeType::Number(number), None)))
+                } else {
+                    self.next_token();
+                    Ok(Box::new(Node::new(NodeType::Variable(token.token_value.clone()), None)))
+                }
+            }
+            _ => Err(anyhow::anyhow!("Unexpected token in factor: {:?}", token)),
+        }
+    }
+
+    fn term(&mut self) -> R<Box<Node>> {
+        let mut node = self.factor()?;
+        while matches!(self.current_token().token_type, TokenType::Mul | TokenType::Div) {
+            let op = self.current_token().clone();
+            self.next_token();
+            let rhs = self.factor()?;
+            node = Box::new(Node::new(
+                match op.token_type {
+                    TokenType::Mul => NodeType::Mul,
+                    TokenType::Div => NodeType::Div,
+                    _ => panic!("Unexpected token: {:?}", op),
+                },
+                Some(node),
+            ));
+        }
+        Ok(node)
+    }
+fn expr(&mut self) -> R<Box<Node>> {
+    let mut node = self.term()?;
+    while matches!(self.current_token().token_type, TokenType::Add | TokenType::Sub) {
+        let op = self.current_token().clone();
+        self.next_token();
+        let rhs = self.term()?;
+        node = Box::new(Node::new(
+            match op.token_type {
+                TokenType::Add => NodeType::Add,
+                TokenType::Sub => NodeType::Sub,
+                _ => panic!("Unexpected token: {:?}", op),
+            },
+            Some(Box::new(Node::new(
+                NodeType::Assign(
+                    Box::new(Node::new(NodeType::Variable(String::new()), None)),
+                    rhs
+                ),
+                Some(node),
+            ))),
+        ));
+    }
+    Ok(node)
+}
+    fn parse(&mut self) -> R<Vec<Node>> {
+        let mut nodes: Vec<Node> = Vec::new();
+        while self.current_token().token_type != TokenType::Eof {
+            if self.current_token().token_type == TokenType::Ident && self.tokens[self.i + 1].token_type == TokenType::Equals {
+                let var = self.current_token().token_value.clone();
+                self.next_token(); // =
+                self.next_token(); // move to value
+                let value_node = self.expr()?;
+                nodes.push(Node::new(
+                    NodeType::Assign(
+                        Box::new(Node::new(NodeType::Variable(var), None)),
+                        value_node
+                    ),
+                    None
+                ));
+            } else {
+                let expr_node = self.expr()?;
+                nodes.push(*expr_node);
+            }
+            if self.current_token().token_type == TokenType::Semi {
+                self.next_token(); // skip ;
+            }
+        }
+        Ok(nodes)
+    }
+}
+
+struct Decoder {
+    variables: HashMap<String, i32>,
+}
+impl Decoder {
+    fn evaluate(&mut self, node: &Box<Node>) -> Result<i32, String> {
+        match &node.node_value {
+            NodeType::Number(value) => Ok(*value),
+            NodeType::Variable(name) => {
+                self.variables.get(name).cloned().ok_or_else(|| format!("Undefined variable: {}", name))
+            }
+            NodeType::Assign(var_node, expr_node) => {
+                let value = self.evaluate(expr_node)?;
+                if let NodeType::Variable(var_name) = &var_node.node_value {
+                    self.variables.insert(var_name.clone(), value);
+                }
+                Ok(value)
+            }
+            NodeType::Add => {
+                let mut current_node = node;
+                let left_value = self.evaluate(&current_node.node_next.as_ref().unwrap())?;
+                let right_value = self.evaluate(&current_node.node_next.as_ref().unwrap().node_next.as_ref().unwrap())?;
+                Ok(left_value + right_value)
+            }
+            NodeType::Sub => {
+                let mut current_node = node;
+                let left_value = self.evaluate(&current_node.node_next.as_ref().unwrap())?;
+                let right_value = self.evaluate(&current_node.node_next.as_ref().unwrap().node_next.as_ref().unwrap())?;
+                Ok(left_value - right_value)
+            }
+            _ => Err("Unsupported operation".to_string()),
+        }
+    }
+
+    fn decode(&mut self, nodes: &Vec<Node>) -> Result<(), String> {
+        for node in nodes {
+            match &node.node_value {
+                NodeType::Assign(var_node, expr_node) => {
+                    let value = self.evaluate(expr_node)?;
+                    if let NodeType::Variable(var_name) = &var_node.node_value {
+                        println!("{} = {}", var_name, value);
+                    }
+                }
+                _ => {
+                    let value = self.evaluate(&Box::new(node.clone()))?;
+                    println!("Result: {}", value);
+                }
+            }
+        }
+        Ok(())
+    }
+}
+impl Decoder {
+    fn new() -> Self {
+        Decoder {
+            variables: HashMap::new(),
+        }
+    }
+}
+
+fn main() -> R<()> {
+    let mut tokenizer = Tokenizer::new(String::from("test=100+1;"));
+    let tokens = tokenizer.tokenize()?;
+      println!("tokens: ");
+     println!("{:?}", tokens);
+
+    let mut parser = Parser::new(&tokens);
+    let nodes = parser.parse()?;
+    
+      println!("nodes: ");
+      println!("{:?}", nodes);
+    let mut decoder = Decoder::new();
+    decoder.decode(&nodes).unwrap();
+    Ok(())
+}
