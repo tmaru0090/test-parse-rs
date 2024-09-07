@@ -13,7 +13,7 @@ pub struct Node {
 }
 
 impl Node {
-    fn new(node_value: NodeType, node_next: Option<Box<Node>>) -> Self {
+    pub fn new(node_value: NodeType, node_next: Option<Box<Node>>) -> Self {
         Node {
             node_value,
             node_next,

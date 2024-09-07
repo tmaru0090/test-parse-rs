@@ -2,22 +2,22 @@ use crate::parser::Node;
 #[derive(PartialEq, Debug, Clone)]
 pub enum TokenType {
     /*記号*/
-    Add,             // +
-    Sub,             // -
-    Mul,             // x
-    Div,             // ÷
-    LeftParen,       // (
-    RightParen,      // )
-    RightCurlyBrace, // {
-    LeftCurlyBrace,  // }
-    LeftSquareBrace, // [
-    RightSquareBrace,// ]
-    Comma,           // ,
-    Equals,          // =
-    AtSign,          // @
-    Semi,            // ;
-    DoubleQuote,     // "
-    SingleQuote,     // '
+    Add,              // +
+    Sub,              // -
+    Mul,              // x
+    Div,              // ÷
+    LeftParen,        // (
+    RightParen,       // )
+    RightCurlyBrace,  // {
+    LeftCurlyBrace,   // }
+    LeftSquareBrace,  // [
+    RightSquareBrace, // ]
+    Comma,            // ,
+    Equals,           // =
+    AtSign,           // @
+    Semi,             // ;
+    DoubleQuote,      // "
+    SingleQuote,      // '
     /*識別子*/
     Ident,
     /*その他*/

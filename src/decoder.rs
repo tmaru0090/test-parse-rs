@@ -19,6 +19,18 @@ pub enum VariableValue {
     Str(String),
 }
 impl Decoder {
+    pub fn register_function(
+        &mut self,
+        name: String,
+        args: Vec<String>,
+        body: Box<Node>,
+    ) -> R<(), String> {
+        if self.func_lists.contains_key(&name) {
+            return Err(format!("func name {:?} is defined", name));
+        }
+        self.func_lists.insert(name.clone(), (args, body));
+        Ok(())
+    }
     pub fn evaluate(&mut self, node: &Box<Node>) -> R<VariableValue, String> {
         match &node.node_value() {
             NodeType::Function(func_name, args, body) => {
@@ -167,7 +179,7 @@ impl Decoder {
                     }
 
                     (NodeType::Add, VariableValue::Str(l), VariableValue::Str(r)) => {
-                        Ok(VariableValue::Str(l+&r))
+                        Ok(VariableValue::Str(l + &r))
                     }
                     _ => Err("Unsupported operation or mismatched types".to_string()),
                 }

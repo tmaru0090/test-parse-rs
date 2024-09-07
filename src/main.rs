@@ -6,6 +6,7 @@ use anyhow::{anyhow, Result as R};
 use decoder::Decoder;
 use env_logger;
 use log::info;
+use parser::Node;
 use parser::Parser;
 use std::fs;
 use std::io::{self, BufRead};
@@ -13,6 +14,7 @@ use std::path::Path;
 use std::vec::Vec;
 use tokenizer::Tokenizer;
 use types::*;
+
 
 fn read_files_with_extension(extension: &str) -> R<Vec<String>> {
     let mut results = Vec::new();
@@ -79,6 +81,7 @@ fn main() -> R<()> {
     info!("nodes: ");
     info!("{:?}", nodes);
     let mut decoder = Decoder::new();
+
     decoder.decode(&nodes).expect("Failed to decode");
     Ok(())
 }

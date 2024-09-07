@@ -1,7 +1,4 @@
-fn test(){
-	let ret = "あいうえお";
-	let ret2 = "行き過ぎ";
-	return ret+ret2;
+fn イキスギィ(a){
+	return a+"いくいく！";
 }
-test();
-
+イキスギィ("えっと");
