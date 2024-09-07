@@ -3,12 +3,14 @@ mod parser;
 mod tokenizer;
 mod types;
 use anyhow::{anyhow, Result as R};
-use decoder::Decoder;
+use decoder::*;
 use env_logger;
 use log::info;
 use parser::Node;
 use parser::Parser;
 use std::fs;
+use std::fs::File;
+use std::io::Write;
 use std::io::{self, BufRead};
 use std::path::Path;
 use std::vec::Vec;
@@ -42,7 +44,46 @@ fn read_files_with_extension(extension: &str) -> R<Vec<String>> {
         Ok(results)
     }
 }
+fn write_to_file(filename: &str, content: &str) -> R<()> {
+    let mut file = File::create(filename)?;
+    file.write_all(content.as_bytes())?;
+    Ok(())
+}
+fn decode(nodes:&Vec<Node>) -> R<()> {
+    #[cfg(feature = "decode")]
+    {
+        // my decode
+        let mut decoder = Decoder::new();
+        let block = Parser::<'_>::new_block(vec![*Parser::<'_>::new_return(
+            Parser::<'_>::new_add(Parser::<'_>::new_number(100), Parser::<'_>::new_number(100)),
+        )]);
+        decoder
+            .register_function("system_1".to_string(), vec![], block)
+            .unwrap();
 
+        decoder.decode(&nodes).expect("Failed to decode");
+    }
+
+    Ok(())
+}
+fn asm(nodes:&Vec<Node>) -> R<()> {
+    // asm generate
+
+    #[cfg(feature = "asm")]
+    {
+        let mut asm_i = AsmInterpreter::new();
+        let block = Parser::<'_>::new_block(vec![*Parser::<'_>::new_return(
+            Parser::<'_>::new_add(Parser::<'_>::new_number(100), Parser::<'_>::new_number(100)),
+        )]);
+        asm_i
+            .register_function("system_1".to_string(), vec![], block)
+            .unwrap();
+        let asm_src = asm_i.generate_asm(&nodes).unwrap();
+        write_to_file("main.asm", &asm_src)?;
+    }
+
+    Ok(())
+}
 fn main() -> R<()> {
     env_logger::init();
     let mut test_src = String::new();
@@ -50,13 +91,7 @@ fn main() -> R<()> {
     let mut tokens = Vec::new();
     let extension = "script"; // 拡張子は "script" のみ
 
-    test_src = String::from(
-        r#"
-        fn test(){ 
-            let a = 100;
-        }
-    "#,
-    );
+    test_src = String::from("");
 
     // .script ファイルが存在するか確認
     match read_files_with_extension(extension) {
@@ -69,24 +104,15 @@ fn main() -> R<()> {
             tokenizer.set_input(test_src);
         }
     }
-
     tokens = tokenizer.tokenize()?;
-    info!("tokens: ");
-    info!("{:?}", tokens);
     let mut parser = Parser::new(&tokens);
     let nodes = parser.parse()?;
-
-    info!("nodes: ");
-    info!("{:?}", nodes);
-    let mut decoder = Decoder::new();
-    let block = Parser::<'_>::new_block(vec![*Parser::<'_>::new_return(Parser::<'_>::new_add(
-        Parser::<'_>::new_number(100),
-        Parser::<'_>::new_number(100),
-    ))]);
-    decoder
-        .register_function("system_1".to_string(), vec![], block)
-        .unwrap();
-    decoder.decode(&nodes).expect("Failed to decode");
-
+    // デバッグ用
+    //info!("tokens: ");
+    //info!("{:?}", tokens);
+    //info!("nodes: ");
+    //info!("{:?}", nodes);
+    asm(&nodes)?;
+    decode(&nodes)?;
     Ok(())
 }

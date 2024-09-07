@@ -1,6 +1,2 @@
 
-fn test(){
-	return system_1();	
-}
-test();
 
