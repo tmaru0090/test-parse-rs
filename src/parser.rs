@@ -50,6 +50,10 @@ impl<'a> Parser<'a> {
 
         Box::new(node)
     }
+    pub fn new_number(value:i32) -> Box<Node> {
+        let node = Node::new(NodeType::Number(value),None);
+        Box::new(node)
+    }
 
     pub fn new_variable(name: String, expr: Box<Node>) -> Box<Node> {
         let node = Node::new(NodeType::Variable(name.clone()), Some(expr));

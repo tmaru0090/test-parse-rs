@@ -1,5 +1,7 @@
+
 fn test(){
 	let a = 199;
 	return a+10000;
 }
 test();
+

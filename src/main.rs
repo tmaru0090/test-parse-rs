@@ -79,7 +79,17 @@ fn main() -> R<()> {
     info!("nodes: ");
     info!("{:?}", nodes);
     let mut decoder = Decoder::new();
-
+    let block = Parser::<'_>::new_block(vec![
+        *Parser::<'_>::new_add(
+            Parser::<'_>::new_number(0),
+            Parser::<'_>::new_number(0),
+        )
+    ]);
+    decoder.register_function(
+        "system_1".to_string(),
+        vec![],
+        block,
+    ).unwrap();
     decoder.decode(&nodes).expect("Failed to decode");
 
     Ok(())
