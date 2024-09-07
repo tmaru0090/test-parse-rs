@@ -1,7 +1,7 @@
-g_a = 100;
-test(a,b){
-	gg = 100;
-	return a*g_a;
+fn test(){
+	let ret = "あいうえお";
+	let ret2 = "行き過ぎ";
+	return ret+ret2;
 }
-test(100,200);
+test();
 

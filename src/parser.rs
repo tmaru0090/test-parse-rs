@@ -106,86 +106,76 @@ impl<'a> Parser<'a> {
         Ok(node)
     }
 
- 
-    fn parse_function(&mut self) -> R<Box<Node>> {
-        // 関数名を取得
-        let func_name = self.current_token().token_value().clone();
-        self.next_token(); // 関数名をスキップ
-
-        // 引数リストを解析
-        if self.current_token().token_type() != TokenType::LeftParen {
-            return Err(anyhow::anyhow!("Expected '(' after function name"));
-        }
+    fn parse_function_call(&mut self, token: Token) -> R<Box<Node>> {
         self.next_token(); // '(' をスキップ
-
-        let mut params = Vec::new();
+        let mut args = Vec::new();
         while self.current_token().token_type() != TokenType::RightParen {
-            if let TokenType::Ident = self.current_token().token_type() {
-                let param_name = self.current_token().token_value().clone();
-                params.push(param_name); // ここを変更
-                self.next_token();
-            }
+            let arg = self.expr()?;
+            args.push(*arg);
             if self.current_token().token_type() == TokenType::Comma {
                 self.next_token(); // ',' をスキップ
             }
         }
         self.next_token(); // ')' をスキップ
-
-        // 関数本体を解析
-        if self.current_token().token_type() != TokenType::LeftCurlyBrace {
-            return Err(anyhow::anyhow!("Expected left after function parameters"));
-        }
-        self.next_token(); // '{' をスキップ
-
-        let body = self.parse_block()?; // ブロックの解析
-
         Ok(Box::new(Node::new(
-            NodeType::Function(func_name, params, Box::new(*body)), // ここを変更
+            NodeType::Call(token.token_value().clone(), args),
             None,
         )))
     }
-      fn factor(&mut self) -> R<Box<Node>> {
+
+    fn parse_function_definition(&mut self) -> R<Box<Node>> {
+        self.next_token(); // 'fn' をスキップ
+        let name = self.current_token().token_value().clone();
+        self.next_token(); // 関数名をスキップ
+        self.next_token(); // '(' をスキップ
+        let mut args = Vec::new();
+        while self.current_token().token_type() != TokenType::RightParen {
+            let arg = self.expr()?;
+            args.push(*arg);
+            if self.current_token().token_type() == TokenType::Comma {
+                self.next_token(); // ',' をスキップ
+            }
+        }
+        self.next_token(); // ')' をスキップ
+        let body = self.parse_block()?; // ブロックの解析
+        Ok(Box::new(Node::new(
+            NodeType::Function(
+                name,
+                args.iter()
+                    .map(|arg| match arg.node_value() {
+                        NodeType::Variable(ref name) => name.clone(),
+                        _ => "".to_string(),
+                    })
+                    .collect(),
+                Box::new(*body),
+            ),
+            None,
+        )))
+    }
+
+    fn factor(&mut self) -> R<Box<Node>> {
         let token = self.current_token().clone();
         match token.token_type() {
+            TokenType::DoubleQuote | TokenType::SingleQuote => {
+                if let Ok(string) = token.token_value().parse::<String>() {
+                    self.next_token();
+                    Ok(Box::new(Node::new(NodeType::String(string), None)))
+                } else {
+                    return Err(anyhow::anyhow!(
+                        "Unexpected end of input, no closing DoubleQuote or SingleQuote found"
+                    ));
+                }
+            }
             TokenType::Ident => {
-                if let Ok(number) = token.token_value().parse::<i32>() {
+                if token.token_value() == "fn" {
+                    self.parse_function_definition()
+                } else if let Ok(number) = token.token_value().parse::<i32>() {
                     self.next_token();
                     Ok(Box::new(Node::new(NodeType::Number(number), None)))
                 } else {
                     self.next_token();
                     if self.current_token().token_type() == TokenType::LeftParen {
-                        // 関数呼び出し
-                        self.next_token(); // '(' をスキップ
-                        let mut args = Vec::new();
-                        while self.current_token().token_type() != TokenType::RightParen {
-                            let arg = self.expr()?;
-                            args.push(*arg);
-                            if self.current_token().token_type() == TokenType::Comma {
-                                self.next_token(); // ',' をスキップ
-                            }
-                        }
-                        self.next_token(); // ')' をスキップ
-
-                        if self.current_token().token_type() == TokenType::LeftCurlyBrace {
-                            let body = self.parse_block()?; // ブロックの解析
-                            return Ok(Box::new(Node::new(
-                                NodeType::Function(
-                                    token.token_value().clone(),
-                                    args.iter()
-                                        .map(|arg| match arg.node_value() {
-                                            NodeType::Variable(ref name) => name.clone(),
-                                            _ => "".to_string(),
-                                        })
-                                        .collect(),
-                                    Box::new(*body),
-                                ),
-                                None,
-                            )));
-                        }
-                        Ok(Box::new(Node::new(
-                            NodeType::Call(token.token_value().clone(), args),
-                            None,
-                        )))
+                        self.parse_function_call(token)
                     } else {
                         Ok(Box::new(Node::new(
                             NodeType::Variable(token.token_value().clone()),
@@ -209,16 +199,24 @@ impl<'a> Parser<'a> {
             _ => Err(anyhow::anyhow!("Unexpected token in factor: {:?}", token)),
         }
     }
-    /*
     fn parse_block(&mut self) -> R<Box<Node>> {
         if self.current_token().token_type() == TokenType::LeftCurlyBrace {
             self.next_token(); // '{' をスキップ
         }
         let mut nodes = Vec::new();
         while self.current_token().token_type() != TokenType::RightCurlyBrace {
+            if self.current_token().token_type() == TokenType::Eof {
+                return Err(anyhow::anyhow!(
+                    "Unexpected end of input, no closing curly brace found"
+                ));
+            }
+            // 変数代入文
             if self.current_token().token_type() == TokenType::Ident
-                && self.peek_next_token(1).token_type() == TokenType::Equals
+                && self.current_token().token_value() == "let"
+                && self.peek_next_token(2).token_type() == TokenType::Equals
             {
+                self.next_token(); // let
+                                   // 代入式
                 let var = self.current_token().token_value().clone();
                 self.next_token(); // =
                 self.next_token(); // move to value
@@ -246,55 +244,16 @@ impl<'a> Parser<'a> {
             Ok(Box::new(Node::new(NodeType::Block(nodes), None)))
         }
     }
-    */  
-
-fn parse_block(&mut self) -> R<Box<Node>> {
-    if self.current_token().token_type() == TokenType::LeftCurlyBrace {
-        self.next_token(); // '{' をスキップ
-    }
-    let mut nodes = Vec::new();
-    while self.current_token().token_type() != TokenType::RightCurlyBrace {
-        if self.current_token().token_type() == TokenType::Eof {
-            return Err(anyhow::anyhow!("Unexpected end of input, no closing curly brace found"));
-        }
-        if self.current_token().token_type() == TokenType::Ident
-            && self.peek_next_token(1).token_type() == TokenType::Equals
-        {
-            let var = self.current_token().token_value().clone();
-            self.next_token(); // =
-            self.next_token(); // move to value
-            let value_node = self.expr()?;
-            nodes.push(Node::new(
-                NodeType::Assign(
-                    Box::new(Node::new(NodeType::Variable(var), None)),
-                    value_node,
-                ),
-                None,
-            ));
-        } else {
-            let expr = self.parse_statement()?;
-            nodes.extend(expr);
-        }
-        if self.current_token().token_type() == TokenType::Semi {
-            self.next_token();
-        }
-    }
-    if self.current_token().token_type() != TokenType::RightCurlyBrace {
-        let e = anyhow::anyhow!("no closing curly brace in block");
-        Err(e)
-    } else {
-        self.next_token(); // '}' をスキップ
-        Ok(Box::new(Node::new(NodeType::Block(nodes), None)))
-    }
-}
     fn parse_statement(&mut self) -> R<Vec<Node>> {
         let mut nodes = Vec::new();
         while self.current_token().token_type() != TokenType::Eof {
             // 変数代入文
             if self.current_token().token_type() == TokenType::Ident
-                && self.peek_next_token(1).token_type() == TokenType::Equals
+                && self.current_token().token_value() == "let"
+                && self.peek_next_token(2).token_type() == TokenType::Equals
             {
-                // 代入式
+                self.next_token(); // let
+                                   // 代入式
                 let var = self.current_token().token_value().clone();
                 self.next_token(); // =
                 self.next_token(); // move to value

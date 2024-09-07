@@ -10,10 +10,14 @@ pub enum TokenType {
     RightParen,      // )
     RightCurlyBrace, // {
     LeftCurlyBrace,  // }
+    LeftSquareBrace, // [
+    RightSquareBrace,// ]
     Comma,           // ,
     Equals,          // =
     AtSign,          // @
     Semi,            // ;
+    DoubleQuote,     // "
+    SingleQuote,     // '
     /*識別子*/
     Ident,
     /*その他*/
@@ -32,6 +36,7 @@ pub enum NodeType {
     Block(Vec<Node>),
     Variable(String), // 変数
     Number(i32),      // 数値
+    String(String),   // 文字列
     Function(String, Vec<String>, Box<Node>),
     Call(String, Vec<Node>),
     Return(Box<Node>),

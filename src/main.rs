@@ -50,11 +50,11 @@ fn main() -> R<()> {
     let extension = "script"; // 拡張子は "script" のみ
 
     test_src = String::from(
-        "
-        test(){ 
-            a = 100;
+        r#"
+        fn test(){ 
+            let a = 100;
         }
-    ",
+    "#,
     );
 
     // .script ファイルが存在するか確認
@@ -78,9 +78,7 @@ fn main() -> R<()> {
 
     info!("nodes: ");
     info!("{:?}", nodes);
-
     let mut decoder = Decoder::new();
-    decoder.decode(&nodes).expect("Failed to decode.");
-
+    decoder.decode(&nodes).expect("Failed to decode");
     Ok(())
 }
