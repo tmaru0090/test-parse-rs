@@ -31,6 +31,67 @@ impl<'a> Parser<'a> {
         Parser { tokens, i: 0 }
     }
 
+    pub fn new_add(left: Box<Node>, right: Box<Node>) -> Box<Node> {
+        let node = Node::new(
+            NodeType::Add,
+            Some(Box::new(Node::new(
+                left.node_value(),
+                Some(Box::new(*right)),
+            ))),
+        );
+        Box::new(node)
+    }
+    pub fn new_sub(left: Box<Node>, right: Box<Node>) -> Box<Node> {
+        let node = Node::new(
+            NodeType::Sub,
+            Some(Box::new(Node::new(
+                left.node_value(),
+                Some(Box::new(*right)),
+            ))),
+        );
+        Box::new(node)
+    }
+    pub fn new_mul(left: Box<Node>, right: Box<Node>) -> Box<Node> {
+        let node = Node::new(
+            NodeType::Mul,
+            Some(Box::new(Node::new(
+                left.node_value(),
+                Some(Box::new(*right)),
+            ))),
+        );
+        Box::new(node)
+    }
+    pub fn new_div(left: Box<Node>, right: Box<Node>) -> Box<Node> {
+        let node = Node::new(
+            NodeType::Div,
+            Some(Box::new(Node::new(
+                left.node_value(),
+                Some(Box::new(*right)),
+            ))),
+        );
+        Box::new(node)
+    }
+
+    pub fn new_variable(name: String, expr: Box<Node>) -> Box<Node> {
+        let node = Node::new(NodeType::Variable(name.clone()), Some(expr));
+        Box::new(node)
+    }
+
+    pub fn new_return(expr: Box<Node>) -> Box<Node> {
+        let node = Node::new(NodeType::Return(expr), None);
+        Box::new(node)
+    }
+
+    pub fn new_block(block: Vec<Node>) -> Box<Node> {
+        let node = Node::new(NodeType::Block(block), None);
+        Box::new(node)
+    }
+
+    pub fn new_assign(left: Box<Node>, right: Box<Node>) -> Box<Node> {
+        let node = Node::new(NodeType::Assign(left, right), None);
+        Box::new(node)
+    }
+
     fn current_token(&self) -> &Token {
         &self.tokens[self.i]
     }

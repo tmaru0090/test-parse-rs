@@ -15,7 +15,6 @@ use std::vec::Vec;
 use tokenizer::Tokenizer;
 use types::*;
 
-
 fn read_files_with_extension(extension: &str) -> R<Vec<String>> {
     let mut results = Vec::new();
     let current_dir = std::env::current_dir()?;
@@ -75,7 +74,6 @@ fn main() -> R<()> {
     info!("tokens: ");
     info!("{:?}", tokens);
 
-    let mut parser = Parser::new(&tokens);
     let nodes = parser.parse()?;
 
     info!("nodes: ");
@@ -83,5 +81,6 @@ fn main() -> R<()> {
     let mut decoder = Decoder::new();
 
     decoder.decode(&nodes).expect("Failed to decode");
+
     Ok(())
 }
