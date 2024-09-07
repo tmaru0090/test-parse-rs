@@ -58,11 +58,13 @@ impl Decoder {
                 // ローカル変数スタックのすべてのスコープを逆順でチェック
                 for local_vars in self.local_variables_stack.iter().rev() {
                     if let Some(value) = local_vars.get(name) {
+                        info!("Local variable: name: {} value: {}",name,value);
                         return Ok(*value);
                     }
                 }
                 // グローバル変数のチェック
                 if let Some(value) = self.global_variables.get(name) {
+                    info!("Global Variable: name: {} value: {}",name,value);
                     Ok(*value)
                 } else {
                     Err(format!("Undefined variable: {}", name))

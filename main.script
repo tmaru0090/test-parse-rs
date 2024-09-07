@@ -1,5 +1,7 @@
+g_a = 100;
 test(a,b){
-	return a*b;
+	gg = 100;
+	return a*g_a;
 }
 test(100,200);
 
