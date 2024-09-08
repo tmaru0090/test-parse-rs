@@ -1,7 +1,7 @@
 use crate::types::TokenType;
 use anyhow::Result as R;
+use log::{error, info, warn};
 use property_rs::Property;
-
 #[derive(Debug, Property, Clone)]
 pub struct Token {
     #[property(get)]
@@ -57,6 +57,7 @@ impl Tokenizer {
         )
     }
 
+
     fn tokenize_string(&self, input: &String) -> R<Vec<Token>> {
         let mut tokens: Vec<Token> = Vec::new();
         let mut chars = input.chars().peekable();
@@ -91,7 +92,7 @@ impl Tokenizer {
                 tokens.push(Token::new(ident, TokenType::Ident));
             } else if c == '\'' {
                 let mut string = String::new();
-                chars.next(); // Skip the opening quote
+                chars.next(); // 開始のクォートをスキップ
                 while let Some(c) = chars.next() {
                     if c == '\'' {
                         break;
@@ -101,7 +102,7 @@ impl Tokenizer {
                 tokens.push(Token::new(string, TokenType::SingleQuote));
             } else if c == '\"' {
                 let mut string = String::new();
-                chars.next(); // Skip the opening quote
+                chars.next(); // 開始のクォートをスキップ
                 while let Some(c) = chars.next() {
                     if c == '\"' {
                         break;
@@ -109,6 +110,49 @@ impl Tokenizer {
                     string.push(c);
                 }
                 tokens.push(Token::new(string, TokenType::DoubleQuote));
+            } else if c == '/' {
+                chars.next();
+                if let Some(&next_char) = chars.peek() {
+                    if next_char == '/' {
+                        chars.next();
+                        let mut comment = String::new();
+                        while let Some(&c) = chars.peek() {
+                            if c == '\n' {
+                                break;
+                            }
+                            comment.push(c);
+                            chars.next();
+                        }
+                        tokens.push(Token::new(
+                            comment.clone(),
+                            TokenType::SingleComment(comment),
+                        ));
+                    } else if next_char == '*' {
+                        chars.next(); // '*' をスキップ
+                        let mut comment = String::new();
+                        let mut lines = Vec::new();
+                        while let Some(c) = chars.next() {
+                            if c == '*' {
+                                if let Some(&next_char) = chars.peek() {
+                                    if next_char == '/' {
+                                        chars.next(); // '/' をスキップ
+                                        break;
+                                    }
+                                }
+                            }
+                            if c == '\n' {
+                                lines.push(comment.clone());
+                                comment.clear();
+                            } else {
+                                comment.push(c);
+                            }
+                        }
+                        if !comment.is_empty() {
+                            lines.push(comment);
+                        }
+                        tokens.push(Token::new(lines.join("\n"), TokenType::MultiComment(lines)));
+                    }
+                }
             } else if self.is_symbol(c) {
                 let token_type = match c {
                     '+' => TokenType::Add,
@@ -136,6 +180,7 @@ impl Tokenizer {
 
         Ok(tokens)
     }
+
     pub fn tokenize(&mut self) -> R<Vec<Token>> {
         let mut all_tokens: Vec<Token> = Vec::new();
 

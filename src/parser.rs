@@ -244,13 +244,47 @@ impl<'a> Parser<'a> {
                     "Unexpected end of input, no closing curly brace found"
                 ));
             }
-            // 変数代入文
+            /*
+                        // 変数代入文
+                        if self.current_token().token_type() == TokenType::Ident
+                            && self.current_token().token_value() == "let"
+                            && self.peek_next_token(2).token_type() == TokenType::Equals
+                        {
+                            self.next_token(); // let
+                                               // 代入式
+                            let var = self.current_token().token_value().clone();
+                            self.next_token(); // =
+                            self.next_token(); // move to value
+                            let value_node = self.expr()?;
+                            nodes.push(Node::new(
+                                NodeType::Assign(
+                                    Box::new(Node::new(NodeType::Variable(var), None)),
+                                    value_node,
+                                ),
+                                None,
+                            ));
+                        }
+            */
+            // 変数代入文か代入文か
             if self.current_token().token_type() == TokenType::Ident
                 && self.current_token().token_value() == "let"
                 && self.peek_next_token(2).token_type() == TokenType::Equals
             {
                 self.next_token(); // let
-                                   // 代入式
+                let var = self.current_token().token_value().clone();
+                self.next_token(); // =
+                self.next_token(); // move to value
+                let value_node = self.expr()?;
+                nodes.push(Node::new(
+                    NodeType::Assign(
+                        Box::new(Node::new(NodeType::Variable(var), None)),
+                        value_node,
+                    ),
+                    None,
+                ));
+            } else if self.current_token().token_type() == TokenType::Ident
+                && self.peek_next_token(1).token_type() == TokenType::Equals
+            {
                 let var = self.current_token().token_value().clone();
                 self.next_token(); // =
                 self.next_token(); // move to value
@@ -288,6 +322,20 @@ impl<'a> Parser<'a> {
             {
                 self.next_token(); // let
                                    // 代入式
+                let var = self.current_token().token_value().clone();
+                self.next_token(); // =
+                self.next_token(); // move to value
+                let value_node = self.expr()?;
+                nodes.push(Node::new(
+                    NodeType::Assign(
+                        Box::new(Node::new(NodeType::Variable(var), None)),
+                        value_node,
+                    ),
+                    None,
+                ));
+            } else if self.current_token().token_type() == TokenType::Ident
+                && self.peek_next_token(1).token_type() == TokenType::Equals
+            {
                 let var = self.current_token().token_value().clone();
                 self.next_token(); // =
                 self.next_token(); // move to value

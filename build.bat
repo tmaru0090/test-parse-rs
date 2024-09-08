@@ -1,3 +1,9 @@
-set  RUST_LOG=debug
-cargo run --features %1
-
+setlocal
+set "FEATURES=%~1"
+if "%FEATURES%"=="" (
+   set "CMD=cargo run"
+) else (
+   set "CMD=cargo run --features %FEATURES%"
+)
+endlocal
+call %CMD%

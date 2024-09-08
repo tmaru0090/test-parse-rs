@@ -2,32 +2,33 @@ use crate::parser::Node;
 #[derive(PartialEq, Debug, Clone)]
 pub enum TokenType {
     /*記号全般*/
-    Add,              // +
-    Sub,              // -
-    Mul,              // x
-    Div,              // ÷
-    LeftParen,        // (
-    RightParen,       // )
-    RightCurlyBrace,  // {
-    LeftCurlyBrace,   // }
-    LeftSquareBrace,  // [
-    RightSquareBrace, // ]
-    Comma,            // ,
-    Equals,           // =
-    AtSign,           // @
-    Semi,             // ;
-    DoubleQuote,      // "
-    SingleQuote,      // '
-    
+    Add,                       // +
+    Sub,                       // -
+    Mul,                       // x
+    Div,                       // ÷
+    LeftParen,                 // (
+    RightParen,                // )
+    RightCurlyBrace,           // {
+    LeftCurlyBrace,            // }
+    LeftSquareBrace,           // [
+    RightSquareBrace,          // ]
+    Comma,                     // ,
+    Equals,                    // =
+    AtSign,                    // @
+    Semi,                      // ;
+    DoubleQuote,               // "
+    SingleQuote,               // '
+    SingleComment(String),     // "//"
+    MultiComment(Vec<String>), // "/**/"
     /*条件用演算子*/
-                      // == 
-                      // != 
-                      // <
-                      // >
-                      // <= 
-                      // >= 
-                      // &&
-                      // ||
+    // ==
+    // !=
+    // <
+    // >
+    // <=
+    // >=
+    // &&
+    // ||
     /*識別子*/
     Ident,
     /*その他*/
@@ -37,10 +38,10 @@ pub enum TokenType {
 #[derive(PartialEq, Debug, Clone)]
 pub enum NodeType {
     /*制御構造文*/
-    If(Box<Node>,Box<Node>),
+    If(Box<Node>, Box<Node>),
     Else(Box<Node>),
-    ElseIf(Box<Node>,Box<Node>),
-    For(Box<Node>,Box<Node>),
+    ElseIf(Box<Node>, Box<Node>),
+    For(Box<Node>, Box<Node>),
 
     /*記号全般*/
     Add(Box<Node>, Box<Node>), // +
