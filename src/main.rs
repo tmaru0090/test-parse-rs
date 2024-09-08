@@ -1,8 +1,9 @@
 mod decoder;
+mod error;
 mod parser;
 mod tokenizer;
 mod types;
-use anyhow::{anyhow, Result as R};
+use anyhow::{anyhow, Context, Result as R};
 use decoder::*;
 use env_logger;
 use log::info;
@@ -16,35 +17,6 @@ use std::path::Path;
 use std::vec::Vec;
 use tokenizer::{Token, Tokenizer};
 use types::*;
-/*
-fn read_files_with_extension(extension: &str) -> R<Vec<String>> {
-    let mut results = Vec::new();
-    let current_dir = std::env::current_dir()?;
-
-    // カレントディレクトリ内のすべてのファイルとディレクトリをリストアップ
-    for entry in fs::read_dir(current_dir)? {
-        let entry = entry?;
-        let path = entry.path();
-
-        // ファイルの拡張子が指定した拡張子と一致するか確認
-        if path.is_file() && path.extension().map_or(false, |ext| ext == extension) {
-            let file = fs::File::open(&path)?;
-            let reader = io::BufReader::new(file);
-
-            // ファイルの内容を読み取ってVec<String>に追加
-            for line in reader.lines() {
-                results.push(line?);
-            }
-        }
-    }
-
-    if results.is_empty() {
-        Err(anyhow!("No files with the extension {} found.", extension))
-    } else {
-        Ok(results)
-    }
-}
-    */
 
 fn read_files_with_extension(extension: &str) -> R<Vec<String>> {
     let mut results = Vec::new();
@@ -78,14 +50,19 @@ fn decode(nodes: &Vec<Node>) -> R<()> {
     {
         // my decode
         let mut decoder = Decoder::new();
-        let block = Parser::<'_>::new_block(vec![*Parser::<'_>::new_return(
-            Parser::<'_>::new_add(Parser::<'_>::new_number(100), Parser::<'_>::new_number(100)),
-        )]);
-        decoder
-            .register_function("system_1".to_string(), vec![], block)
-            .unwrap();
+        /*
+                let block = Parser::<'_>::new_block(vec![*Parser::<'_>::new_return(
+                    Parser::<'_>::new_add(Parser::<'_>::new_number(100), Parser::<'_>::new_number(100)),
+                )]);
 
+                decoder
+                    .register_function("system_1".to_string(), vec![], block)
+                    .unwrap();
+        */
         decoder.decode(&nodes).expect("Failed to decode");
+        for (key, value) in &decoder.func_lists() {
+            info!("func_name: {:?} value: {:?}", key, value);
+        }
     }
 
     Ok(())
@@ -105,11 +82,11 @@ fn asm(nodes: &Vec<Node>) -> R<()> {
         let asm_src = asm_i.generate_asm(&nodes).unwrap();
         write_to_file("main.asm", &asm_src)?;
     }
-
     Ok(())
 }
-fn main() -> R<()> {
+fn main() -> R<(), String> {
     env_logger::init();
+
     let mut test_src = String::new();
     let mut tokenizer = Tokenizer::new();
     let mut tokens: Vec<Token> = Vec::new();
@@ -128,18 +105,23 @@ fn main() -> R<()> {
             tokenizer.set_input(test_src);
         }
     }
-
-    tokens = tokenizer.tokenize()?;
-    let mut parser = Parser::new(&tokens);
-    let nodes = parser.parse()?;
+    let err = String::new();
+    let tokens = match tokenizer.tokenize() {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("{}", e);
+            return Err(e);
+        }
+    };
+    //let mut parser = Parser::new(&tokens);
+    //let nodes = parser.parse()?;
     // デバッグ用
-    // /*
-    info!("tokens: ");
-    info!("{:?}", tokens);
-    info!("nodes: ");
-    info!("{:?}", nodes);
-    // */
-    asm(&nodes)?;
-    decode(&nodes)?;
+    //info!("tokens: ");
+    //info!("{:?}", tokens);
+    //info!("nodes: ");
+    //info!("{:?}", nodes);
+    //
+    //decode(&nodes)?;
+
     Ok(())
 }

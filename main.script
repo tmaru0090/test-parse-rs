@@ -1,16 +1,2 @@
-/*
-fn f(n){
-	if n<=1{
-		return 1;
-	}
-	return n*f(n-1);
-}
-*/
-fn test(a){
-	let ret = 10;
-	if a != ret{
-		return 1;
-	}
-	return ret;
-}
-test(1000);
+
+

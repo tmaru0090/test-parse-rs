@@ -175,6 +175,15 @@ impl<'a> Parser<'a> {
         }
         self.next_token(); // ')' をスキップ
         let body = self.parse_block()?; // ブロックの解析
+        let mut ret_value = Parser::<'_>::new_empty(); // 戻り値の初期値を指定
+        if let NodeType::Block(ref nodes) = body.node_value() {
+            if let Some(last_node) = nodes.last() {
+                if let NodeType::Return(ref value) = last_node.node_value() {
+                    ret_value = value.clone();
+                }
+            }
+        }
+        log::info!("Return value node: {:?}", ret_value);
         Ok(Box::new(Node::new(
             NodeType::Function(
                 name,
@@ -185,6 +194,7 @@ impl<'a> Parser<'a> {
                     })
                     .collect(),
                 Box::new(*body),
+                ret_value,
             ),
             None,
         )))

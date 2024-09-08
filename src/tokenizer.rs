@@ -1,7 +1,10 @@
+use crate::custom_compile_error;
+use crate::error::CompilerError;
 use crate::types::TokenType;
-use anyhow::Result as R;
+use anyhow::{anyhow, Context, Result as R};
 use log::{error, info, warn};
 use property_rs::Property;
+
 #[derive(Debug, Property, Clone)]
 pub struct Token {
     #[property(get)]
@@ -42,11 +45,10 @@ impl Tokenizer {
         Tokenizer {
             input: String::new(),
             input_vec: Vec::new(),
-            line: 0,
-            column: 0,
+            line: 1,
+            column: 1,
         }
     }
-
     pub fn new_with_value_vec(input_vec: Vec<String>) -> Self {
         Tokenizer {
             input: String::new(),
@@ -71,7 +73,7 @@ impl Tokenizer {
             '+' | '-' | '*' | '/' | '(' | ')' | ',' | '=' | ';' | '@' | '{' | '}' | '<' | '>'
         )
     }
-    fn tokenize_string(&mut self, input: &String) -> R<Vec<Token>> {
+    fn tokenize_string(&mut self, input: &String) -> R<Vec<Token>, String> {
         let mut tokens: Vec<Token> = Vec::new();
         let mut chars = input.chars().peekable();
 
@@ -210,7 +212,12 @@ impl Tokenizer {
                             }
                         }
                         if !closed {
-                            panic!("Multi-line comment not closed");
+                            return Err(custom_compile_error!(
+                                start_line,
+                                start_column,
+                                &input.clone(),
+                                "Multi-line comment not closed",
+                            ));
                         }
                         if !comment.is_empty() {
                             lines.push(comment);
@@ -350,7 +357,14 @@ impl Tokenizer {
                     '=' => TokenType::Equals,
                     '@' => TokenType::AtSign,
                     ';' => TokenType::Semi,
-                    _ => panic!("Unexpected symbol: {:?}", c),
+                    _ => {
+                        return Err(custom_compile_error!(
+                            start_line,
+                            start_column,
+                            &input.clone(),
+                            "Unexpected symbol"
+                        ));
+                    }
                 };
                 tokens.push(Token::new(
                     c.to_string(),
@@ -361,14 +375,19 @@ impl Tokenizer {
                 chars.next();
                 self.column += 1;
             } else {
-                panic!("Failed to tokenize: {:?}", c);
+                return Err(custom_compile_error!(
+                    start_line,
+                    start_column,
+                    &input.clone(),
+                    "Unable to process input"
+                ));
             }
         }
 
         Ok(tokens)
     }
 
-    pub fn tokenize(&mut self) -> R<Vec<Token>> {
+    pub fn tokenize(&mut self) -> R<Vec<Token>, String> {
         let mut all_tokens: Vec<Token> = Vec::new();
 
         // If input_vec is empty, tokenize the input string
@@ -390,181 +409,3 @@ impl Tokenizer {
         Ok(all_tokens)
     }
 }
-
-/*
-    fn tokenize_string(&self, input: &String) -> R<Vec<Token>> {
-        let mut tokens: Vec<Token> = Vec::new();
-        let mut chars = input.chars().peekable();
-
-        while let Some(&c) = chars.peek() {
-            if c.is_whitespace() {
-                chars.next();
-                continue;
-            }
-
-            if c.is_digit(10) {
-                let mut number = String::new();
-                while let Some(&c) = chars.peek() {
-                    if c.is_digit(10) {
-                        number.push(c);
-                        chars.next();
-                    } else {
-                        break;
-                    }
-                }
-                tokens.push(Token::new(number, TokenType::Ident));
-            } else if c.is_alphanumeric() || c == '_' {
-                let mut ident = String::new();
-                while let Some(&c) = chars.peek() {
-                    if c.is_alphanumeric() || c == '_' {
-                        ident.push(c);
-                        chars.next();
-                    } else {
-                        break;
-                    }
-                }
-                tokens.push(Token::new(ident, TokenType::Ident));
-            } else if c == '\'' {
-                let mut string = String::new();
-                chars.next(); // 開始のクォートをスキップ
-                while let Some(c) = chars.next() {
-                    if c == '\'' {
-                        break;
-                    }
-                    string.push(c);
-                }
-                tokens.push(Token::new(string, TokenType::SingleQuote));
-            } else if c == '\"' {
-                let mut string = String::new();
-                chars.next(); // 開始のクォートをスキップ
-                while let Some(c) = chars.next() {
-                    if c == '\"' {
-                        break;
-                    }
-                    string.push(c);
-                }
-                tokens.push(Token::new(string, TokenType::DoubleQuote));
-            } else if c == '/' {
-                chars.next();
-                if let Some(&next_char) = chars.peek() {
-                    if next_char == '/' {
-                        chars.next();
-                        let mut comment = String::new();
-                        while let Some(&c) = chars.peek() {
-                            if c == '\n' {
-                                break;
-                            }
-                            comment.push(c);
-                            chars.next();
-                        }
-                        tokens.push(Token::new(
-                            comment.clone(),
-                            TokenType::SingleComment(comment),
-                        ));
-                    } else if next_char == '*' {
-                        chars.next(); // '*' をスキップ
-                        let mut comment = String::new();
-                        let mut lines = Vec::new();
-                        let mut closed = false;
-                        while let Some(c) = chars.next() {
-                            if c == '*' {
-                                if let Some(&next_char) = chars.peek() {
-                                    if next_char == '/' {
-                                        chars.next(); // '/' をスキップ
-                                        closed = true;
-                                        break;
-                                    }
-                                }
-                            }
-                            if c == '\n' {
-                                lines.push(comment.clone());
-                                comment.clear();
-                            } else {
-                                comment.push(c);
-                            }
-                        }
-                        if !closed {
-                            panic!("Multi-line comment not closed");
-                        }
-                        if !comment.is_empty() {
-                            lines.push(comment);
-                        }
-                        tokens.push(Token::new(lines.join("\n"), TokenType::MultiComment(lines)));
-                    }
-                }
-            } else if c == '=' {
-                chars.next();
-                if let Some(&next_char) = chars.peek() {
-                    if next_char == '=' {
-                        tokens.push(Token::new("==".to_string(), TokenType::Eq));
-                    }
-                }
-            } else if c == '!' {
-                chars.next();
-                if let Some(&next_char) = chars.peek() {
-                    if next_char == '=' {
-                        tokens.push(Token::new("!=".to_string(), TokenType::Ne));
-                    }
-                }
-            }
-
-            else if c == '<' {
-                chars.next();
-                if let Some(&next_char) = chars.peek() {
-                    if next_char == '=' {
-                        tokens.push(Token::new("<=".to_string(), TokenType::Le));
-                    }else{
-                        tokens.push(Token::new("<".to_string(), TokenType::Lt));
-                    }
-                }
-            } else if c == '>' {
-                chars.next();
-                if let Some(&next_char) = chars.peek() {
-                    if next_char == '=' {
-                        tokens.push(Token::new(">=".to_string(), TokenType::Ge));
-                    }else{
-                        tokens.push(Token::new(">".to_string(), TokenType::Gt));
-                    }
-                }
-            } else if c == '&' {
-                chars.next();
-                if let Some(&next_char) = chars.peek() {
-                    if next_char == '&' {
-                        tokens.push(Token::new("&&".to_string(), TokenType::And));
-                    }
-                }
-            } else if c == '|' {
-                chars.next();
-                if let Some(&next_char) = chars.peek() {
-                    if next_char == '|' {
-                        tokens.push(Token::new("||".to_string(), TokenType::Or));
-                    }
-                }
-            } else if self.is_symbol(c) {
-                let token_type = match c {
-                    '+' => TokenType::Add,
-                    '-' => TokenType::Sub,
-                    '*' => TokenType::Mul,
-                    '/' => TokenType::Div,
-                    '(' => TokenType::LeftParen,
-                    ')' => TokenType::RightParen,
-                    '{' => TokenType::LeftCurlyBrace,
-                    '}' => TokenType::RightCurlyBrace,
-                    '[' => TokenType::LeftSquareBrace,
-                    ']' => TokenType::RightSquareBrace,
-                    ',' => TokenType::Comma,
-                    '=' => TokenType::Equals,
-                    '@' => TokenType::AtSign,
-                    ';' => TokenType::Semi,
-                    _ => panic!("Unexpected symbol: {:?}", c),
-                };
-                tokens.push(Token::new(c.to_string(), token_type));
-                chars.next();
-            } else {
-                panic!("Failed to tokenize: {:?}", c);
-            }
-        }
-
-        Ok(tokens)
-    }
-*/

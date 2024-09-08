@@ -1,0 +1,50 @@
+/*
+    fn evaluate_function(
+        &mut self,
+        func_name: &String,
+        args: &Vec<String>,
+        body: &Box<Node>,
+        ret_value: &Box<Node>,
+    ) -> Result<VariableValue, String> {
+        if self.func_lists.contains_key(func_name) {
+            return Err(format!(
+                "The name {:?} is defined multiple times",
+                func_name
+            ));
+        }
+        self.func_lists.insert(
+            func_name.clone(),
+            (args.clone(), body.clone(), ret_value.clone()),
+        );
+        info!("define function: {:?}", func_name);
+        Ok(VariableValue::Int32(0))
+    }
+
+    fn evaluate_return(&mut self, ret_value: &Box<Node>) -> Result<VariableValue, String> {
+        let value = self.evaluate(ret_value)?;
+        // 関数の呼び出し元に戻る
+        if let Some(previous_node) = &self.current_node {
+            self.current_node = None;
+            return Ok(value);
+        }
+        Ok(value)
+    }
+*/  
+
+
+
+  /*
+    fn evaluate_block(&mut self, nodes: &Vec<Node>) -> Result<VariableValue, String> {
+        self.local_variables_stack.push(HashMap::new());
+        let mut value = VariableValue::Int32(0);
+        for node in nodes {
+            value = self.evaluate(&Box::new(node.clone()))?;
+            if let NodeType::Return(_) = node.node_value() {
+                self.local_variables_stack.pop();
+                return Ok(value); // Return immediately if a return statement is encountered
+            }
+        }
+        self.local_variables_stack.pop();
+        Ok(value)
+    }*/  
+

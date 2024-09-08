@@ -58,13 +58,13 @@ pub enum NodeType {
 
     Assign(Box<Node>, Box<Node>), // 代入
     Block(Vec<Node>),
-    Variable(String),                          // 変数
-    Number(i32),                               // 数値
-    String(String),                            // 文字列
-    Function(String, Vec<String>, Box<Node>),  // 関数定義
-    Call(String, Vec<Node>),                   // 関数呼び出し
-    Return(Box<Node>),                         // リターン
-    MultiComment(Vec<String>, (usize, usize)), // 複数コメント
-    SingleComment(String, (usize, usize)),     // 単一コメント
+    Variable(String),                                    // 変数
+    Number(i32),                                         // 数値
+    String(String),                                      // 文字列
+    Function(String, Vec<String>, Box<Node>, Box<Node>), // 関数定義
+    Call(String, Vec<Node>),                             // 関数呼び出し
+    Return(Box<Node>),                                   // リターン
+    MultiComment(Vec<String>, (usize, usize)),           // 複数コメント
+    SingleComment(String, (usize, usize)),               // 単一コメント
     Empty,
 }
