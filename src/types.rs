@@ -21,14 +21,14 @@ pub enum TokenType {
     SingleComment(String),     // "//"
     MultiComment(Vec<String>), // "/**/"
     /*条件用演算子*/
-    // ==
-    // !=
-    // <
-    // >
-    // <=
-    // >=
-    // &&
-    // ||
+    Eq,  // ==
+    Ne,  // !=
+    Lt,  // <
+    Gt,  // >
+    Le,  // <=
+    Ge,  // >=
+    And, // &&
+    Or,  // ||
     /*識別子*/
     Ident,
     /*その他*/
@@ -58,4 +58,5 @@ pub enum NodeType {
     Return(Box<Node>),                        // リターン
     MultiComment(Vec<String>),                // 複数コメント
     SingleComment(String),                    // 単一コメント
+    Empty,
 }

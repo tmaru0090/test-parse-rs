@@ -65,6 +65,10 @@ impl<'a> Parser<'a> {
         Box::new(node)
     }
 
+    pub fn new_empty() -> Box<Node> {
+        let node = Node::new(NodeType::Empty, None);
+        Box::new(node)
+    }
     pub fn new_block(block: Vec<Node>) -> Box<Node> {
         let node = Node::new(NodeType::Block(block), None);
         Box::new(node)
@@ -186,7 +190,22 @@ impl<'a> Parser<'a> {
             None,
         )))
     }
-
+    fn parse_condition(&mut self) -> R<Box<Node>> {
+        Ok(Box::new(*Parser::<'_>::new_empty()))
+    }
+    fn parse_if_statement(&mut self) -> R<Box<Node>> {
+        self.next_token(); // 'if' をスキップ
+        let mut condition = Parser::<'_>::new_empty();
+        if self.current_token().token_type() != TokenType::LeftCurlyBrace {
+            condition = self.parse_condition()?;
+        }
+        self.next_token(); // { をスキップ
+        let body = self.parse_block()?; // ブロックの解析
+        Ok(Box::new(Node::new(
+            NodeType::If(Box::new(*condition), Box::new(*body)),
+            None,
+        )))
+    }
     fn factor(&mut self) -> R<Box<Node>> {
         let token = self.current_token().clone();
         match token.token_type() {
@@ -210,7 +229,9 @@ impl<'a> Parser<'a> {
                 }
             }
             TokenType::Ident => {
-                if token.token_value() == "fn" {
+                if token.token_value() == "if" {
+                    self.parse_if_statement()
+                } else if token.token_value() == "fn" {
                     self.parse_function_definition()
                 } else if let Ok(number) = token.token_value().parse::<i32>() {
                     self.next_token();
