@@ -34,7 +34,7 @@ impl Decoder {
     }
     pub fn evaluate(&mut self, node: &Box<Node>) -> Result<VariableValue, String> {
         match &node.node_value() {
-            NodeType::MultiComment(content) => self.evaluate_comment(content.to_vec()),
+            NodeType::MultiComment(content,(_,_)) => self.evaluate_comment(content.to_vec()),
             NodeType::Function(func_name, args, body) => {
                 self.evaluate_function(func_name, args, body)
             }

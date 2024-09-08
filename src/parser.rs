@@ -33,7 +33,6 @@ impl<'a> Parser<'a> {
 
     pub fn new_add(left: Box<Node>, right: Box<Node>) -> Box<Node> {
         let node = Node::new(NodeType::Add(left, right), None);
-
         Box::new(node)
     }
     pub fn new_sub(left: Box<Node>, right: Box<Node>) -> Box<Node> {
@@ -209,13 +208,13 @@ impl<'a> Parser<'a> {
     fn factor(&mut self) -> R<Box<Node>> {
         let token = self.current_token().clone();
         match token.token_type() {
-            TokenType::MultiComment(content) => {
+            TokenType::MultiComment(content,(line,column)) => {
                 self.next_token();
-                Ok(Box::new(Node::new(NodeType::MultiComment(content), None)))
+                Ok(Box::new(Node::new(NodeType::MultiComment(content,(line,column)), None)))
             }
-            TokenType::SingleComment(content) => {
+            TokenType::SingleComment(content,(line,column)) => {
                 self.next_token();
-                Ok(Box::new(Node::new(NodeType::SingleComment(content), None)))
+                Ok(Box::new(Node::new(NodeType::SingleComment(content,(line,column)), None)))
             }
 
             TokenType::DoubleQuote | TokenType::SingleQuote => {

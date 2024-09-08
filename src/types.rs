@@ -18,8 +18,8 @@ pub enum TokenType {
     Semi,                      // ;
     DoubleQuote,               // "
     SingleQuote,               // '
-    SingleComment(String),     // "//"
-    MultiComment(Vec<String>), // "/**/"
+    SingleComment(String,(usize,usize)),     // "//"
+    MultiComment(Vec<String>,(usize,usize)), // "/**/"
     /*条件用演算子*/
     Eq,  // ==
     Ne,  // !=
@@ -56,7 +56,7 @@ pub enum NodeType {
     Function(String, Vec<String>, Box<Node>), // 関数定義
     Call(String, Vec<Node>),                  // 関数呼び出し
     Return(Box<Node>),                        // リターン
-    MultiComment(Vec<String>),                // 複数コメント
-    SingleComment(String),                    // 単一コメント
+    MultiComment(Vec<String>,(usize,usize)),                // 複数コメント
+    SingleComment(String,(usize,usize)),                    // 単一コメント
     Empty,
 }
