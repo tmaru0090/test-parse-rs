@@ -43,18 +43,19 @@ pub enum NodeType {
     ElseIf(Box<Node>, Box<Node>),
     For(Box<Node>, Box<Node>),
 
-    /*記号全般*/
-    Add(Box<Node>, Box<Node>), // +
-    Sub(Box<Node>, Box<Node>), // -
-    Mul(Box<Node>, Box<Node>), // x
-    Div(Box<Node>, Box<Node>), // ÷
-    /*変数*/
+    Add(Box<Node>, Box<Node>), // 加算
+    Sub(Box<Node>, Box<Node>), // 減算
+    Mul(Box<Node>, Box<Node>), // 乗算
+    Div(Box<Node>, Box<Node>), // 除算
+
     Assign(Box<Node>, Box<Node>), // 代入
     Block(Vec<Node>),
-    Variable(String), // 変数
-    Number(i32),      // 数値
-    String(String),   // 文字列
-    Function(String, Vec<String>, Box<Node>),
-    Call(String, Vec<Node>),
-    Return(Box<Node>),
+    Variable(String),                         // 変数
+    Number(i32),                              // 数値
+    String(String),                           // 文字列
+    Function(String, Vec<String>, Box<Node>), // 関数定義
+    Call(String, Vec<Node>),                  // 関数呼び出し
+    Return(Box<Node>),                        // リターン
+    MultiComment(Vec<String>),                // 複数コメント
+    SingleComment(String),                    // 単一コメント
 }

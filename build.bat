@@ -1,3 +1,4 @@
+@echo off
 setlocal
 set "FEATURES=%~1"
 if "%FEATURES%"=="" (
@@ -5,5 +6,5 @@ if "%FEATURES%"=="" (
 ) else (
    set "CMD=cargo run --features %FEATURES%"
 )
-endlocal
 call %CMD%
+endlocal

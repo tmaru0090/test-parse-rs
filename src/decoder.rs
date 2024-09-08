@@ -11,6 +11,7 @@ pub struct Decoder {
     local_variables_stack: Vec<HashMap<String, VariableValue>>,
     func_lists: HashMap<String, (Vec<String>, Box<Node>)>, // 関数の定義を保持
     last_var_name: Option<String>,                         // 最後に代入された変数名を保持
+    comment_lists: HashMap<String, (Vec<String>, i32)>,    // コメントとコメント行を保持
 }
 
 #[derive(Clone, Debug)]
@@ -33,6 +34,7 @@ impl Decoder {
     }
     pub fn evaluate(&mut self, node: &Box<Node>) -> Result<VariableValue, String> {
         match &node.node_value() {
+            NodeType::MultiComment(content) => self.evaluate_comment(content.to_vec()),
             NodeType::Function(func_name, args, body) => {
                 self.evaluate_function(func_name, args, body)
             }
@@ -50,7 +52,11 @@ impl Decoder {
             _ => Err("Unsupported node type".to_string()),
         }
     }
-
+    fn evaluate_comment(&mut self, content: Vec<String>) -> R<VariableValue, String> {
+        self.comment_lists
+            .insert(format!("comment{:}", 0), (content, 0));
+        Ok(VariableValue::Int32(0))
+    }
     fn evaluate_function(
         &mut self,
         func_name: &String,
@@ -233,6 +239,7 @@ impl Decoder {
             global_variables: HashMap::new(),
             local_variables_stack: Vec::new(),
             func_lists: HashMap::new(),
+            comment_lists: HashMap::new(),
             last_var_name: None,
         }
     }

@@ -57,7 +57,6 @@ impl Tokenizer {
         )
     }
 
-
     fn tokenize_string(&self, input: &String) -> R<Vec<Token>> {
         let mut tokens: Vec<Token> = Vec::new();
         let mut chars = input.chars().peekable();
@@ -131,11 +130,13 @@ impl Tokenizer {
                         chars.next(); // '*' をスキップ
                         let mut comment = String::new();
                         let mut lines = Vec::new();
+                        let mut closed = false;
                         while let Some(c) = chars.next() {
                             if c == '*' {
                                 if let Some(&next_char) = chars.peek() {
                                     if next_char == '/' {
                                         chars.next(); // '/' をスキップ
+                                        closed = true;
                                         break;
                                     }
                                 }
@@ -146,6 +147,9 @@ impl Tokenizer {
                             } else {
                                 comment.push(c);
                             }
+                        }
+                        if !closed {
+                            panic!("Multi-line comment not closed");
                         }
                         if !comment.is_empty() {
                             lines.push(comment);
