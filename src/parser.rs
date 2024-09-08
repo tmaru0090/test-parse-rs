@@ -190,7 +190,39 @@ impl<'a> Parser<'a> {
         )))
     }
     fn parse_condition(&mut self) -> R<Box<Node>> {
-        Ok(Box::new(*Parser::<'_>::new_empty()))
+        let mut node = self.expr()?; // 基本の式を解析
+
+        while matches!(
+            self.current_token().token_type(),
+            TokenType::Eq
+                | TokenType::Ne
+                | TokenType::Lt
+                | TokenType::Gt
+                | TokenType::Le
+                | TokenType::Ge
+                | TokenType::And
+                | TokenType::Or
+        ) {
+            let op = self.current_token().clone();
+            self.next_token();
+            let rhs = self.expr()?; // 条件演算子の右側の式を解析
+
+            node = Box::new(Node::new(
+                match op.token_type() {
+                    TokenType::Eq => NodeType::Eq(node, rhs),
+                    TokenType::Ne => NodeType::Ne(node, rhs),
+                    TokenType::Lt => NodeType::Lt(node, rhs),
+                    TokenType::Gt => NodeType::Gt(node, rhs),
+                    TokenType::Le => NodeType::Le(node, rhs),
+                    TokenType::Ge => NodeType::Ge(node, rhs),
+                    TokenType::And => NodeType::And(node, rhs),
+                    TokenType::Or => NodeType::Or(node, rhs),
+                    _ => panic!("Unexpected token: {:?}", op),
+                },
+                None,
+            ));
+        }
+        Ok(node)
     }
     fn parse_if_statement(&mut self) -> R<Box<Node>> {
         self.next_token(); // 'if' をスキップ
@@ -208,13 +240,19 @@ impl<'a> Parser<'a> {
     fn factor(&mut self) -> R<Box<Node>> {
         let token = self.current_token().clone();
         match token.token_type() {
-            TokenType::MultiComment(content,(line,column)) => {
+            TokenType::MultiComment(content, (line, column)) => {
                 self.next_token();
-                Ok(Box::new(Node::new(NodeType::MultiComment(content,(line,column)), None)))
+                Ok(Box::new(Node::new(
+                    NodeType::MultiComment(content, (line, column)),
+                    None,
+                )))
             }
-            TokenType::SingleComment(content,(line,column)) => {
+            TokenType::SingleComment(content, (line, column)) => {
                 self.next_token();
-                Ok(Box::new(Node::new(NodeType::SingleComment(content,(line,column)), None)))
+                Ok(Box::new(Node::new(
+                    NodeType::SingleComment(content, (line, column)),
+                    None,
+                )))
             }
 
             TokenType::DoubleQuote | TokenType::SingleQuote => {

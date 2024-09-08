@@ -178,7 +178,7 @@ impl Tokenizer {
                         }
                         tokens.push(Token::new(
                             comment.clone(),
-                            TokenType::SingleComment(comment,(start_line,start_column)),
+                            TokenType::SingleComment(comment, (start_line, start_column)),
                             start_line,
                             start_column,
                         ));
@@ -217,7 +217,7 @@ impl Tokenizer {
                         }
                         tokens.push(Token::new(
                             lines.join("\n"),
-                            TokenType::MultiComment(lines,(start_line,start_column)),
+                            TokenType::MultiComment(lines, (start_line, start_column)),
                             start_line,
                             start_column,
                         ));
@@ -390,17 +390,6 @@ impl Tokenizer {
         Ok(all_tokens)
     }
 }
-
-
-
-
-
-
-
-
-
-
-
 
 /*
     fn tokenize_string(&self, input: &String) -> R<Vec<Token>> {

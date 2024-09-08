@@ -18,6 +18,7 @@ pub struct Decoder {
 pub enum VariableValue {
     Int32(i32),
     Str(String),
+    Bool(bool),
 }
 impl Decoder {
     pub fn register_function(
@@ -34,11 +35,18 @@ impl Decoder {
     }
     pub fn evaluate(&mut self, node: &Box<Node>) -> Result<VariableValue, String> {
         match &node.node_value() {
-            NodeType::MultiComment(content,(_,_)) => self.evaluate_comment(content.to_vec()),
+            NodeType::If(condition, body) => self.evaluate_if_statement(condition, body),
+            NodeType::MultiComment(content, (_, _)) => self.evaluate_comment(content.to_vec()),
             NodeType::Function(func_name, args, body) => {
                 self.evaluate_function(func_name, args, body)
             }
-            NodeType::Return(ret_value) => self.evaluate_return(ret_value),
+            NodeType::Return(ret_value) => {
+                if self.is_in_function_scope() {
+                    return self.evaluate_return(ret_value);
+                } else {
+                    Err("Return statement outside of function scope".to_string())
+                }
+            }
             NodeType::Call(func_name, args) => self.evaluate_call(func_name, args),
             NodeType::Number(value) => Ok(VariableValue::Int32(*value)),
             NodeType::String(value) => Ok(VariableValue::Str(value.clone())),
@@ -52,6 +60,24 @@ impl Decoder {
             _ => Err("Unsupported node type".to_string()),
         }
     }
+
+    fn is_in_function_scope(&self) -> bool {
+        !self.local_variables_stack.is_empty()
+    }
+    pub fn evaluate_if_statement(
+        &mut self,
+        condition: &Box<Node>,
+        body: &Box<Node>,
+    ) -> R<VariableValue, String> {
+        let bool_value = self.evaluate_binary_op(condition)?;
+        if let VariableValue::Bool(value) = bool_value {
+            if value {
+                self.evaluate(&body)?;
+            }
+        }
+        Ok(bool_value)
+    }
+
     fn evaluate_comment(&mut self, content: Vec<String>) -> R<VariableValue, String> {
         self.comment_lists
             .insert(format!("comment{:}", 0), (content, 0));
@@ -171,13 +197,62 @@ impl Decoder {
         let mut value = VariableValue::Int32(0);
         for node in nodes {
             value = self.evaluate(&Box::new(node.clone()))?;
+            if let NodeType::Return(_) = node.node_value() {
+                self.local_variables_stack.pop();
+                return Ok(value); // Return immediately if a return statement is encountered
+            }
         }
         self.local_variables_stack.pop();
         Ok(value)
     }
-
     fn evaluate_binary_op(&mut self, node: &Box<Node>) -> Result<VariableValue, String> {
-        if let NodeType::Add(left, right)
+        // 条件演算子の処理
+        if let NodeType::Eq(left, right)
+        | NodeType::Ne(left, right)
+        | NodeType::Lt(left, right)
+        | NodeType::Gt(left, right)
+        | NodeType::Le(left, right)
+        | NodeType::Ge(left, right) = &node.node_value()
+        {
+            let left_value = self.evaluate(left)?;
+            let right_value = self.evaluate(right)?;
+
+            match (&node.node_value(), left_value, right_value) {
+                // 等しい (==)
+                (NodeType::Eq(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                    Ok(VariableValue::Bool(l == r))
+                }
+                (NodeType::Eq(_, _), VariableValue::Str(l), VariableValue::Str(r)) => {
+                    Ok(VariableValue::Bool(l == r))
+                }
+                // 等しくない (!=)
+                (NodeType::Ne(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                    Ok(VariableValue::Bool(l != r))
+                }
+                (NodeType::Ne(_, _), VariableValue::Str(l), VariableValue::Str(r)) => {
+                    Ok(VariableValue::Bool(l != r))
+                }
+                // 小なり (<)
+                (NodeType::Lt(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                    Ok(VariableValue::Bool(l < r))
+                }
+                // 大なり (>)
+                (NodeType::Gt(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                    Ok(VariableValue::Bool(l > r))
+                }
+                // 以下 (<=)
+                (NodeType::Le(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                    Ok(VariableValue::Bool(l <= r))
+                }
+                // 以上 (>=)
+                (NodeType::Ge(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                    Ok(VariableValue::Bool(l >= r))
+                }
+                _ => Err("Unsupported operation or mismatched types in condition".to_string()),
+            }
+        }
+        // 通常の演算子の処理
+        else if let NodeType::Add(left, right)
         | NodeType::Sub(left, right)
         | NodeType::Mul(left, right)
         | NodeType::Div(left, right) = &node.node_value()
@@ -210,7 +285,6 @@ impl Decoder {
             Err("Unsupported binary operation".to_string())
         }
     }
-
     pub fn decode(&mut self, nodes: &Vec<Node>) -> R<(), String> {
         for node in nodes {
             match &node.node_value() {

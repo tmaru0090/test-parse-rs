@@ -131,15 +131,15 @@ fn main() -> R<()> {
 
     tokens = tokenizer.tokenize()?;
     let mut parser = Parser::new(&tokens);
-    //let nodes = parser.parse()?;
+    let nodes = parser.parse()?;
     // デバッグ用
     // /*
     info!("tokens: ");
     info!("{:?}", tokens);
-    //info!("nodes: ");
-    //info!("{:?}", nodes);
+    info!("nodes: ");
+    info!("{:?}", nodes);
     // */
-    //asm(&nodes)?;
-    //decode(&nodes)?;
+    asm(&nodes)?;
+    decode(&nodes)?;
     Ok(())
 }
