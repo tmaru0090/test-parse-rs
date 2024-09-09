@@ -53,8 +53,8 @@ impl Tokenizer {
         Tokenizer {
             input: String::new(),
             input_vec,
-            line: 0,
-            column: 0,
+            line: 1,
+            column: 1,
         }
     }
 
@@ -62,8 +62,8 @@ impl Tokenizer {
         Tokenizer {
             input,
             input_vec: Vec::new(),
-            line: 0,
-            column: 0,
+            line: 1,
+            column: 1,
         }
     }
 
@@ -89,8 +89,8 @@ impl Tokenizer {
                 continue;
             }
 
-            let start_line = self.line;
-            let start_column = self.column;
+            let start_line = self.line();
+            let start_column = self.column();
 
             if c.is_digit(10) {
                 let mut number = String::new();
@@ -386,7 +386,6 @@ impl Tokenizer {
 
         Ok(tokens)
     }
-
     pub fn tokenize(&mut self) -> R<Vec<Token>, String> {
         let mut all_tokens: Vec<Token> = Vec::new();
 
@@ -400,11 +399,19 @@ impl Tokenizer {
             }
         }
 
+        // Get the position of the last token
+        let (last_line, last_column) = if let Some(last_token) = all_tokens.last() {
+            (last_token.line, last_token.column)
+        } else {
+            (self.line(), self.column())
+        };
+
+        // Push EOF token with the position of the last token
         all_tokens.push(Token::new(
             String::from(""),
             TokenType::Eof,
-            self.line(),
-            self.column(),
+            last_line,
+            last_column,
         ));
         Ok(all_tokens)
     }

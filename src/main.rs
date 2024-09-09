@@ -45,48 +45,30 @@ fn write_to_file(filename: &str, content: &str) -> R<()> {
     file.write_all(content.as_bytes())?;
     Ok(())
 }
-fn decode(nodes: &Vec<Node>) -> R<()> {
+fn decode(nodes: &Vec<Node>, input: String) -> R<(), String> {
     #[cfg(feature = "decode")]
     {
         // my decode
-        let mut decoder = Decoder::new();
-        /*
-                let block = Parser::<'_>::new_block(vec![*Parser::<'_>::new_return(
-                    Parser::<'_>::new_add(Parser::<'_>::new_number(100), Parser::<'_>::new_number(100)),
-                )]);
-
-                decoder
-                    .register_function("system_1".to_string(), vec![], block)
-                    .unwrap();
-        */
-        decoder.decode(&nodes).expect("Failed to decode");
-        for (key, value) in &decoder.func_lists() {
-            info!("func_name: {:?} value: {:?}", key, value);
-        }
+        let mut decoder = Decoder::new(input.clone());
+        decoder.decode(&nodes)?
     }
 
     Ok(())
 }
-fn asm(nodes: &Vec<Node>) -> R<()> {
+fn asm(nodes: &Vec<Node>, input: String) -> R<(), String> {
     // asm generate
 
     #[cfg(feature = "asm")]
     {
-        let mut asm_i = AsmInterpreter::new();
-        let block = Parser::<'_>::new_block(vec![*Parser::<'_>::new_return(
-            Parser::<'_>::new_add(Parser::<'_>::new_number(100), Parser::<'_>::new_number(100)),
-        )]);
-        asm_i
-            .register_function("system_1".to_string(), vec![], block)
-            .unwrap();
-        let asm_src = asm_i.generate_asm(&nodes).unwrap();
-        write_to_file("main.asm", &asm_src)?;
+        let mut asm_i = AsmInterpreter::new(input.clone());
+        let asm_src = asm_i.generate_asm(&nodes);
+        write_to_file("main.asm", &asm_src).unwrap();
     }
     Ok(())
 }
 fn main() -> R<(), String> {
     env_logger::init();
-
+    let mut input_vec: Vec<String> = Vec::new();
     let mut test_src = String::new();
     let mut tokenizer = Tokenizer::new();
     let mut tokens: Vec<Token> = Vec::new();
@@ -98,14 +80,14 @@ fn main() -> R<(), String> {
     match read_files_with_extension(extension) {
         Ok(lines) => {
             info!("files: {:?}", lines.clone());
-            tokenizer.set_input_vec(lines);
+            tokenizer.set_input_vec(lines.clone());
+            input_vec = lines.clone();
         }
         Err(_) => {
             // .script ファイルが存在しない場合はデフォルトのテストソースを使用
             tokenizer.set_input(test_src);
         }
     }
-    let err = String::new();
     let tokens = match tokenizer.tokenize() {
         Ok(v) => v,
         Err(e) => {
@@ -113,15 +95,28 @@ fn main() -> R<(), String> {
             return Err(e);
         }
     };
-    //let mut parser = Parser::new(&tokens);
-    //let nodes = parser.parse()?;
-    // デバッグ用
-    //info!("tokens: ");
-    //info!("{:?}", tokens);
-    //info!("nodes: ");
-    //info!("{:?}", nodes);
-    //
-    //decode(&nodes)?;
 
+    let mut parser = Parser::new(&tokens, input_vec.join("\n"));
+    let nodes = match parser.parse() {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("{}", e);
+            return Err(e);
+        }
+    };
+    // デバッグ用
+    info!("tokens: ");
+    info!("{:?}", tokens);
+    info!("nodes: ");
+    info!("{:?}", nodes);
+    //
+    match decode(&nodes, input_vec.join("\n")) {
+        Ok(_) => (),
+        Err(e) => {
+            eprintln!("{}", e);
+            return Err(e);
+        }
+    }
+    asm(&nodes, input_vec.join("\n")).unwrap();
     Ok(())
 }

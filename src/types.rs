@@ -1,4 +1,5 @@
 use crate::parser::Node;
+
 #[derive(PartialEq, Debug, Clone)]
 pub enum TokenType {
     /*記号全般*/
@@ -36,11 +37,12 @@ pub enum TokenType {
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub enum NodeType {
+pub enum NodeValue {
     /*制御構造文*/
     If(Box<Node>, Box<Node>),
     Else(Box<Node>),
     ElseIf(Box<Node>, Box<Node>),
+    While(Box<Node>, Box<Node>),
     For(Box<Node>, Box<Node>),
     /* 条件用演算子 */
     Eq(Box<Node>, Box<Node>),  // 等しい (==)
@@ -61,6 +63,7 @@ pub enum NodeType {
     Variable(String),                                    // 変数
     Number(i32),                                         // 数値
     String(String),                                      // 文字列
+    Bool(bool),                                          // 真偽値
     Function(String, Vec<String>, Box<Node>, Box<Node>), // 関数定義
     Call(String, Vec<Node>),                             // 関数呼び出し
     Return(Box<Node>),                                   // リターン

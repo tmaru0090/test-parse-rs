@@ -1,12 +1,11 @@
+use crate::custom_compile_error;
 use crate::parser::Node;
-use crate::types::NodeType;
-use std::collections::HashMap;
-use std::iter::zip;
-
-use anyhow::Result as R;
+use crate::types::NodeValue;
+use anyhow::{Context, Result as R};
 use log::{error, info};
 use property_rs::Property;
-
+use std::collections::HashMap;
+use std::iter::zip;
 #[derive(Debug, Clone, Property)]
 pub struct Decoder {
     #[property(get)]
@@ -32,6 +31,8 @@ pub struct Decoder {
     current_node: Option<Box<Node>>, // 現在のノードを保持
     #[property(get)]
     current_function: Option<String>, // 現在の関数名を保持するフィールドを追加
+    #[property(get)]
+    input: String,
 }
 
 #[derive(Clone, Debug)]
@@ -48,50 +49,81 @@ impl Decoder {
         args: Vec<String>,
         body: Box<Node>,
         ret_value: VariableValue,
-    ) -> Result<(), String> {
+    ) -> R<(), String> {
         if self.func_lists.contains_key(&name) {
-            return Err(format!("Function name {:?} is already defined", name));
+            let node = match self.current_node.clone() {
+                Some(v) => v,
+                _ => todo!(),
+            };
+            return Err(custom_compile_error!(
+                node.line(),
+                node.column(),
+                &self.input(),
+                "Function name {:?} is already defined",
+                name
+            ));
         }
         self.func_lists
             .insert(name.clone(), (args, body, ret_value, Vec::new()));
         Ok(())
     }
-    pub fn evaluate(&mut self, node: &Box<Node>) -> Result<VariableValue, String> {
+    pub fn evaluate(&mut self, node: &Box<Node>) -> R<VariableValue, String> {
+        self.current_node = Some(node.clone());
         match &node.node_value() {
-            NodeType::If(condition, body) => self.evaluate_if_statement(condition, body),
-            NodeType::MultiComment(content, (_, _)) => self.evaluate_comment(content.to_vec()),
-            NodeType::Function(func_name, args, body, ret_value) => {
+            NodeValue::If(condition, body) => self.evaluate_if_statement(condition, body),
+            NodeValue::While(condition, body) => self.evaluate_while_statement(condition, body),
+            NodeValue::MultiComment(content, (_, _)) => self.evaluate_comment(content.to_vec()),
+            NodeValue::Function(func_name, args, body, ret_value) => {
                 self.evaluate_function(func_name, args, body, ret_value)
             }
-            NodeType::Return(ret_value) => {
+            NodeValue::Return(ret_value) => {
                 if self.is_in_function_scope() {
                     let ret = self.evaluate_return(ret_value);
                     info!("Return: {:?}", ret);
                     ret
                 } else {
-                    Err("Return statement outside of function scope".to_string())
+                    let node = match self.current_node.clone() {
+                        Some(v) => v,
+                        _ => todo!(),
+                    };
+                    return Err(custom_compile_error!(
+                        node.line(),
+                        node.column(),
+                        &self.input(),
+                        "Return statement outside of function scope"
+                    ));
                 }
             }
-            NodeType::Call(func_name, args) => self.evaluate_call(node, func_name, args),
-            NodeType::Number(value) => Ok(VariableValue::Int32(*value)),
-            NodeType::String(value) => Ok(VariableValue::Str(value.clone())),
-            NodeType::Variable(name) => self.evaluate_variable(name),
-            NodeType::Assign(var_node, expr_node) => self.evaluate_assign(var_node, expr_node),
-            NodeType::Block(nodes) => self.evaluate_block(nodes),
-            NodeType::Add(_left, _right)
-            | NodeType::Sub(_left, _right)
-            | NodeType::Mul(_left, _right)
-            | NodeType::Div(_left, _right) => self.evaluate_binary_op(node),
-            NodeType::Empty => Ok(VariableValue::Int32(0)), // 空のノードをデフォルト値で処理
+            NodeValue::Call(func_name, args) => self.evaluate_call(node, func_name, args),
+            NodeValue::Number(value) => Ok(VariableValue::Int32(*value)),
+            NodeValue::Bool(value) => Ok(VariableValue::Bool(*value)),
+            NodeValue::String(value) => Ok(VariableValue::Str(value.clone())),
+            NodeValue::Assign(var_node, expr_node) => self.evaluate_assign(var_node, expr_node),
+            NodeValue::Block(nodes) => self.evaluate_block(nodes),
+            NodeValue::Variable(name) => self.evaluate_variable(name),
+
+            NodeValue::Add(_left, _right)
+            | NodeValue::Sub(_left, _right)
+            | NodeValue::Mul(_left, _right)
+            | NodeValue::Div(_left, _right) => self.evaluate_binary_op(node),
+            NodeValue::Empty => Ok(VariableValue::Int32(0)), // 空のノードをデフォルト値で処理
             _ => {
-                // デバッグ用のログを追加
-                error!("Unsupported node type: {:?}", node.node_value());
-                Err("Unsupported node type".to_string())
+                let node = match self.current_node.clone() {
+                    Some(v) => v,
+                    _ => todo!(),
+                };
+                return Err(custom_compile_error!(
+                    node.line(),
+                    node.column(),
+                    &self.input(),
+                    "Unsupported node type: {:?}",
+                    node.node_value()
+                ));
             }
         }
     }
 
-    fn evaluate_block(&mut self, nodes: &Vec<Node>) -> Result<VariableValue, String> {
+    fn evaluate_block(&mut self, nodes: &Vec<Node>) -> R<VariableValue, String> {
         let current_function = self.current_function.clone();
         let mut func_lists = self.func_lists();
         let stack = if let Some(func_name) = current_function {
@@ -112,7 +144,7 @@ impl Decoder {
             for node in nodes_clone {
                 let node_clone = node.clone();
                 value = self.evaluate(&Box::new(node_clone))?;
-                if let NodeType::Return(_) = node.node_value() {
+                if let NodeValue::Return(_) = node.node_value() {
                     local_stack.pop();
                     info!("Local stack after pop (return): {:?}", local_stack);
                     return Ok(value);
@@ -122,7 +154,16 @@ impl Decoder {
             local_stack.pop();
             Ok(value)
         } else {
-            Err("No local stack found for the current function".to_string())
+            let node = match self.current_node.clone() {
+                Some(v) => v,
+                _ => todo!(),
+            };
+            return Err(custom_compile_error!(
+                node.line(),
+                node.column(),
+                &self.input(),
+                "No local stack found for the current function"
+            ));
         }
     }
 
@@ -131,7 +172,7 @@ impl Decoder {
         node: &Box<Node>,
         func_name: &String,
         args: &Vec<Node>,
-    ) -> Result<VariableValue, String> {
+    ) -> R<VariableValue, String> {
         let (args_name_v, body, ret_value, local_stack) =
             if let Some(data) = self.func_lists.get(func_name) {
                 (
@@ -141,7 +182,20 @@ impl Decoder {
                     data.3.clone(),
                 )
             } else {
-                return Err(format!("Undefined function: {}", func_name));
+                return Ok(VariableValue::Int32(0));
+                /*
+                let node = match self.current_node.clone() {
+                    Some(v) => v,
+                    _ => todo!(),
+                };
+                return Err(custom_compile_error!(
+                    node.line(),
+                    node.column(),
+                    &self.input(),
+                    "Undefined function: {}",
+                    func_name
+                ));
+                */
             };
 
         let mut local_vars = HashMap::new();
@@ -175,9 +229,9 @@ impl Decoder {
         &mut self,
         var_node: &Box<Node>,
         expr_node: &Box<Node>,
-    ) -> Result<VariableValue, String> {
+    ) -> R<VariableValue, String> {
         let value = self.evaluate(expr_node)?;
-        if let NodeType::Variable(var_name) = &var_node.node_value() {
+        if let NodeValue::Variable(var_name) = &var_node.node_value() {
             let mut is_redefined = false;
 
             // 関数ごとのローカルスタックをチェック
@@ -202,7 +256,15 @@ impl Decoder {
             }
 
             if is_redefined {
-                return Err(format!(
+                let node = match self.current_node.clone() {
+                    Some(v) => v,
+                    _ => todo!(),
+                };
+
+                return Err(custom_compile_error!(
+                    node.line(),
+                    node.column(),
+                    &self.input(),
                     "The variable name {:?} is already defined",
                     var_name
                 ));
@@ -237,12 +299,22 @@ impl Decoder {
 
             self.last_var_name = Some(var_name.clone());
         } else {
-            return Err("Left-hand side of assignment must be a variable.".to_string());
+            let node = match self.current_node.clone() {
+                Some(v) => v,
+                _ => todo!(),
+            };
+
+            return Err(custom_compile_error!(
+                node.line(),
+                node.column(),
+                &self.input(),
+                "Left-hand side of assignment must be a variable."
+            ));
         }
         Ok(value)
     }
 
-    fn evaluate_return(&mut self, ret_value: &Box<Node>) -> Result<VariableValue, String> {
+    fn evaluate_return(&mut self, ret_value: &Box<Node>) -> R<VariableValue, String> {
         let value = self.evaluate(ret_value)?;
         if self.is_in_function_scope() {
             self.current_node = None;
@@ -256,7 +328,7 @@ impl Decoder {
         args: &Vec<String>,
         body: &Box<Node>,
         ret_value: &Box<Node>,
-    ) -> Result<VariableValue, String> {
+    ) -> R<VariableValue, String> {
         let ret_value = self.evaluate(ret_value)?; // ここが変更された
         self.register_function(
             func_name.clone(),
@@ -277,7 +349,7 @@ impl Decoder {
         &mut self,
         condition: &Box<Node>,
         body: &Box<Node>,
-    ) -> Result<VariableValue, String> {
+    ) -> R<VariableValue, String> {
         let bool_value = self.evaluate_binary_op(condition)?;
         if let VariableValue::Bool(value) = bool_value {
             if value {
@@ -286,14 +358,27 @@ impl Decoder {
         }
         Ok(VariableValue::Bool(false))
     }
+    pub fn evaluate_while_statement(
+        &mut self,
+        condition: &Box<Node>,
+        body: &Box<Node>,
+    ) -> R<VariableValue, String> {
+        let bool_value = self.evaluate_binary_op(condition)?;
+        if let VariableValue::Bool(value) = bool_value {
+            while value {
+                return Ok(self.evaluate(&body)?);
+            }
+        }
+        Ok(VariableValue::Bool(false))
+    }
 
-    fn evaluate_comment(&mut self, content: Vec<String>) -> Result<VariableValue, String> {
+    fn evaluate_comment(&mut self, content: Vec<String>) -> R<VariableValue, String> {
         self.comment_lists
             .insert(format!("comment{:}", 0), (content, 0));
         Ok(VariableValue::Int32(0))
     }
 
-    fn evaluate_variable(&mut self, name: &String) -> Result<VariableValue, String> {
+    fn evaluate_variable(&mut self, name: &String) -> R<VariableValue, String> {
         for local_vars_stack in self
             .func_lists
             .values()
@@ -314,15 +399,29 @@ impl Decoder {
             );
             Ok(self.global_variables[name].clone())
         } else {
-            Err(format!("Undefined variable: {}", name))
+            return Ok(VariableValue::Int32(0));
+            /*
+                        let node = match self.current_node.clone() {
+                            Some(v) => v,
+                            _ => todo!(),
+                        };
+
+                        return Err(custom_compile_error!(
+                            node.line(),
+                            node.column(),
+                            &self.input(),
+                            "Undefined variable: {}",
+                            name
+                        ));
+            */
         }
     }
-    pub fn decode(&mut self, nodes: &Vec<Node>) -> Result<(), String> {
+    pub fn decode(&mut self, nodes: &Vec<Node>) -> R<(), String> {
         for node in nodes {
             match &node.node_value() {
-                NodeType::Assign(var_node, expr_node) => {
+                NodeValue::Assign(var_node, expr_node) => {
                     let value = self.evaluate(expr_node)?;
-                    if let NodeType::Variable(var_name) = &var_node.node_value() {
+                    if let NodeValue::Variable(var_name) = &var_node.node_value() {
                         self.global_variables
                             .insert(var_name.clone(), value.clone());
                         info!(
@@ -330,7 +429,17 @@ impl Decoder {
                             var_name, value
                         );
                     } else {
-                        return Err("Left-hand side of assignment must be a variable.".to_string());
+                        let node = match self.current_node.clone() {
+                            Some(v) => v,
+                            _ => todo!(),
+                        };
+
+                        return Err(custom_compile_error!(
+                            node.line(),
+                            node.column(),
+                            &self.input(),
+                            "Left-hand side of assignment must be a variable."
+                        ));
                     }
                 }
                 _ => {
@@ -341,78 +450,78 @@ impl Decoder {
         }
         Ok(())
     }
-    fn evaluate_binary_op(&mut self, node: &Box<Node>) -> Result<VariableValue, String> {
+    fn evaluate_binary_op(&mut self, node: &Box<Node>) -> R<VariableValue, String> {
         // 条件演算子の処理
-        if let NodeType::Eq(left, right)
-        | NodeType::Ne(left, right)
-        | NodeType::Lt(left, right)
-        | NodeType::Gt(left, right)
-        | NodeType::Le(left, right)
-        | NodeType::Ge(left, right) = &node.node_value()
+        if let NodeValue::Eq(left, right)
+        | NodeValue::Ne(left, right)
+        | NodeValue::Lt(left, right)
+        | NodeValue::Gt(left, right)
+        | NodeValue::Le(left, right)
+        | NodeValue::Ge(left, right) = &node.node_value()
         {
             let left_value = self.evaluate(left)?;
             let right_value = self.evaluate(right)?;
 
             match (&node.node_value(), left_value, right_value) {
                 // 等しい (==)
-                (NodeType::Eq(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                (NodeValue::Eq(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
                     Ok(VariableValue::Bool(l == r))
                 }
-                (NodeType::Eq(_, _), VariableValue::Str(l), VariableValue::Str(r)) => {
+                (NodeValue::Eq(_, _), VariableValue::Str(l), VariableValue::Str(r)) => {
                     Ok(VariableValue::Bool(l == r))
                 }
                 // 等しくない (!=)
-                (NodeType::Ne(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                (NodeValue::Ne(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
                     Ok(VariableValue::Bool(l != r))
                 }
-                (NodeType::Ne(_, _), VariableValue::Str(l), VariableValue::Str(r)) => {
+                (NodeValue::Ne(_, _), VariableValue::Str(l), VariableValue::Str(r)) => {
                     Ok(VariableValue::Bool(l != r))
                 }
                 // 小なり (<)
-                (NodeType::Lt(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                (NodeValue::Lt(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
                     Ok(VariableValue::Bool(l < r))
                 }
                 // 大なり (>)
-                (NodeType::Gt(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                (NodeValue::Gt(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
                     Ok(VariableValue::Bool(l > r))
                 }
                 // 以下 (<=)
-                (NodeType::Le(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                (NodeValue::Le(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
                     Ok(VariableValue::Bool(l <= r))
                 }
                 // 以上 (>=)
-                (NodeType::Ge(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                (NodeValue::Ge(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
                     Ok(VariableValue::Bool(l >= r))
                 }
                 _ => Err("Unsupported operation or mismatched types in condition".to_string()),
             }
         }
         // 通常の演算子の処理
-        else if let NodeType::Add(left, right)
-        | NodeType::Sub(left, right)
-        | NodeType::Mul(left, right)
-        | NodeType::Div(left, right) = &node.node_value()
+        else if let NodeValue::Add(left, right)
+        | NodeValue::Sub(left, right)
+        | NodeValue::Mul(left, right)
+        | NodeValue::Div(left, right) = &node.node_value()
         {
             let left_value = self.evaluate(left)?;
             let right_value = self.evaluate(right)?;
             match (&node.node_value(), left_value, right_value) {
-                (NodeType::Add(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                (NodeValue::Add(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
                     Ok(VariableValue::Int32(l + r))
                 }
-                (NodeType::Sub(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                (NodeValue::Sub(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
                     Ok(VariableValue::Int32(l - r))
                 }
-                (NodeType::Mul(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                (NodeValue::Mul(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
                     Ok(VariableValue::Int32(l * r))
                 }
-                (NodeType::Div(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                (NodeValue::Div(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
                     if r == 0 {
                         Err("Division by zero.".to_string())
                     } else {
                         Ok(VariableValue::Int32(l / r))
                     }
                 }
-                (NodeType::Add(_, _), VariableValue::Str(l), VariableValue::Str(r)) => {
+                (NodeValue::Add(_, _), VariableValue::Str(l), VariableValue::Str(r)) => {
                     Ok(VariableValue::Str(l + &r))
                 }
                 _ => Err("Unsupported operation or mismatched types".to_string()),
@@ -423,7 +532,7 @@ impl Decoder {
     }
 }
 impl Decoder {
-    pub fn new() -> Self {
+    pub fn new(input: String) -> Self {
         Decoder {
             global_variables: HashMap::new(),
             func_lists: HashMap::new(),
@@ -431,9 +540,250 @@ impl Decoder {
             last_var_name: None,
             current_node: None,
             current_function: None,
+            input: input.clone(),
         }
     }
 }
+
+pub struct AsmInterpreter {
+    global_variables: HashMap<String, VariableValue>,
+    func_lists: HashMap<
+        String,
+        (
+            Vec<String>,
+            Box<Node>,
+            VariableValue,
+            Vec<Vec<HashMap<String, VariableValue>>>,
+        ),
+    >,
+    last_var_name: Option<String>,
+    comment_lists: HashMap<String, (Vec<String>, i32)>,
+    current_node: Option<Box<Node>>,
+    current_function: Option<String>,
+    input: String,
+}
+impl AsmInterpreter {
+    pub fn new(input: String) -> Self {
+        AsmInterpreter {
+            global_variables: HashMap::new(),
+            func_lists: HashMap::new(),
+            comment_lists: HashMap::new(),
+            last_var_name: None,
+            current_node: None,
+            current_function: None,
+            input,
+        }
+    }
+
+    pub fn generate_asm(&mut self, nodes: &Vec<Node>) -> String {
+        let mut asm_code = String::new();
+        for node in nodes {
+            asm_code.push_str(&self.evaluate(&Box::new(node.clone())));
+        }
+        asm_code
+    }
+
+    fn evaluate(&mut self, node: &Box<Node>) -> String {
+        match &node.node_value() {
+            NodeValue::Assign(var_node, expr_node) => self.evaluate_assign(var_node, expr_node),
+            NodeValue::If(condition, body) => self.evaluate_if_statement(condition, body),
+            NodeValue::Function(func_name, args, body, ret_value) => {
+                self.evaluate_function(func_name, args, body, ret_value)
+            }
+            NodeValue::Return(ret_value) => self.evaluate_return(ret_value),
+            NodeValue::Call(func_name, args) => self.evaluate_call(func_name, args),
+            NodeValue::Number(value) => format!("mov eax, {}\n", value),
+            NodeValue::String(value) => format!("mov eax, '{}'\n", value),
+            NodeValue::Add(left, right) => self.evaluate_binary_op("add", left, right),
+            NodeValue::Sub(left, right) => self.evaluate_binary_op("sub", left, right),
+            NodeValue::Mul(left, right) => self.evaluate_binary_op("mul", left, right),
+            NodeValue::Div(left, right) => self.evaluate_binary_op("div", left, right),
+            _ => String::new(),
+        }
+    }
+
+    fn evaluate_assign(&mut self, var_node: &Box<Node>, expr_node: &Box<Node>) -> String {
+        let value = self.evaluate(expr_node);
+        if let NodeValue::Variable(var_name) = &var_node.node_value() {
+            format!("mov {}, eax\n", var_name)
+        } else {
+            String::new()
+        }
+    }
+
+    fn evaluate_if_statement(&mut self, condition: &Box<Node>, body: &Box<Node>) -> String {
+        let condition_code = self.evaluate(condition);
+        let body_code = self.evaluate(body);
+        format!("cmp eax, 1\nje _if_body\n_if_body:\n{}", body_code)
+    }
+
+    fn evaluate_function(
+        &mut self,
+        func_name: &String,
+        args: &Vec<String>,
+        body: &Box<Node>,
+        ret_value: &Box<Node>,
+    ) -> String {
+        let body_code = self.evaluate(body);
+        let ret_code = self.evaluate(ret_value);
+        format!("{}:\n{}\nret\n", func_name, body_code + &ret_code)
+    }
+
+    fn evaluate_return(&mut self, ret_value: &Box<Node>) -> String {
+        self.evaluate(ret_value)
+    }
+
+    fn evaluate_call(&mut self, func_name: &String, args: &Vec<Node>) -> String {
+        let mut args_code = String::new();
+        for arg in args {
+            args_code.push_str(&self.evaluate(&Box::new(arg.clone())));
+        }
+        format!("call {}\n", func_name)
+    }
+
+    fn evaluate_binary_op(&mut self, op: &str, left: &Box<Node>, right: &Box<Node>) -> String {
+        let left_code = self.evaluate(left);
+        let right_code = self.evaluate(right);
+        format!("{}\n{}\n{} eax, ebx\n", left_code, right_code, op)
+    }
+}
+
+/*
+pub struct AsmInterpreter {
+    func_lists: HashMap<String, (Vec<String>, Box<Node>)>,
+    global_variables: HashMap<String, VariableValue>,
+    local_variables_stack: Vec<HashMap<String, VariableValue>>,
+    last_var_name: Option<String>,
+}
+
+impl AsmInterpreter {
+    pub fn new() -> Self {
+        AsmInterpreter {
+            func_lists: HashMap::new(),
+            global_variables: HashMap::new(),
+            local_variables_stack: Vec::new(),
+            last_var_name: None,
+        }
+    }
+
+    pub fn register_function(
+        &mut self,
+        name: String,
+        args: Vec<String>,
+        body: Box<Node>,
+    ) -> R<(), String> {
+        if self.func_lists.contains_key(&name) {
+            return Err(format!("func name {:?} is defined", name));
+        }
+        self.func_lists.insert(name.clone(), (args, body));
+        Ok(())
+    }
+    pub fn generate_asm(&mut self, nodes: &Vec<Node>) -> R<String, String> {
+        let mut asm_code = String::new();
+        for node in nodes {
+            asm_code.push_str(&self.generate_asm_node(node)?);
+        }
+        Ok(asm_code)
+    }
+
+    fn generate_asm_node(&mut self, node: &Node) -> R<String, String> {
+        match &node.node_value() {
+            NodeValue::Function(func_name, args, body, ret_value) => {
+                self.generate_asm_function(func_name, args, body)
+            }
+            NodeValue::Return(ret_value) => self.generate_asm_return(ret_value),
+            NodeValue::Call(func_name, args) => self.generate_asm_call(func_name, args),
+            NodeValue::Number(value) => Ok(format!("{}", value)),
+            NodeValue::String(value) => Ok(format!("\"{}\"", value)),
+            NodeValue::Variable(name) => Ok(format!("{}", name)),
+            NodeValue::Assign(var_node, expr_node) => self.generate_asm_assign(var_node, expr_node),
+            NodeValue::Block(nodes) => self.generate_asm_block(nodes),
+            NodeValue::Add(left, right)
+            | NodeValue::Sub(left, right)
+            | NodeValue::Mul(left, right)
+            | NodeValue::Div(left, right) => self.generate_asm_binary_op(node),
+            _ => Err("Unsupported node type".to_string()),
+        }
+    }
+
+    fn generate_asm_function(
+        &mut self,
+        func_name: &String,
+        args: &Vec<String>,
+        body: &Box<Node>,
+    ) -> R<String, String> {
+        let mut asm_code = format!("{}:\n", func_name);
+        for arg in args {
+            asm_code.push_str(&format!("  ; argument: {}\n", arg));
+        }
+        asm_code.push_str(&self.generate_asm(&vec![*body.clone()])?);
+        Ok(asm_code)
+    }
+
+    fn generate_asm_return(&mut self, ret_value: &Box<Node>) -> R<String, String> {
+        let value = self.generate_asm(&vec![*ret_value.clone()])?;
+        Ok(format!("  mov eax, {}\n  ret\n", value))
+    }
+
+    fn generate_asm_call(
+        &mut self,
+        func_name: &String,
+        args: &Vec<Node>,
+    ) -> R<String, String> {
+        let mut asm_code = String::new();
+        for arg in args {
+            let arg_value = self.generate_asm(&vec![arg.clone()])?;
+            asm_code.push_str(&format!("  push {}\n", arg_value));
+        }
+        asm_code.push_str(&format!("  call {}\n", func_name));
+        Ok(asm_code)
+    }
+
+    fn generate_asm_assign(
+        &mut self,
+        var_node: &Box<Node>,
+        expr_node: &Box<Node>,
+    ) -> R<String, String> {
+        let value = self.generate_asm(&vec![*expr_node.clone()])?;
+        if let NodeValue::Variable(var_name) = &var_node.node_value() {
+            Ok(format!("  mov {}, {}\n", var_name, value))
+        } else {
+            Err("Left-hand side of assignment must be a variable.".to_string())
+        }
+    }
+
+    fn generate_asm_block(&mut self, nodes: &Vec<Node>) -> R<String, String> {
+        let mut asm_code = String::new();
+        for node in nodes {
+            asm_code.push_str(&self.generate_asm(&vec![node.clone()])?);
+        }
+        Ok(asm_code)
+    }
+
+    fn generate_asm_binary_op(&mut self, node: &Node) -> R<String, String> {
+        if let NodeValue::Add(left, right)
+        | NodeValue::Sub(left, right)
+        | NodeValue::Mul(left, right)
+        | NodeValue::Div(left, right) = &node.node_value()
+        {
+            let left_value = self.generate_asm(&vec![*left.clone()])?;
+            let right_value = self.generate_asm(&vec![*right.clone()])?;
+            match &node.node_value() {
+                NodeValue::Add(_, _) => Ok(format!("  add {}, {}\n", left_value, right_value)),
+                NodeValue::Sub(_, _) => Ok(format!("  sub {}, {}\n", left_value, right_value)),
+                NodeValue::Mul(_, _) => Ok(format!("  imul {}, {}\n", left_value, right_value)),
+                NodeValue::Div(_, _) => Ok(format!(
+                    "  mov eax, {}\n  idiv {}\n",
+                    left_value, right_value
+                )),
+                _ => Err("Unsupported operation".to_string()),
+            }
+        } else {
+            Err("Unsupported binary operation".to_string())
+        }
+    }
+}
+*/
 
 /*
 #[derive(Debug, Clone, Property)]
@@ -476,7 +826,7 @@ impl Decoder {
         args: Vec<String>,
         body: Box<Node>,
         ret_value: Box<Node>,
-    ) -> Result<(), String> {
+    ) -> R<(), String> {
         if self.func_lists.contains_key(&name) {
             return Err(format!("func name {:?} is defined", name));
         }
@@ -484,14 +834,14 @@ impl Decoder {
             .insert(name.clone(), (args, body, ret_value, Vec::new()));
         Ok(())
     }
-    pub fn evaluate(&mut self, node: &Box<Node>) -> Result<VariableValue, String> {
+    pub fn evaluate(&mut self, node: &Box<Node>) -> R<VariableValue, String> {
         match &node.node_value() {
-            NodeType::If(condition, body) => self.evaluate_if_statement(condition, body),
-            NodeType::MultiComment(content, (_, _)) => self.evaluate_comment(content.to_vec()),
-            NodeType::Function(func_name, args, body, ret_value) => {
+            NodeValue::If(condition, body) => self.evaluate_if_statement(condition, body),
+            NodeValue::MultiComment(content, (_, _)) => self.evaluate_comment(content.to_vec()),
+            NodeValue::Function(func_name, args, body, ret_value) => {
                 self.evaluate_function(func_name, args, body, ret_value)
             }
-            NodeType::Return(ret_value) => {
+            NodeValue::Return(ret_value) => {
                 if self.is_in_function_scope() {
                     info!("Return: {:?}", ret_value);
                     return self.evaluate_return(ret_value);
@@ -499,17 +849,17 @@ impl Decoder {
                     Err("Return statement outside of function scope".to_string())
                 }
             }
-            NodeType::Call(func_name, args) => self.evaluate_call(node, func_name, args),
-            NodeType::Number(value) => Ok(VariableValue::Int32(*value)),
-            NodeType::String(value) => Ok(VariableValue::Str(value.clone())),
-            NodeType::Variable(name) => self.evaluate_variable(name),
-            NodeType::Assign(var_node, expr_node) => self.evaluate_assign(var_node, expr_node),
-            NodeType::Block(nodes) => self.evaluate_block(nodes),
-            NodeType::Add(_left, _right)
-            | NodeType::Sub(_left, _right)
-            | NodeType::Mul(_left, _right)
-            | NodeType::Div(_left, _right) => self.evaluate_binary_op(node),
-            NodeType::Empty => Ok(VariableValue::Int32(0)), // 空のノードをデフォルト値で処理
+            NodeValue::Call(func_name, args) => self.evaluate_call(node, func_name, args),
+            NodeValue::Number(value) => Ok(VariableValue::Int32(*value)),
+            NodeValue::String(value) => Ok(VariableValue::Str(value.clone())),
+            NodeValue::Variable(name) => self.evaluate_variable(name),
+            NodeValue::Assign(var_node, expr_node) => self.evaluate_assign(var_node, expr_node),
+            NodeValue::Block(nodes) => self.evaluate_block(nodes),
+            NodeValue::Add(_left, _right)
+            | NodeValue::Sub(_left, _right)
+            | NodeValue::Mul(_left, _right)
+            | NodeValue::Div(_left, _right) => self.evaluate_binary_op(node),
+            NodeValue::Empty => Ok(VariableValue::Int32(0)), // 空のノードをデフォルト値で処理
             _ => {
                 // デバッグ用のログを追加
                 error!("Unsupported node type: {:?}", node.node_value());
@@ -517,7 +867,7 @@ impl Decoder {
             }
         }
     }
-    fn evaluate_block(&mut self, nodes: &Vec<Node>) -> Result<VariableValue, String> {
+    fn evaluate_block(&mut self, nodes: &Vec<Node>) -> R<VariableValue, String> {
         let current_function = self.current_function.clone();
         let mut func_lists = self.func_lists();
 
@@ -540,7 +890,7 @@ impl Decoder {
                 let node_clone = node.clone();
                 value = self.evaluate(&Box::new(node_clone))?;
 
-                if let NodeType::Return(_) = node.node_value() {
+                if let NodeValue::Return(_) = node.node_value() {
                     //local_stack.pop();
                     return Ok(value);
                 }
@@ -556,7 +906,7 @@ impl Decoder {
         node: &Box<Node>,
         func_name: &String,
         args: &Vec<Node>,
-    ) -> Result<VariableValue, String> {
+    ) -> R<VariableValue, String> {
         // 必要なデータを一時変数に格納
         let (args_name_v, body, ret_value, local_stack) =
             if let Some(data) = self.func_lists.get(func_name) {
@@ -610,9 +960,9 @@ impl Decoder {
         &mut self,
         var_node: &Box<Node>,
         expr_node: &Box<Node>,
-    ) -> Result<VariableValue, String> {
+    ) -> R<VariableValue, String> {
         let value = self.evaluate(expr_node)?;
-        if let NodeType::Variable(var_name) = &var_node.node_value() {
+        if let NodeValue::Variable(var_name) = &var_node.node_value() {
             let mut is_redefined = false;
 
             // 関数ごとのローカルスタックをチェック
@@ -666,7 +1016,7 @@ impl Decoder {
         Ok(value)
     }
 
-    fn evaluate_return(&mut self, ret_value: &Box<Node>) -> Result<VariableValue, String> {
+    fn evaluate_return(&mut self, ret_value: &Box<Node>) -> R<VariableValue, String> {
         let value = self.evaluate(ret_value)?;
         // 関数の呼び出し元に戻る
         if self.is_in_function_scope() {
@@ -681,7 +1031,7 @@ impl Decoder {
         args: &Vec<String>,
         body: &Box<Node>,
         ret_value: &Box<Node>,
-    ) -> Result<VariableValue, String> {
+    ) -> R<VariableValue, String> {
         self.register_function(
             func_name.clone(),
             args.clone(),
@@ -700,7 +1050,7 @@ impl Decoder {
         &mut self,
         condition: &Box<Node>,
         body: &Box<Node>,
-    ) -> Result<VariableValue, String> {
+    ) -> R<VariableValue, String> {
         let bool_value = self.evaluate_binary_op(condition)?;
         if let VariableValue::Bool(value) = bool_value {
             if value {
@@ -710,13 +1060,13 @@ impl Decoder {
         Ok(VariableValue::Bool(false))
     }
 
-    fn evaluate_comment(&mut self, content: Vec<String>) -> Result<VariableValue, String> {
+    fn evaluate_comment(&mut self, content: Vec<String>) -> R<VariableValue, String> {
         self.comment_lists
             .insert(format!("comment{:}", 0), (content, 0));
         Ok(VariableValue::Int32(0))
     }
 
-    fn evaluate_variable(&mut self, name: &String) -> Result<VariableValue, String> {
+    fn evaluate_variable(&mut self, name: &String) -> R<VariableValue, String> {
         for local_vars_stack in self
             .func_lists
             .values()
@@ -742,12 +1092,12 @@ impl Decoder {
             Err(format!("Undefined variable: {}", name))
         }
     }
-    pub fn decode(&mut self, nodes: &Vec<Node>) -> Result<(), String> {
+    pub fn decode(&mut self, nodes: &Vec<Node>) -> R<(), String> {
         for node in nodes {
             match &node.node_value() {
-                NodeType::Assign(var_node, expr_node) => {
+                NodeValue::Assign(var_node, expr_node) => {
                     let value = self.evaluate(expr_node)?;
-                    if let NodeType::Variable(var_name) = &var_node.node_value() {
+                    if let NodeValue::Variable(var_name) = &var_node.node_value() {
                         self.global_variables
                             .insert(var_name.clone(), value.clone());
                         info!("{} = {:?}", var_name, value);
@@ -763,78 +1113,78 @@ impl Decoder {
         }
         Ok(())
     }
-    fn evaluate_binary_op(&mut self, node: &Box<Node>) -> Result<VariableValue, String> {
+    fn evaluate_binary_op(&mut self, node: &Box<Node>) -> R<VariableValue, String> {
         // 条件演算子の処理
-        if let NodeType::Eq(left, right)
-        | NodeType::Ne(left, right)
-        | NodeType::Lt(left, right)
-        | NodeType::Gt(left, right)
-        | NodeType::Le(left, right)
-        | NodeType::Ge(left, right) = &node.node_value()
+        if let NodeValue::Eq(left, right)
+        | NodeValue::Ne(left, right)
+        | NodeValue::Lt(left, right)
+        | NodeValue::Gt(left, right)
+        | NodeValue::Le(left, right)
+        | NodeValue::Ge(left, right) = &node.node_value()
         {
             let left_value = self.evaluate(left)?;
             let right_value = self.evaluate(right)?;
 
             match (&node.node_value(), left_value, right_value) {
                 // 等しい (==)
-                (NodeType::Eq(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                (NodeValue::Eq(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
                     Ok(VariableValue::Bool(l == r))
                 }
-                (NodeType::Eq(_, _), VariableValue::Str(l), VariableValue::Str(r)) => {
+                (NodeValue::Eq(_, _), VariableValue::Str(l), VariableValue::Str(r)) => {
                     Ok(VariableValue::Bool(l == r))
                 }
                 // 等しくない (!=)
-                (NodeType::Ne(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                (NodeValue::Ne(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
                     Ok(VariableValue::Bool(l != r))
                 }
-                (NodeType::Ne(_, _), VariableValue::Str(l), VariableValue::Str(r)) => {
+                (NodeValue::Ne(_, _), VariableValue::Str(l), VariableValue::Str(r)) => {
                     Ok(VariableValue::Bool(l != r))
                 }
                 // 小なり (<)
-                (NodeType::Lt(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                (NodeValue::Lt(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
                     Ok(VariableValue::Bool(l < r))
                 }
                 // 大なり (>)
-                (NodeType::Gt(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                (NodeValue::Gt(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
                     Ok(VariableValue::Bool(l > r))
                 }
                 // 以下 (<=)
-                (NodeType::Le(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                (NodeValue::Le(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
                     Ok(VariableValue::Bool(l <= r))
                 }
                 // 以上 (>=)
-                (NodeType::Ge(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                (NodeValue::Ge(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
                     Ok(VariableValue::Bool(l >= r))
                 }
                 _ => Err("Unsupported operation or mismatched types in condition".to_string()),
             }
         }
         // 通常の演算子の処理
-        else if let NodeType::Add(left, right)
-        | NodeType::Sub(left, right)
-        | NodeType::Mul(left, right)
-        | NodeType::Div(left, right) = &node.node_value()
+        else if let NodeValue::Add(left, right)
+        | NodeValue::Sub(left, right)
+        | NodeValue::Mul(left, right)
+        | NodeValue::Div(left, right) = &node.node_value()
         {
             let left_value = self.evaluate(left)?;
             let right_value = self.evaluate(right)?;
             match (&node.node_value(), left_value, right_value) {
-                (NodeType::Add(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                (NodeValue::Add(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
                     Ok(VariableValue::Int32(l + r))
                 }
-                (NodeType::Sub(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                (NodeValue::Sub(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
                     Ok(VariableValue::Int32(l - r))
                 }
-                (NodeType::Mul(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                (NodeValue::Mul(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
                     Ok(VariableValue::Int32(l * r))
                 }
-                (NodeType::Div(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
+                (NodeValue::Div(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
                     if r == 0 {
                         Err("Division by zero.".to_string())
                     } else {
                         Ok(VariableValue::Int32(l / r))
                     }
                 }
-                (NodeType::Add(_, _), VariableValue::Str(l), VariableValue::Str(r)) => {
+                (NodeValue::Add(_, _), VariableValue::Str(l), VariableValue::Str(r)) => {
                     Ok(VariableValue::Str(l + &r))
                 }
                 _ => Err("Unsupported operation or mismatched types".to_string()),
@@ -853,143 +1203,6 @@ impl Decoder {
             last_var_name: None,
             current_node: None,
             current_function: None,
-        }
-    }
-}
-*/
-
-/*
-pub struct AsmInterpreter {
-    func_lists: HashMap<String, (Vec<String>, Box<Node>)>,
-    global_variables: HashMap<String, VariableValue>,
-    local_variables_stack: Vec<HashMap<String, VariableValue>>,
-    last_var_name: Option<String>,
-}
-
-impl AsmInterpreter {
-    pub fn new() -> Self {
-        AsmInterpreter {
-            func_lists: HashMap::new(),
-            global_variables: HashMap::new(),
-            local_variables_stack: Vec::new(),
-            last_var_name: None,
-        }
-    }
-
-    pub fn register_function(
-        &mut self,
-        name: String,
-        args: Vec<String>,
-        body: Box<Node>,
-    ) -> Result<(), String> {
-        if self.func_lists.contains_key(&name) {
-            return Err(format!("func name {:?} is defined", name));
-        }
-        self.func_lists.insert(name.clone(), (args, body));
-        Ok(())
-    }
-    pub fn generate_asm(&mut self, nodes: &Vec<Node>) -> Result<String, String> {
-        let mut asm_code = String::new();
-        for node in nodes {
-            asm_code.push_str(&self.generate_asm_node(node)?);
-        }
-        Ok(asm_code)
-    }
-
-    fn generate_asm_node(&mut self, node: &Node) -> Result<String, String> {
-        match &node.node_value() {
-            NodeType::Function(func_name, args, body, ret_value) => {
-                self.generate_asm_function(func_name, args, body)
-            }
-            NodeType::Return(ret_value) => self.generate_asm_return(ret_value),
-            NodeType::Call(func_name, args) => self.generate_asm_call(func_name, args),
-            NodeType::Number(value) => Ok(format!("{}", value)),
-            NodeType::String(value) => Ok(format!("\"{}\"", value)),
-            NodeType::Variable(name) => Ok(format!("{}", name)),
-            NodeType::Assign(var_node, expr_node) => self.generate_asm_assign(var_node, expr_node),
-            NodeType::Block(nodes) => self.generate_asm_block(nodes),
-            NodeType::Add(left, right)
-            | NodeType::Sub(left, right)
-            | NodeType::Mul(left, right)
-            | NodeType::Div(left, right) => self.generate_asm_binary_op(node),
-            _ => Err("Unsupported node type".to_string()),
-        }
-    }
-
-    fn generate_asm_function(
-        &mut self,
-        func_name: &String,
-        args: &Vec<String>,
-        body: &Box<Node>,
-    ) -> Result<String, String> {
-        let mut asm_code = format!("{}:\n", func_name);
-        for arg in args {
-            asm_code.push_str(&format!("  ; argument: {}\n", arg));
-        }
-        asm_code.push_str(&self.generate_asm(&vec![*body.clone()])?);
-        Ok(asm_code)
-    }
-
-    fn generate_asm_return(&mut self, ret_value: &Box<Node>) -> Result<String, String> {
-        let value = self.generate_asm(&vec![*ret_value.clone()])?;
-        Ok(format!("  mov eax, {}\n  ret\n", value))
-    }
-
-    fn generate_asm_call(
-        &mut self,
-        func_name: &String,
-        args: &Vec<Node>,
-    ) -> Result<String, String> {
-        let mut asm_code = String::new();
-        for arg in args {
-            let arg_value = self.generate_asm(&vec![arg.clone()])?;
-            asm_code.push_str(&format!("  push {}\n", arg_value));
-        }
-        asm_code.push_str(&format!("  call {}\n", func_name));
-        Ok(asm_code)
-    }
-
-    fn generate_asm_assign(
-        &mut self,
-        var_node: &Box<Node>,
-        expr_node: &Box<Node>,
-    ) -> Result<String, String> {
-        let value = self.generate_asm(&vec![*expr_node.clone()])?;
-        if let NodeType::Variable(var_name) = &var_node.node_value() {
-            Ok(format!("  mov {}, {}\n", var_name, value))
-        } else {
-            Err("Left-hand side of assignment must be a variable.".to_string())
-        }
-    }
-
-    fn generate_asm_block(&mut self, nodes: &Vec<Node>) -> Result<String, String> {
-        let mut asm_code = String::new();
-        for node in nodes {
-            asm_code.push_str(&self.generate_asm(&vec![node.clone()])?);
-        }
-        Ok(asm_code)
-    }
-
-    fn generate_asm_binary_op(&mut self, node: &Node) -> Result<String, String> {
-        if let NodeType::Add(left, right)
-        | NodeType::Sub(left, right)
-        | NodeType::Mul(left, right)
-        | NodeType::Div(left, right) = &node.node_value()
-        {
-            let left_value = self.generate_asm(&vec![*left.clone()])?;
-            let right_value = self.generate_asm(&vec![*right.clone()])?;
-            match &node.node_value() {
-                NodeType::Add(_, _) => Ok(format!("  add {}, {}\n", left_value, right_value)),
-                NodeType::Sub(_, _) => Ok(format!("  sub {}, {}\n", left_value, right_value)),
-                NodeType::Mul(_, _) => Ok(format!("  imul {}, {}\n", left_value, right_value)),
-                NodeType::Div(_, _) => Ok(format!(
-                    "  mov eax, {}\n  idiv {}\n",
-                    left_value, right_value
-                )),
-                _ => Err("Unsupported operation".to_string()),
-            }
-        } else {
-            Err("Unsupported binary operation".to_string())
         }
     }
 }
