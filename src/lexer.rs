@@ -70,7 +70,7 @@ impl Lexer {
     fn is_symbol(&self, c: char) -> bool {
         matches!(
             c,
-            '+' | '-' | '*' | '/' | '(' | ')' | ',' | '=' | ';' | '@' | '{' | '}' | '<' | '>'
+            '(' | ')' | ',' | '=' | ';' | '@' | '{' | '}' | '<' | '>' | ':'
         )
     }
     fn tokenize_string(&mut self, input: &String) -> R<Vec<Token>, String> {
@@ -341,12 +341,124 @@ impl Lexer {
                         chars.next();
                     }
                 }
+            } else if c == '+' {
+                chars.next();
+                self.column += 1;
+                if let Some(&next_char) = chars.peek() {
+                    if next_char == '+' {
+                        tokens.push(Token::new(
+                            "++".to_string(),
+                            TokenType::Increment,
+                            start_line,
+                            start_column,
+                        ));
+                        self.column += 1;
+                        chars.next();
+                    } else if next_char == '=' {
+                        tokens.push(Token::new(
+                            "+=".to_string(),
+                            TokenType::AddAssign,
+                            start_line,
+                            start_column,
+                        ));
+                        self.column += 1;
+                        chars.next();
+                    } else {
+                        tokens.push(Token::new(
+                            "+".to_string(),
+                            TokenType::Add,
+                            start_line,
+                            start_column,
+                        ));
+                    }
+                }
+            } else if c == '-' {
+                chars.next();
+                self.column += 1;
+                if let Some(&next_char) = chars.peek() {
+                    if next_char == '-' {
+                        tokens.push(Token::new(
+                            "--".to_string(),
+                            TokenType::Decrement,
+                            start_line,
+                            start_column,
+                        ));
+                        self.column += 1;
+                        chars.next();
+                    } else if next_char == '=' {
+                        tokens.push(Token::new(
+                            "-=".to_string(),
+                            TokenType::SubAssign,
+                            start_line,
+                            start_column,
+                        ));
+                        self.column += 1;
+                        chars.next();
+                    }else if next_char == '>' {
+                        tokens.push(Token::new(
+                            "->".to_string(),
+                            TokenType::RightArrow,
+                            start_line,
+                            start_column,
+                        ));
+                        self.column += 1;
+                        chars.next();
+                    } 
+                    else {
+                        tokens.push(Token::new(
+                            "-".to_string(),
+                            TokenType::Sub,
+                            start_line,
+                            start_column,
+                        ));
+                    }
+                }
+            } else if c == '*' {
+                chars.next();
+                self.column += 1;
+                if let Some(&next_char) = chars.peek() {
+                    if next_char == '=' {
+                        tokens.push(Token::new(
+                            "*=".to_string(),
+                            TokenType::MulAssign,
+                            start_line,
+                            start_column,
+                        ));
+                        self.column += 1;
+                        chars.next();
+                    } else {
+                        tokens.push(Token::new(
+                            "*".to_string(),
+                            TokenType::Mul,
+                            start_line,
+                            start_column,
+                        ));
+                    }
+                }
+            } else if c == '/' {
+                chars.next();
+                self.column += 1;
+                if let Some(&next_char) = chars.peek() {
+                    if next_char == '=' {
+                        tokens.push(Token::new(
+                            "/=".to_string(),
+                            TokenType::DivAssign,
+                            start_line,
+                            start_column,
+                        ));
+                        self.column += 1;
+                        chars.next();
+                    } else {
+                        tokens.push(Token::new(
+                            "/".to_string(),
+                            TokenType::Div,
+                            start_line,
+                            start_column,
+                        ));
+                    }
+                }
             } else if self.is_symbol(c) {
                 let token_type = match c {
-                    '+' => TokenType::Add,
-                    '-' => TokenType::Sub,
-                    '*' => TokenType::Mul,
-                    '/' => TokenType::Div,
                     '(' => TokenType::LeftParen,
                     ')' => TokenType::RightParen,
                     '{' => TokenType::LeftCurlyBrace,
@@ -357,6 +469,7 @@ impl Lexer {
                     '=' => TokenType::Equals,
                     '@' => TokenType::AtSign,
                     ';' => TokenType::Semi,
+                    ':' => TokenType::Colon,
                     _ => {
                         return Err(custom_compile_error!(
                             start_line,

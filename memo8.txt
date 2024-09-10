@@ -1,0 +1,154 @@
+ /*
+    fn parse_statement(&mut self) -> R<Vec<Node>, String> {
+        let mut nodes = Vec::new();
+        while self.current_token().token_type() != TokenType::Eof {
+            // 変数定義文か代入文か
+            if self.current_token().token_type() == TokenType::Ident
+                && self.current_token().token_value() == "let"
+                && self.peek_next_token(2).token_type() == TokenType::Equals
+            {
+                self.next_token(); // let
+                let var = self.current_token().token_value().clone();
+                self.next_token(); // =
+                self.next_token(); // move to value
+                let value_node = self.expr()?;
+                nodes.push(Node::new(
+                    NodeValue::VariableDeclaration(
+                        Box::new(Node::new(
+                            NodeValue::Variable(var),
+                            None,
+                            self.current_token().line(),
+                            self.current_token().column(),
+                        )),
+                        value_node,
+                    ),
+                    None,
+                    self.current_token().line(),
+                    self.current_token().column(),
+                ));
+
+                info!("current_token: {:?}",self.current_token().clone());
+            } else if self.current_token().token_type() == TokenType::Ident
+                && self.peek_next_token(1).token_type() == TokenType::Equals
+            {
+                let var = self.current_token().token_value().clone();
+                self.next_token(); // =
+                self.next_token(); // move to value
+                let value_node = self.expr()?;
+                nodes.push(Node::new(
+                    NodeValue::Assign(
+                        Box::new(Node::new(
+                            NodeValue::Variable(var),
+                            None,
+                            self.current_token().line(),
+                            self.current_token().column(),
+                        )),
+                        value_node,
+                    ),
+                    None,
+                    self.current_token().line(),
+                    self.current_token().column(),
+                ));
+            } else if self.current_token().token_type() == TokenType::Ident
+                && matches!(
+                    self.peek_next_token(1).token_type(),
+                    TokenType::AddAssign
+                        | TokenType::SubAssign
+                        | TokenType::MulAssign
+                        | TokenType::DivAssign
+                        | TokenType::Increment
+                        | TokenType::Decrement
+                )
+            {
+                let var = self.current_token().token_value().clone();
+                let op = self.peek_next_token(1).token_type().clone();
+                self.next_token(); // variable
+                self.next_token(); // operator
+                let node = match op {
+                    TokenType::AddAssign => NodeValue::AddAssign(
+                        Box::new(Node::new(
+                            NodeValue::Variable(var.clone()),
+                            None,
+                            self.current_token().line(),
+                            self.current_token().column(),
+                        )),
+                        self.expr()?,
+                    ),
+                    TokenType::SubAssign => NodeValue::SubAssign(
+                        Box::new(Node::new(
+                            NodeValue::Variable(var.clone()),
+                            None,
+                            self.current_token().line(),
+                            self.current_token().column(),
+                        )),
+                        self.expr()?,
+                    ),
+                    TokenType::MulAssign => NodeValue::MulAssign(
+                        Box::new(Node::new(
+                            NodeValue::Variable(var.clone()),
+                            None,
+                            self.current_token().line(),
+                            self.current_token().column(),
+                        )),
+                        self.expr()?,
+                    ),
+                    TokenType::DivAssign => NodeValue::DivAssign(
+                        Box::new(Node::new(
+                            NodeValue::Variable(var.clone()),
+                            None,
+                            self.current_token().line(),
+                            self.current_token().column(),
+                        )),
+                        self.expr()?,
+                    ),
+                    TokenType::Increment => NodeValue::Increment(Box::new(Node::new(
+                        NodeValue::Variable(var.clone()),
+                        None,
+                        self.current_token().line(),
+                        self.current_token().column(),
+                    ))),
+                    TokenType::Decrement => NodeValue::Decrement(Box::new(Node::new(
+                        NodeValue::Variable(var.clone()),
+                        None,
+                        self.current_token().line(),
+                        self.current_token().column(),
+                    ))),
+                    _ => unreachable!(),
+                };
+                nodes.push(Node::new(
+                    node,
+                    None,
+                    self.current_token().line(),
+                    self.current_token().column(),
+                ));
+            } else if self.current_token().token_type() == TokenType::Ident
+                && self.current_token().token_value() == "return"
+            {
+                self.next_token();
+                let ret_value = self.expr()?;
+                nodes.push(Node::new(
+                    NodeValue::Return(ret_value),
+                    None,
+                    self.current_token().line(),
+                    self.current_token().column(),
+                ));
+            } else if self.current_token().token_type() == TokenType::LeftCurlyBrace {
+                nodes.push(*self.parse_block()?);
+            } else {
+                let expr_node = self.expr()?;
+                nodes.push(*expr_node);
+            }
+            if self.current_token().token_type() == TokenType::Semi {
+                self.next_token(); // skip ;
+            } else {
+                warn!(
+                    "Missing semicolon at end of the statement at line {}, column {}.",
+                    self.current_token().line() - 1,
+                    self.current_token().column()
+                );
+            }
+        }
+        Ok(nodes)
+    }
+    */
+

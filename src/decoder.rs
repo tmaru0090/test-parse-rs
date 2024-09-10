@@ -38,41 +38,26 @@ pub struct Decoder {
 #[derive(Clone, Debug)]
 pub enum VariableValue {
     Int32(i32),
+    Int64(i64),
+    Float32(f32),
+    Float64(f64),
     Str(String),
     Bool(bool),
+    Unit(()),
 }
 
 impl Decoder {
-    pub fn register_function(
-        &mut self,
-        name: String,
-        args: Vec<String>,
-        body: Box<Node>,
-        ret_value: VariableValue,
-    ) -> R<(), String> {
-        if self.func_lists.contains_key(&name) {
-            let node = match self.current_node.clone() {
-                Some(v) => v,
-                _ => todo!(),
-            };
-            return Err(custom_compile_error!(
-                node.line(),
-                node.column(),
-                &self.input(),
-                "Function name {:?} is already defined",
-                name
-            ));
-        }
-        self.func_lists
-            .insert(name.clone(), (args, body, ret_value, Vec::new()));
-        Ok(())
-    }
     pub fn evaluate(&mut self, node: &Box<Node>) -> R<VariableValue, String> {
         self.current_node = Some(node.clone());
+        //info!("current_node: {:?}", self.current_node.clone());
+
         match &node.node_value() {
             NodeValue::If(condition, body) => self.evaluate_if_statement(condition, body),
             NodeValue::While(condition, body) => self.evaluate_while_statement(condition, body),
-            NodeValue::MultiComment(content, (_, _)) => self.evaluate_comment(content.to_vec()),
+            NodeValue::MultiComment(content, (_, _)) => {
+                self.evaluate_multi_comment(content.to_vec())
+            }
+            NodeValue::SingleComment(content, (_, _)) => self.evaluate_single_comment(content),
             NodeValue::Function(func_name, args, body, ret_value) => {
                 self.evaluate_function(func_name, args, body, ret_value)
             }
@@ -80,6 +65,7 @@ impl Decoder {
                 if self.is_in_function_scope() {
                     let ret = self.evaluate_return(ret_value);
                     info!("Return: {:?}", ret);
+                    self.pop_local_stack_frame();
                     ret
                 } else {
                     let node = match self.current_node.clone() {
@@ -101,12 +87,15 @@ impl Decoder {
             NodeValue::Assign(var_node, expr_node) => self.evaluate_assign(var_node, expr_node),
             NodeValue::Block(nodes) => self.evaluate_block(nodes),
             NodeValue::Variable(name) => self.evaluate_variable(name),
-
+            NodeValue::VariableDeclaration(var_node, expr_node) => {
+                self.evaluate_variable_declaration(var_node, expr_node)
+            }
             NodeValue::Add(_left, _right)
             | NodeValue::Sub(_left, _right)
             | NodeValue::Mul(_left, _right)
             | NodeValue::Div(_left, _right) => self.evaluate_binary_op(node),
-            NodeValue::Empty => Ok(VariableValue::Int32(0)), // 空のノードをデフォルト値で処理
+            NodeValue::Empty | NodeValue::StatementEnd => Ok(VariableValue::Unit(())), // 空のノードをデフォルト値で処理
+
             _ => {
                 let node = match self.current_node.clone() {
                     Some(v) => v,
@@ -123,139 +112,49 @@ impl Decoder {
         }
     }
 
-    fn evaluate_block(&mut self, nodes: &Vec<Node>) -> R<VariableValue, String> {
-        let current_function = self.current_function.clone();
-        let mut func_lists = self.func_lists();
-        let stack = if let Some(func_name) = current_function {
-            func_lists
-                .get_mut(&func_name)
-                .and_then(|(_, _, _, stacks)| stacks.last_mut())
-        } else {
-            None
-        };
-
-        if let Some(local_stack) = stack {
-            local_stack.push(HashMap::new());
-            info!("Local stack before evaluation: {:?}", local_stack);
-            let mut value = VariableValue::Int32(0);
-
-            let nodes_clone = nodes.clone();
-
-            for node in nodes_clone {
-                let node_clone = node.clone();
-                value = self.evaluate(&Box::new(node_clone))?;
-                if let NodeValue::Return(_) = node.node_value() {
-                    local_stack.pop();
-                    info!("Local stack after pop (return): {:?}", local_stack);
-                    return Ok(value);
-                }
-            }
-            info!("Local stack before evaluation: {:?}", local_stack);
-            local_stack.pop();
-            Ok(value)
-        } else {
-            let node = match self.current_node.clone() {
-                Some(v) => v,
-                _ => todo!(),
-            };
-            return Err(custom_compile_error!(
-                node.line(),
-                node.column(),
-                &self.input(),
-                "No local stack found for the current function"
-            ));
-        }
-    }
-
-    fn evaluate_call(
-        &mut self,
-        node: &Box<Node>,
-        func_name: &String,
-        args: &Vec<Node>,
-    ) -> R<VariableValue, String> {
-        let (args_name_v, body, ret_value, local_stack) =
-            if let Some(data) = self.func_lists.get(func_name) {
-                (
-                    data.0.clone(),
-                    data.1.clone(),
-                    data.2.clone(),
-                    data.3.clone(),
-                )
-            } else {
-                return Ok(VariableValue::Int32(0));
-                /*
-                let node = match self.current_node.clone() {
-                    Some(v) => v,
-                    _ => todo!(),
-                };
-                return Err(custom_compile_error!(
-                    node.line(),
-                    node.column(),
-                    &self.input(),
-                    "Undefined function: {}",
-                    func_name
-                ));
-                */
-            };
-
-        let mut local_vars = HashMap::new();
-        for (arg_name, arg) in args_name_v.iter().zip(args.iter()) {
-            let arg_clone = arg.clone();
-            let arg_value = self.evaluate(&Box::new(arg_clone))?;
-            local_vars.insert(arg_name.clone(), arg_value);
-        }
-
-        if let Some(func_data) = self.func_lists.get_mut(func_name) {
-            func_data.3.push(vec![local_vars]);
-        }
-
-        self.current_function = Some(func_name.clone());
-        let previous_node = self.current_node.clone();
-        self.current_node = Some(node.clone());
-
-        let result = self.evaluate(&body)?;
-
-        self.current_node = previous_node;
-        //   let return_value = ret_value;
-        let return_value = result;
-        if let Some(func_data) = self.func_lists.get_mut(func_name) {
-            func_data.3.pop();
-        }
-        self.current_function = None;
-        Ok(return_value)
-    }
-
-    fn evaluate_assign(
+    pub fn evaluate_assign(
         &mut self,
         var_node: &Box<Node>,
         expr_node: &Box<Node>,
     ) -> R<VariableValue, String> {
         let value = self.evaluate(expr_node)?;
         if let NodeValue::Variable(var_name) = &var_node.node_value() {
-            let mut is_redefined = false;
+            let mut assigned = false;
 
             // 関数ごとのローカルスタックをチェック
             for local_vars_stack in self
                 .func_lists
-                .values()
-                .flat_map(|(_, _, _, stack)| stack.iter())
+                .values_mut()
+                .flat_map(|(_, _, _, stack)| stack.iter_mut())
             {
                 for local_vars in local_vars_stack {
                     if local_vars.contains_key(var_name) {
-                        is_redefined = true;
+                        local_vars.insert(var_name.clone(), value.clone());
+                        info!(
+                            "Assigned Local Variable: name: {} value: {:?}",
+                            var_name, value
+                        );
+                        assigned = true;
                         break;
                     }
                 }
-                if is_redefined {
+                if assigned {
                     break;
                 }
             }
 
-            if self.global_variables.contains_key(var_name) {
-                is_redefined = true;
+            // グローバル変数をチェック
+            if !assigned && self.global_variables.contains_key(var_name) {
+                self.global_variables
+                    .insert(var_name.clone(), value.clone());
+                info!(
+                    "Assigned Global Variable: name: {} value: {:?}",
+                    var_name, value
+                );
+                assigned = true;
             }
 
-            if is_redefined {
+            if !assigned {
                 let node = match self.current_node.clone() {
                     Some(v) => v,
                     _ => todo!(),
@@ -265,36 +164,9 @@ impl Decoder {
                     node.line(),
                     node.column(),
                     &self.input(),
-                    "The variable name {:?} is already defined",
+                    "Variable {:?} not found in any scope",
                     var_name
                 ));
-            }
-
-            // 現在の関数のローカルスタックに変数を追加
-            if let Some(local_vars_stack) = self
-                .func_lists
-                .values_mut()
-                .flat_map(|(_, _, _, stack)| stack.last_mut())
-                .next()
-            {
-                if let Some(local_vars) = local_vars_stack.last_mut() {
-                    local_vars.insert(var_name.clone(), value.clone());
-                    info!(
-                        "Assign Local Variable: name: {} value: {:?} in function: {:?}",
-                        var_name.clone(),
-                        value.clone(),
-                        self.current_function.clone()
-                    );
-                }
-            } else {
-                self.global_variables
-                    .insert(var_name.clone(), value.clone());
-                info!(
-                    "Assign Global Variable: name: {} value: {:?} in function: {:?}",
-                    var_name.clone(),
-                    value.clone(),
-                    self.current_function().clone()
-                );
             }
 
             self.last_var_name = Some(var_name.clone());
@@ -313,6 +185,214 @@ impl Decoder {
         }
         Ok(value)
     }
+    fn evaluate_variable_declaration(
+        &mut self,
+        var_node: &Box<Node>,
+        expr_node: &Box<Node>,
+    ) -> R<VariableValue, String> {
+        let var_name = match &var_node.node_value() {
+            NodeValue::Variable(name) => name.clone(),
+            _ => {
+                return Err(custom_compile_error!(
+                    var_node.line(),
+                    var_node.column(),
+                    &self.input(),
+                    "Expected a variable name in variable declaration"
+                ));
+            }
+        };
+
+        let value = self.evaluate(expr_node)?;
+        let mut is_redefined = false;
+
+        // 関数ごとのローカルスタックをチェック
+        for local_vars_stack in self
+            .func_lists
+            .values()
+            .flat_map(|(_, _, _, stack)| stack.iter())
+        {
+            for local_vars in local_vars_stack {
+                if local_vars.contains_key(&var_name) {
+                    is_redefined = true;
+                    break;
+                }
+            }
+            if is_redefined {
+                break;
+            }
+        }
+        if self.global_variables.contains_key(&var_name) {
+            is_redefined = true;
+        }
+
+        if is_redefined {
+            let node = match self.current_node.clone() {
+                Some(v) => v,
+                _ => todo!(),
+            };
+
+            return Err(custom_compile_error!(
+                node.line(),
+                node.column(),
+                &self.input(),
+                "The variable name {:?} is already defined",
+                var_name
+            ));
+        }
+
+        // 現在の関数のローカルスタックに変数を追加
+        if let Some(local_vars_stack) = self
+            .func_lists
+            .values_mut()
+            .flat_map(|(_, _, _, stack)| stack.last_mut())
+            .next()
+        {
+            if let Some(local_vars) = local_vars_stack.last_mut() {
+                local_vars.insert(var_name.clone(), value.clone());
+                info!(
+                    "Declare Local Variable: name: {} value: {:?} in function: {:?}",
+                    var_name.clone(),
+                    value.clone(),
+                    self.current_function.clone()
+                );
+            }
+        } else {
+            self.global_variables
+                .insert(var_name.clone(), value.clone());
+            info!(
+                "Declare Global Variable: name: {} value: {:?} in function: {:?}",
+                var_name.clone(),
+                value.clone(),
+                self.current_function().clone()
+            );
+        }
+
+        self.last_var_name = Some(var_name.clone());
+        Ok(value)
+    }
+
+    fn evaluate_block(&mut self, nodes: &Vec<Box<Node>>) -> R<VariableValue, String> {
+        let current_function = self.current_function.clone();
+        let mut func_lists = self.func_lists();
+        let stack = if let Some(func_name) = current_function.clone() {
+            func_lists
+                .get_mut(&func_name)
+                .and_then(|(_, _, _, stacks)| stacks.last_mut())
+        } else {
+            None
+        };
+
+        if let Some(local_stack) = stack {
+            local_stack.push(HashMap::new());
+            info!(
+                "in {}: Local stack before evaluation: {:?}",
+                current_function.clone().unwrap_or("unknown".to_string()),
+                local_stack
+            );
+            let mut value = VariableValue::Unit(());
+
+            let nodes_clone = nodes.clone();
+
+            for node in nodes_clone {
+                let node_clone = node.clone();
+                value = self.evaluate(&node_clone)?;
+                if let NodeValue::Return(_) = node.node_value() {
+                    local_stack.pop();
+                    info!(
+                        "in {}: Local stack after pop (return): {:?}",
+                        current_function.clone().unwrap_or("unknown".to_string()),
+                        local_stack
+                    );
+                    return Ok(value);
+                }
+            }
+            info!(
+                "in {}: Local stack before evaluation: {:?}",
+                current_function.clone().unwrap_or("unknown".to_string()),
+                local_stack
+            );
+            local_stack.pop();
+            Ok(value)
+        } else {
+            let node = match self.current_node.clone() {
+                Some(v) => v,
+                _ => todo!(),
+            };
+            return Err(custom_compile_error!(
+                node.line(),
+                node.column(),
+                &self.input(),
+                "No local stack found for the current function"
+            ));
+        }
+    }
+    fn pop_local_stack_frame(&mut self) {
+        if let Some(local_vars_stack) = self
+            .func_lists
+            .values_mut()
+            .flat_map(|(_, _, _, stack)| stack.last_mut())
+            .next()
+        {
+            local_vars_stack.pop();
+        }
+    }
+
+    fn evaluate_call(
+        &mut self,
+        node: &Box<Node>,
+        func_name: &String,
+        args: &Vec<Node>,
+    ) -> R<VariableValue, String> {
+        // 一時的に必要なデータをコピー
+        let (param_names, body, local_stack) = {
+            if let Some((param_names, body, _, local_stack)) = self.func_lists.get(func_name) {
+                (param_names.clone(), body.clone(), local_stack.clone())
+            } else {
+                return Err(custom_compile_error!(
+                    node.line(),
+                    node.column(),
+                    &self.input(),
+                    "Function {:?} not defined",
+                    func_name
+                ));
+            }
+        };
+
+        if args.len() != param_names.len() {
+            return Err(custom_compile_error!(
+                node.line(),
+                node.column(),
+                &self.input(),
+                "Function {:?} expects {:?} arguments, but {:?} were provided",
+                func_name,
+                param_names.len(),
+                args.len()
+            ));
+        }
+
+        let mut local_vars = HashMap::new();
+        for (param_name, arg) in param_names.iter().zip(args.iter()) {
+            let value = self.evaluate(&Box::new(arg.clone()))?;
+            local_vars.insert(param_name.clone(), value);
+        }
+
+        // ミュータブルな借用を再度取得してローカルスタックを更新
+        if let Some((_, _, _, local_stack)) = self.func_lists.get_mut(func_name) {
+            local_stack.push(vec![local_vars]);
+        }
+
+        self.current_function = Some(func_name.clone());
+        let result = self.evaluate(&body);
+
+        // ミュータブルな借用を再度取得してローカルスタックをポップ
+        if let Some((_, _, _, local_stack)) = self.func_lists.get_mut(func_name) {
+            local_stack.pop();
+        }
+
+        self.current_function = None;
+
+        result
+    }
 
     fn evaluate_return(&mut self, ret_value: &Box<Node>) -> R<VariableValue, String> {
         let value = self.evaluate(ret_value)?;
@@ -322,6 +402,7 @@ impl Decoder {
         }
         Ok(value)
     }
+
     pub fn evaluate_function(
         &mut self,
         func_name: &String,
@@ -329,17 +410,80 @@ impl Decoder {
         body: &Box<Node>,
         ret_value: &Box<Node>,
     ) -> R<VariableValue, String> {
-        let ret_value = self.evaluate(ret_value)?; // ここが変更された
-        self.register_function(
-            func_name.clone(),
-            args.clone(),
-            body.clone(),
-            ret_value.clone(),
-        )?;
-        info!("define function: {:?}", func_name);
-        Ok(VariableValue::Int32(0))
+        // まず関数のシグネチャだけを登録
+        self.register_function_signature(func_name.clone(), args.clone())?;
+        info!("define function signature: {:?}", func_name);
+
+        // 次に関数のボディを評価
+        let ret_value = self.evaluate(ret_value)?;
+        self.register_function_body(func_name.clone(), body.clone(), ret_value.clone())?;
+        info!("define function body: {:?}", func_name);
+
+        Ok(VariableValue::Unit(()))
     }
 
+    fn register_function_signature(&mut self, name: String, args: Vec<String>) -> R<(), String> {
+        if self.func_lists.contains_key(&name) {
+            let node = match self.current_node.clone() {
+                Some(v) => v,
+                _ => todo!(),
+            };
+            return Err(custom_compile_error!(
+                node.line(),
+                node.column(),
+                &self.input(),
+                "Function name {:?} is already defined",
+                name
+            ));
+        }
+        self.func_lists.insert(
+            name.clone(),
+            (
+                args,
+                Box::new(Node::new(NodeValue::Empty, None, 0, 0)),
+                VariableValue::Unit(()),
+                Vec::new(),
+            ),
+        );
+        Ok(())
+    }
+
+    fn register_function_body(
+        &mut self,
+        name: String,
+        body: Box<Node>,
+        ret_value: VariableValue,
+    ) -> R<(), String> {
+        // 一時的に必要なデータをコピー
+        let (args, mut local_stack) = {
+            if let Some((args, _, _, local_stack)) = self.func_lists.get(&name) {
+                (args.clone(), local_stack.clone())
+            } else {
+                let node = match self.current_node.clone() {
+                    Some(v) => v,
+                    _ => todo!(),
+                };
+                return Err(custom_compile_error!(
+                    node.line(),
+                    node.column(),
+                    &self.input(),
+                    "Function name {:?} is not defined",
+                    name
+                ));
+            }
+        };
+
+        // ミュータブルな借用を再度取得して関数のボディを登録
+        if let Some((_, _, _, local_stack_ref)) = self.func_lists.get_mut(&name) {
+            *local_stack_ref = Vec::new();
+            local_stack = local_stack_ref.clone();
+        }
+
+        self.func_lists
+            .insert(name.clone(), (args, body, ret_value, local_stack));
+
+        Ok(())
+    }
     fn is_in_function_scope(&self) -> bool {
         self.func_lists
             .values()
@@ -372,10 +516,18 @@ impl Decoder {
         Ok(VariableValue::Bool(false))
     }
 
-    fn evaluate_comment(&mut self, content: Vec<String>) -> R<VariableValue, String> {
+    fn evaluate_multi_comment(&mut self, content: Vec<String>) -> R<VariableValue, String> {
         self.comment_lists
-            .insert(format!("comment{:}", 0), (content, 0));
-        Ok(VariableValue::Int32(0))
+            .insert(format!("comment: {:}", 0), (content, 0));
+        Ok(VariableValue::Unit(()))
+    }
+    fn evaluate_single_comment(&mut self, content: &String) -> R<VariableValue, String> {
+        self.comment_lists.insert(
+            format!("comment: {:}", 0),
+            (vec![(*content.clone()).to_string()], 0),
+        );
+
+        Ok(VariableValue::Unit(()))
     }
 
     fn evaluate_variable(&mut self, name: &String) -> R<VariableValue, String> {
@@ -400,23 +552,9 @@ impl Decoder {
             Ok(self.global_variables[name].clone())
         } else {
             return Ok(VariableValue::Int32(0));
-            /*
-                        let node = match self.current_node.clone() {
-                            Some(v) => v,
-                            _ => todo!(),
-                        };
-
-                        return Err(custom_compile_error!(
-                            node.line(),
-                            node.column(),
-                            &self.input(),
-                            "Undefined variable: {}",
-                            name
-                        ));
-            */
         }
     }
-    pub fn decode(&mut self, nodes: &Vec<Node>) -> R<(), String> {
+    pub fn decode(&mut self, nodes: &Vec<Box<Node>>) -> R<(), String> {
         for node in nodes {
             match &node.node_value() {
                 NodeValue::Assign(var_node, expr_node) => {
@@ -443,7 +581,7 @@ impl Decoder {
                     }
                 }
                 _ => {
-                    let value = self.evaluate(&Box::new(node.clone()))?;
+                    let value = self.evaluate(&Box::new(*node.clone()))?;
                     // 他の処理が必要ならここに追加
                 }
             }

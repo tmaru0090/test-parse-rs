@@ -128,7 +128,7 @@ impl<'a> Parser<'a> {
         );
         Box::new(node)
     }
-    pub fn new_block(&self, block: Vec<Node>) -> Box<Node> {
+    pub fn new_block(&self, block: Vec<Box<Node>>) -> Box<Node> {
         let node = Node::new(
             NodeValue::Block(block),
             None,
@@ -176,7 +176,7 @@ impl<'a> Parser<'a> {
         let mut node = self.factor()?;
         while matches!(
             self.current_token().token_type(),
-            TokenType::Mul | TokenType::Div
+            TokenType::Mul | TokenType::Div | TokenType::MulAssign | TokenType::DivAssign
         ) {
             let op = self.current_token().clone();
             self.next_token();
@@ -185,6 +185,8 @@ impl<'a> Parser<'a> {
                 match op.token_type() {
                     TokenType::Mul => NodeValue::Mul(node, rhs),
                     TokenType::Div => NodeValue::Div(node, rhs),
+                    TokenType::MulAssign => NodeValue::MulAssign(node, rhs),
+                    TokenType::DivAssign => NodeValue::DivAssign(node, rhs),
                     _ => panic!(
                         "{}",
                         custom_compile_error!(
@@ -216,6 +218,8 @@ impl<'a> Parser<'a> {
                 match op.token_type() {
                     TokenType::Add => NodeValue::Add(node, rhs),
                     TokenType::Sub => NodeValue::Sub(node, rhs),
+                    TokenType::AddAssign => NodeValue::AddAssign(node, rhs),
+                    TokenType::SubAssign => NodeValue::SubAssign(node, rhs),
                     _ => panic!(
                         "{}",
                         custom_compile_error!(
@@ -267,6 +271,7 @@ impl<'a> Parser<'a> {
         }
         self.next_token(); // ')' をスキップ
         let body = self.parse_block()?; // ブロックの解析
+
         let mut ret_value = self.new_empty(); // 戻り値の初期値を指定
         if let NodeValue::Block(ref nodes) = body.node_value() {
             if let Some(last_node) = nodes.last() {
@@ -275,7 +280,6 @@ impl<'a> Parser<'a> {
                 }
             }
         }
-        log::info!("Return value node: {:?}", ret_value);
         Ok(Box::new(Node::new(
             NodeValue::Function(
                 name,
@@ -463,6 +467,7 @@ impl<'a> Parser<'a> {
                 }
             }
             TokenType::LeftCurlyBrace => self.parse_block(),
+
             _ => Err(custom_compile_error!(
                 self.current_token().line(),
                 self.current_token().column(),
@@ -485,59 +490,11 @@ impl<'a> Parser<'a> {
                     "Unexpected end of input, no closing curly brace found"
                 ));
             }
-            // 変数代入文か代入文か
-            if self.current_token().token_type() == TokenType::Ident
-                && self.current_token().token_value() == "let"
-                && self.peek_next_token(2).token_type() == TokenType::Equals
-            {
-                self.next_token(); // let
-                let var = self.current_token().token_value().clone();
-                self.next_token(); // =
-                self.next_token(); // move to value
-                let value_node = self.expr()?;
-                nodes.push(Node::new(
-                    NodeValue::Assign(
-                        Box::new(Node::new(
-                            NodeValue::Variable(var),
-                            None,
-                            self.current_token().line(),
-                            self.current_token().column(),
-                        )),
-                        value_node,
-                    ),
-                    None,
-                    self.current_token().line(),
-                    self.current_token().column(),
-                ));
-            } else if self.current_token().token_type() == TokenType::Ident
-                && self.peek_next_token(1).token_type() == TokenType::Equals
-            {
-                let var = self.current_token().token_value().clone();
-                self.next_token(); // =
-                self.next_token(); // move to value
-                let value_node = self.expr()?;
-                nodes.push(Node::new(
-                    NodeValue::Assign(
-                        Box::new(Node::new(
-                            NodeValue::Variable(var),
-                            None,
-                            self.current_token().line(),
-                            self.current_token().column(),
-                        )),
-                        value_node,
-                    ),
-                    None,
-                    self.current_token().line(),
-                    self.current_token().column(),
-                ));
-            } else {
-                let expr = self.parse_statement()?;
-                nodes.extend(expr);
-            }
-            if self.current_token().token_type() == TokenType::Semi {
-                self.next_token();
-            }
+
+            let statements = self.parse_statement()?;
+            nodes.extend(statements);
         }
+
         if self.current_token().token_type() != TokenType::RightCurlyBrace {
             return Err(custom_compile_error!(
                 self.current_token().line(),
@@ -555,84 +512,165 @@ impl<'a> Parser<'a> {
             )))
         }
     }
-    fn parse_statement(&mut self) -> R<Vec<Node>, String> {
-        let mut nodes = Vec::new();
-        while self.current_token().token_type() != TokenType::Eof {
-            // 変数代入文
-            if self.current_token().token_type() == TokenType::Ident
-                && self.current_token().token_value() == "let"
-                && self.peek_next_token(2).token_type() == TokenType::Equals
-            {
-                self.next_token(); // let
-                                   // 代入式
-                let var = self.current_token().token_value().clone();
-                self.next_token(); // =
-                self.next_token(); // move to value
-                let value_node = self.expr()?;
-                nodes.push(Node::new(
-                    NodeValue::Assign(
-                        Box::new(Node::new(
-                            NodeValue::Variable(var),
-                            None,
-                            self.current_token().line(),
-                            self.current_token().column(),
-                        )),
-                        value_node,
-                    ),
-                    None,
-                    self.current_token().line(),
-                    self.current_token().column(),
-                ));
-            } else if self.current_token().token_type() == TokenType::Ident
-                && self.peek_next_token(1).token_type() == TokenType::Equals
-            {
-                let var = self.current_token().token_value().clone();
-                self.next_token(); // =
-                self.next_token(); // move to value
-                let value_node = self.expr()?;
-                nodes.push(Node::new(
-                    NodeValue::Assign(
-                        Box::new(Node::new(
-                            NodeValue::Variable(var),
-                            None,
-                            self.current_token().line(),
-                            self.current_token().column(),
-                        )),
-                        value_node,
-                    ),
-                    None,
-                    self.current_token().line(),
-                    self.current_token().column(),
-                ));
-            } else if self.current_token().token_type() == TokenType::Ident
-                && self.current_token().token_value() == "return"
-            {
-                self.next_token();
-                let ret_value = self.expr()?;
-                nodes.push(Node::new(
-                    NodeValue::Return(ret_value),
-                    None,
-                    self.current_token().line(),
-                    self.current_token().column(),
-                ));
-                break;
-            } else if self.current_token().token_type() == TokenType::LeftCurlyBrace {
-                nodes.push(*self.parse_block()?);
-            } else {
-                let expr_node = self.expr()?;
-                nodes.push(*expr_node);
-            }
 
-            if self.current_token().token_type() == TokenType::Semi {
-                self.next_token(); // skip ;
-            } else {
-                warn!("Missing semicolon at end of the statement.");
-            }
+    fn parse_single_statement(&mut self) -> R<Box<Node>, String> {
+        let node;
+        if self.current_token().token_type() == TokenType::Ident
+            && self.current_token().token_value() == "let"
+            && self.peek_next_token(2).token_type() == TokenType::Equals
+        {
+            self.next_token();
+            let var = self.current_token().token_value().clone();
+            self.next_token();
+            self.next_token();
+            let value_node = self.expr()?;
+            node = Node::new(
+                NodeValue::VariableDeclaration(
+                    Box::new(Node::new(
+                        NodeValue::Variable(var),
+                        None,
+                        self.current_token().line(),
+                        self.current_token().column(),
+                    )),
+                    value_node,
+                ),
+                None,
+                self.current_token().line(),
+                self.current_token().column(),
+            );
+        } else if self.current_token().token_type() == TokenType::Ident
+            && self.peek_next_token(1).token_type() == TokenType::Equals
+        {
+            let var = self.current_token().token_value().clone();
+            self.next_token();
+            self.next_token();
+            let value_node = self.expr()?;
+            node = Node::new(
+                NodeValue::Assign(
+                    Box::new(Node::new(
+                        NodeValue::Variable(var),
+                        None,
+                        self.current_token().line(),
+                        self.current_token().column(),
+                    )),
+                    value_node,
+                ),
+                None,
+                self.current_token().line(),
+                self.current_token().column(),
+            );
+        } else if self.current_token().token_type() == TokenType::Ident
+            && matches!(
+                self.peek_next_token(1).token_type(),
+                TokenType::AddAssign
+                    | TokenType::SubAssign
+                    | TokenType::MulAssign
+                    | TokenType::DivAssign
+                    | TokenType::Increment
+                    | TokenType::Decrement
+            )
+        {
+            let var = self.current_token().token_value().clone();
+            let op = self.peek_next_token(1).token_type().clone();
+            self.next_token();
+            self.next_token();
+            let node_value = match op {
+                TokenType::AddAssign => NodeValue::AddAssign(
+                    Box::new(Node::new(
+                        NodeValue::Variable(var.clone()),
+                        None,
+                        self.current_token().line(),
+                        self.current_token().column(),
+                    )),
+                    self.expr()?,
+                ),
+                TokenType::SubAssign => NodeValue::SubAssign(
+                    Box::new(Node::new(
+                        NodeValue::Variable(var.clone()),
+                        None,
+                        self.current_token().line(),
+                        self.current_token().column(),
+                    )),
+                    self.expr()?,
+                ),
+                TokenType::MulAssign => NodeValue::MulAssign(
+                    Box::new(Node::new(
+                        NodeValue::Variable(var.clone()),
+                        None,
+                        self.current_token().line(),
+                        self.current_token().column(),
+                    )),
+                    self.expr()?,
+                ),
+                TokenType::DivAssign => NodeValue::DivAssign(
+                    Box::new(Node::new(
+                        NodeValue::Variable(var.clone()),
+                        None,
+                        self.current_token().line(),
+                        self.current_token().column(),
+                    )),
+                    self.expr()?,
+                ),
+                TokenType::Increment => NodeValue::Increment(Box::new(Node::new(
+                    NodeValue::Variable(var.clone()),
+                    None,
+                    self.current_token().line(),
+                    self.current_token().column(),
+                ))),
+                TokenType::Decrement => NodeValue::Decrement(Box::new(Node::new(
+                    NodeValue::Variable(var.clone()),
+                    None,
+                    self.current_token().line(),
+                    self.current_token().column(),
+                ))),
+                _ => unreachable!(),
+            };
+            node = Node::new(
+                node_value,
+                None,
+                self.current_token().line(),
+                self.current_token().column(),
+            );
+        } else if self.current_token().token_type() == TokenType::Ident
+            && self.current_token().token_value() == "return"
+        {
+            self.next_token();
+            let ret_value = self.expr()?;
+            node = Node::new(
+                NodeValue::Return(ret_value),
+                None,
+                self.current_token().line(),
+                self.current_token().column(),
+            );
+        } else if self.current_token().token_type() == TokenType::LeftCurlyBrace {
+            node = *self.parse_block()?;
+        } else if self.current_token().token_type() == TokenType::Semi {
+            self.next_token();
+            node = Node::new(
+                NodeValue::StatementEnd,
+                None,
+                self.current_token().line(),
+                self.current_token().column(),
+            );
+        } else {
+            node = *self.expr()?;
+        }
+        Ok(Box::new(node))
+    }
+
+    fn parse_statement(&mut self) -> R<Vec<Box<Node>>, String> {
+        let mut nodes: Vec<Box<Node>> = Vec::new();
+        while self.current_token().token_type() != TokenType::Eof
+            && self.current_token().token_type() != TokenType::RightCurlyBrace
+        {
+            let statement = self.parse_single_statement()?;
+            nodes.push(statement);
         }
         Ok(nodes)
     }
-    pub fn parse(&mut self) -> R<Vec<Node>, String> {
-        let mut nodes: Vec<Node> = Vec::new();
+
+    pub fn parse(&mut self) -> R<Vec<Box<Node>>, String> {
+        let mut nodes: Vec<Box<Node>> = Vec::new();
         nodes = self.parse_statement()?;
         Ok(nodes)
     }

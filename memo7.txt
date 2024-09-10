@@ -1,0 +1,94 @@
+  /*
+        fn evaluate_call(
+            &mut self,
+            node: &Box<Node>,
+            func_name: &String,
+            args: &Vec<Node>,
+        ) -> R<VariableValue, String> {
+            let (args_name_v, body, ret_value, local_stack) =
+                if let Some(data) = self.func_lists.get(func_name) {
+                    (
+                        data.0.clone(),
+                        data.1.clone(),
+                        data.2.clone(),
+                        data.3.clone(),
+                    )
+                } else {
+                    return Ok(VariableValue::Int32(0));
+                };
+
+            let mut local_vars = HashMap::new();
+            for (arg_name, arg) in args_name_v.iter().zip(args.iter()) {
+                let arg_clone = arg.clone();
+                let arg_value = self.evaluate(&Box::new(arg_clone))?;
+                local_vars.insert(arg_name.clone(), arg_value);
+            }
+
+            if let Some(func_data) = self.func_lists.get_mut(func_name) {
+                func_data.3.push(vec![local_vars]);
+            }
+
+            self.current_function = Some(func_name.clone());
+            let previous_node = self.current_node.clone();
+            self.current_node = Some(node.clone());
+
+            let result = self.evaluate(&body)?;
+
+            self.current_node = previous_node;
+            //   let return_value = ret_value;
+            let return_value = result;
+            if let Some(func_data) = self.func_lists.get_mut(func_name) {
+                func_data.3.pop();
+            }
+            self.current_function = None;
+            Ok(return_value)
+        }
+    */
+
+
+
+/*
+    pub fn evaluate_function(
+        &mut self,
+        func_name: &String,
+        args: &Vec<String>,
+        body: &Box<Node>,
+        ret_value: &Box<Node>,
+    ) -> R<VariableValue, String> {
+        let ret_value = self.evaluate(ret_value)?; // ここが変更された
+        self.register_function(
+            func_name.clone(),
+            args.clone(),
+            body.clone(),
+            ret_value.clone(),
+        )?;
+        info!("define function: {:?}", func_name);
+        Ok(VariableValue::Int32(0))
+    }
+    pub fn register_function(
+        &mut self,
+        name: String,
+        args: Vec<String>,
+        body: Box<Node>,
+        ret_value: VariableValue,
+    ) -> R<(), String> {
+        if self.func_lists.contains_key(&name) {
+            let node = match self.current_node.clone() {
+                Some(v) => v,
+                _ => todo!(),
+            };
+            return Err(custom_compile_error!(
+                node.line(),
+                node.column(),
+                &self.input(),
+                "Function name {:?} is already defined",
+                name
+            ));
+        }
+        self.func_lists
+            .insert(name.clone(), (args, body, ret_value, Vec::new()));
+        Ok(())
+    }
+
+*/
+

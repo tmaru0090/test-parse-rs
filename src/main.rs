@@ -1,11 +1,12 @@
 mod decoder;
 mod error;
-mod parser;
 mod lexer;
+mod parser;
 mod types;
 use anyhow::{anyhow, Context, Result as R};
 use decoder::*;
 use env_logger;
+use lexer::{Lexer, Token};
 use log::info;
 use parser::Node;
 use parser::Parser;
@@ -15,7 +16,6 @@ use std::io::Write;
 use std::io::{self, BufRead};
 use std::path::Path;
 use std::vec::Vec;
-use lexer::{Token, Lexer};
 use types::*;
 
 fn read_files_with_extension(extension: &str) -> R<Vec<String>> {
@@ -45,7 +45,7 @@ fn write_to_file(filename: &str, content: &str) -> R<()> {
     file.write_all(content.as_bytes())?;
     Ok(())
 }
-fn decode(nodes: &Vec<Node>, input: String) -> R<(), String> {
+fn decode(nodes: &Vec<Box<Node>>, input: String) -> R<(), String> {
     #[cfg(feature = "decode")]
     {
         // my decode
@@ -104,11 +104,12 @@ fn main() -> R<(), String> {
             return Err(e);
         }
     };
+    info!("nodes: ");
+    info!("{:?}", nodes);
+
     // デバッグ用
     info!("tokens: ");
     info!("{:?}", tokens);
-    info!("nodes: ");
-    info!("{:?}", nodes);
     //
     match decode(&nodes, input_vec.join("\n")) {
         Ok(_) => (),
@@ -117,6 +118,6 @@ fn main() -> R<(), String> {
             return Err(e);
         }
     }
-    asm(&nodes, input_vec.join("\n")).unwrap();
+    //asm(&nodes, input_vec.join("\n")).unwrap();
     Ok(())
 }
