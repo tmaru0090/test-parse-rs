@@ -29,7 +29,7 @@ impl Token {
 }
 
 #[derive(Debug, Property, Clone)]
-pub struct Tokenizer {
+pub struct Lexer {
     #[property(get, set)]
     input: String,
     #[property(get, set)]
@@ -40,9 +40,9 @@ pub struct Tokenizer {
     column: usize,
 }
 
-impl Tokenizer {
+impl Lexer {
     pub fn new() -> Self {
-        Tokenizer {
+        Lexer {
             input: String::new(),
             input_vec: Vec::new(),
             line: 1,
@@ -50,7 +50,7 @@ impl Tokenizer {
         }
     }
     pub fn new_with_value_vec(input_vec: Vec<String>) -> Self {
-        Tokenizer {
+        Lexer {
             input: String::new(),
             input_vec,
             line: 1,
@@ -59,7 +59,7 @@ impl Tokenizer {
     }
 
     pub fn new_with_value(input: String) -> Self {
-        Tokenizer {
+        Lexer {
             input,
             input_vec: Vec::new(),
             line: 1,

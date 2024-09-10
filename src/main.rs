@@ -1,7 +1,7 @@
 mod decoder;
 mod error;
 mod parser;
-mod tokenizer;
+mod lexer;
 mod types;
 use anyhow::{anyhow, Context, Result as R};
 use decoder::*;
@@ -15,7 +15,7 @@ use std::io::Write;
 use std::io::{self, BufRead};
 use std::path::Path;
 use std::vec::Vec;
-use tokenizer::{Token, Tokenizer};
+use lexer::{Token, Lexer};
 use types::*;
 
 fn read_files_with_extension(extension: &str) -> R<Vec<String>> {
@@ -70,7 +70,7 @@ fn main() -> R<(), String> {
     env_logger::init();
     let mut input_vec: Vec<String> = Vec::new();
     let mut test_src = String::new();
-    let mut tokenizer = Tokenizer::new();
+    let mut lexer = Lexer::new();
     let mut tokens: Vec<Token> = Vec::new();
     let extension = "script"; // 拡張子は "script" のみ
 
@@ -80,15 +80,15 @@ fn main() -> R<(), String> {
     match read_files_with_extension(extension) {
         Ok(lines) => {
             info!("files: {:?}", lines.clone());
-            tokenizer.set_input_vec(lines.clone());
+            lexer.set_input_vec(lines.clone());
             input_vec = lines.clone();
         }
         Err(_) => {
             // .script ファイルが存在しない場合はデフォルトのテストソースを使用
-            tokenizer.set_input(test_src);
+            lexer.set_input(test_src);
         }
     }
-    let tokens = match tokenizer.tokenize() {
+    let tokens = match lexer.tokenize() {
         Ok(v) => v,
         Err(e) => {
             eprintln!("{}", e);

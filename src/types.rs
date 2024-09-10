@@ -53,6 +53,7 @@ pub enum NodeValue {
     Ge(Box<Node>, Box<Node>),  // 以上 (>=)
     And(Box<Node>, Box<Node>), // 論理積 (&&)
     Or(Box<Node>, Box<Node>),  // 論理和 (||)
+    /*基本算術演算子*/
     Add(Box<Node>, Box<Node>), // 加算
     Sub(Box<Node>, Box<Node>), // 減算
     Mul(Box<Node>, Box<Node>), // 乗算

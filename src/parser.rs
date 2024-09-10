@@ -1,6 +1,6 @@
 use crate::custom_compile_error;
 use crate::error::*;
-use crate::tokenizer::Token;
+use crate::lexer::Token;
 use crate::types::{NodeValue, TokenType};
 use anyhow::{anyhow, Context, Result as R};
 use log::{error, info, warn};
