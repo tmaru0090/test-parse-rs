@@ -4,8 +4,8 @@ use crate::types::TokenType;
 use anyhow::{anyhow, Context, Result as R};
 use log::{error, info, warn};
 use property_rs::Property;
-
-#[derive(Debug, Property, Clone)]
+use serde::Serialize;
+#[derive(Debug, Property, Clone, Serialize)]
 pub struct Token {
     #[property(get)]
     token_value: String,
@@ -394,7 +394,7 @@ impl Lexer {
                         ));
                         self.column += 1;
                         chars.next();
-                    }else if next_char == '>' {
+                    } else if next_char == '>' {
                         tokens.push(Token::new(
                             "->".to_string(),
                             TokenType::RightArrow,
@@ -403,8 +403,7 @@ impl Lexer {
                         ));
                         self.column += 1;
                         chars.next();
-                    } 
-                    else {
+                    } else {
                         tokens.push(Token::new(
                             "-".to_string(),
                             TokenType::Sub,

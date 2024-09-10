@@ -18,6 +18,7 @@ pub struct Decoder {
             Vec<String>,                              // 引数名のリスト
             Box<Node>,                                // 関数実装(AST)
             VariableValue,                            // 関数戻り値
+            VariableValue,                            // 関数戻り値の型
             Vec<Vec<HashMap<String, VariableValue>>>, // 関数ローカルスタック
         ),
     >,
@@ -58,8 +59,8 @@ impl Decoder {
                 self.evaluate_multi_comment(content.to_vec())
             }
             NodeValue::SingleComment(content, (_, _)) => self.evaluate_single_comment(content),
-            NodeValue::Function(func_name, args, body, ret_value) => {
-                self.evaluate_function(func_name, args, body, ret_value)
+            NodeValue::Function(func_name, args, body, ret_value, ret_type) => {
+                self.evaluate_function(func_name, args, body, ret_value, ret_type)
             }
             NodeValue::Return(ret_value) => {
                 if self.is_in_function_scope() {
@@ -80,6 +81,7 @@ impl Decoder {
                     ));
                 }
             }
+            NodeValue::ReturnType(ret_type) => self.convert_to_primitive_type(ret_type),
             NodeValue::Call(func_name, args) => self.evaluate_call(node, func_name, args),
             NodeValue::Number(value) => Ok(VariableValue::Int32(*value)),
             NodeValue::Bool(value) => Ok(VariableValue::Bool(*value)),
@@ -87,14 +89,14 @@ impl Decoder {
             NodeValue::Assign(var_node, expr_node) => self.evaluate_assign(var_node, expr_node),
             NodeValue::Block(nodes) => self.evaluate_block(nodes),
             NodeValue::Variable(name) => self.evaluate_variable(name),
-            NodeValue::VariableDeclaration(var_node, expr_node) => {
+            NodeValue::VariableDeclaration(var_node, _, expr_node) => {
                 self.evaluate_variable_declaration(var_node, expr_node)
             }
             NodeValue::Add(_left, _right)
             | NodeValue::Sub(_left, _right)
             | NodeValue::Mul(_left, _right)
             | NodeValue::Div(_left, _right) => self.evaluate_binary_op(node),
-            NodeValue::Empty | NodeValue::StatementEnd => Ok(VariableValue::Unit(())), // 空のノードをデフォルト値で処理
+            NodeValue::Empty | NodeValue::StatementEnd => Ok(VariableValue::Unit(())), // 空のノードをvoid(ユニット)で初期化
 
             _ => {
                 let node = match self.current_node.clone() {
@@ -111,7 +113,10 @@ impl Decoder {
             }
         }
     }
-
+    pub fn convert_to_primitive_type(&mut self, ret_type: &Box<Node>) -> R<VariableValue, String> {
+        let value = self.evaluate(&ret_type)?;
+        Ok(value)
+    }
     pub fn evaluate_assign(
         &mut self,
         var_node: &Box<Node>,
@@ -125,7 +130,7 @@ impl Decoder {
             for local_vars_stack in self
                 .func_lists
                 .values_mut()
-                .flat_map(|(_, _, _, stack)| stack.iter_mut())
+                .flat_map(|(_, _, _, _, stack)| stack.iter_mut())
             {
                 for local_vars in local_vars_stack {
                     if local_vars.contains_key(var_name) {
@@ -209,7 +214,7 @@ impl Decoder {
         for local_vars_stack in self
             .func_lists
             .values()
-            .flat_map(|(_, _, _, stack)| stack.iter())
+            .flat_map(|(_, _, _, _, stack)| stack.iter())
         {
             for local_vars in local_vars_stack {
                 if local_vars.contains_key(&var_name) {
@@ -244,7 +249,7 @@ impl Decoder {
         if let Some(local_vars_stack) = self
             .func_lists
             .values_mut()
-            .flat_map(|(_, _, _, stack)| stack.last_mut())
+            .flat_map(|(_, _, _, _, stack)| stack.last_mut())
             .next()
         {
             if let Some(local_vars) = local_vars_stack.last_mut() {
@@ -277,7 +282,7 @@ impl Decoder {
         let stack = if let Some(func_name) = current_function.clone() {
             func_lists
                 .get_mut(&func_name)
-                .and_then(|(_, _, _, stacks)| stacks.last_mut())
+                .and_then(|(_, _, _, _, stacks)| stacks.last_mut())
         } else {
             None
         };
@@ -330,7 +335,7 @@ impl Decoder {
         if let Some(local_vars_stack) = self
             .func_lists
             .values_mut()
-            .flat_map(|(_, _, _, stack)| stack.last_mut())
+            .flat_map(|(_, _, _, _, stack)| stack.last_mut())
             .next()
         {
             local_vars_stack.pop();
@@ -345,7 +350,7 @@ impl Decoder {
     ) -> R<VariableValue, String> {
         // 一時的に必要なデータをコピー
         let (param_names, body, local_stack) = {
-            if let Some((param_names, body, _, local_stack)) = self.func_lists.get(func_name) {
+            if let Some((param_names, body, _, _, local_stack)) = self.func_lists.get(func_name) {
                 (param_names.clone(), body.clone(), local_stack.clone())
             } else {
                 return Err(custom_compile_error!(
@@ -377,7 +382,7 @@ impl Decoder {
         }
 
         // ミュータブルな借用を再度取得してローカルスタックを更新
-        if let Some((_, _, _, local_stack)) = self.func_lists.get_mut(func_name) {
+        if let Some((_, _, _, _, local_stack)) = self.func_lists.get_mut(func_name) {
             local_stack.push(vec![local_vars]);
         }
 
@@ -385,7 +390,7 @@ impl Decoder {
         let result = self.evaluate(&body);
 
         // ミュータブルな借用を再度取得してローカルスタックをポップ
-        if let Some((_, _, _, local_stack)) = self.func_lists.get_mut(func_name) {
+        if let Some((_, _, _, _, local_stack)) = self.func_lists.get_mut(func_name) {
             local_stack.pop();
         }
 
@@ -409,10 +414,17 @@ impl Decoder {
         args: &Vec<String>,
         body: &Box<Node>,
         ret_value: &Box<Node>,
+        ret_type: &Box<Node>,
     ) -> R<VariableValue, String> {
-        // まず関数のシグネチャだけを登録
-        self.register_function_signature(func_name.clone(), args.clone())?;
-        info!("define function signature: {:?}", func_name);
+        // まず関数のシグネチャ、型情報だけを登録
+        self.register_function_signature(func_name.clone(), args.clone(), ret_type.clone())?;
+
+        let ret_type = self.convert_to_primitive_type(&ret_type.clone())?;
+        info!(
+            "define function signature: {:?} return_type: {:?}",
+            func_name,
+            ret_type.clone()
+        );
 
         // 次に関数のボディを評価
         let ret_value = self.evaluate(ret_value)?;
@@ -422,7 +434,12 @@ impl Decoder {
         Ok(VariableValue::Unit(()))
     }
 
-    fn register_function_signature(&mut self, name: String, args: Vec<String>) -> R<(), String> {
+    fn register_function_signature(
+        &mut self,
+        name: String,
+        args: Vec<String>,
+        ret_type: Box<Node>,
+    ) -> R<(), String> {
         if self.func_lists.contains_key(&name) {
             let node = match self.current_node.clone() {
                 Some(v) => v,
@@ -436,12 +453,14 @@ impl Decoder {
                 name
             ));
         }
+        let ret_type = self.convert_to_primitive_type(&ret_type)?;
         self.func_lists.insert(
             name.clone(),
             (
                 args,
                 Box::new(Node::new(NodeValue::Empty, None, 0, 0)),
                 VariableValue::Unit(()),
+                ret_type,
                 Vec::new(),
             ),
         );
@@ -455,9 +474,9 @@ impl Decoder {
         ret_value: VariableValue,
     ) -> R<(), String> {
         // 一時的に必要なデータをコピー
-        let (args, mut local_stack) = {
-            if let Some((args, _, _, local_stack)) = self.func_lists.get(&name) {
-                (args.clone(), local_stack.clone())
+        let (args, return_type, mut local_stack) = {
+            if let Some((args, _, _, return_type, local_stack)) = self.func_lists.get(&name) {
+                (args.clone(), return_type.clone(), local_stack.clone())
             } else {
                 let node = match self.current_node.clone() {
                     Some(v) => v,
@@ -474,20 +493,22 @@ impl Decoder {
         };
 
         // ミュータブルな借用を再度取得して関数のボディを登録
-        if let Some((_, _, _, local_stack_ref)) = self.func_lists.get_mut(&name) {
+        if let Some((_, _, _, _, local_stack_ref)) = self.func_lists.get_mut(&name) {
             *local_stack_ref = Vec::new();
             local_stack = local_stack_ref.clone();
         }
 
-        self.func_lists
-            .insert(name.clone(), (args, body, ret_value, local_stack));
+        self.func_lists.insert(
+            name.clone(),
+            (args, body, ret_value, return_type, local_stack),
+        );
 
         Ok(())
     }
     fn is_in_function_scope(&self) -> bool {
         self.func_lists
             .values()
-            .any(|(_, _, _, stack)| !stack.is_empty())
+            .any(|(_, _, _, _, stack)| !stack.is_empty())
     }
     pub fn evaluate_if_statement(
         &mut self,
@@ -534,7 +555,7 @@ impl Decoder {
         for local_vars_stack in self
             .func_lists
             .values()
-            .flat_map(|(_, _, _, stack)| stack.iter())
+            .flat_map(|(_, _, _, _, stack)| stack.iter())
         {
             for local_vars in local_vars_stack {
                 if local_vars.contains_key(name) {
@@ -725,7 +746,7 @@ impl AsmInterpreter {
         match &node.node_value() {
             NodeValue::Assign(var_node, expr_node) => self.evaluate_assign(var_node, expr_node),
             NodeValue::If(condition, body) => self.evaluate_if_statement(condition, body),
-            NodeValue::Function(func_name, args, body, ret_value) => {
+            NodeValue::Function(func_name, args, body, ret_value, _) => {
                 self.evaluate_function(func_name, args, body, ret_value)
             }
             NodeValue::Return(ret_value) => self.evaluate_return(ret_value),

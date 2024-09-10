@@ -5,7 +5,8 @@ use crate::types::{NodeValue, TokenType};
 use anyhow::{anyhow, Context, Result as R};
 use log::{error, info, warn};
 use property_rs::Property;
-#[derive(Debug, PartialEq, Clone, Property)]
+use serde::Serialize;
+#[derive(Debug, PartialEq, Clone, Property, Serialize)]
 pub struct Node {
     #[property(get)]
     node_value: NodeValue,
@@ -193,7 +194,8 @@ impl<'a> Parser<'a> {
                             op.line(),
                             op.column(),
                             &self.input(),
-                            "Unexpected token"
+                            "Unexpected token: {:?}",
+                            self.current_token(),
                         )
                     ),
                 },
@@ -226,7 +228,8 @@ impl<'a> Parser<'a> {
                             op.line(),
                             op.column(),
                             &self.input(),
-                            "Unexpected token"
+                            "Unexpected token: {:?}",
+                            self.current_token(),
                         )
                     ),
                 },
@@ -262,6 +265,7 @@ impl<'a> Parser<'a> {
         self.next_token(); // 関数名をスキップ
         self.next_token(); // '(' をスキップ
         let mut args = Vec::new();
+        let mut return_type = self.new_empty();
         while self.current_token().token_type() != TokenType::RightParen {
             let arg = self.expr()?;
             args.push(*arg);
@@ -270,6 +274,9 @@ impl<'a> Parser<'a> {
             }
         }
         self.next_token(); // ')' をスキップ
+        if self.current_token().token_type() == TokenType::RightArrow {
+            return_type = self.parse_return_type()?;
+        }
         let body = self.parse_block()?; // ブロックの解析
 
         let mut ret_value = self.new_empty(); // 戻り値の初期値を指定
@@ -291,6 +298,7 @@ impl<'a> Parser<'a> {
                     .collect(),
                 Box::new(*body),
                 ret_value,
+                return_type,
             ),
             None,
             self.current_token().line(),
@@ -332,7 +340,8 @@ impl<'a> Parser<'a> {
                             op.line(),
                             op.column(),
                             &self.input(),
-                            "Unexpected token"
+                            "Unexpected token: {:?}",
+                            self.current_token(),
                         )
                     ),
                 },
@@ -358,6 +367,17 @@ impl<'a> Parser<'a> {
             self.current_token().column(),
         )))
     }
+    fn parse_return_type(&mut self) -> R<Box<Node>, String> {
+        self.next_token(); // '->' をスキップ
+        let return_type = self.expr()?;
+        Ok(Box::new(Node::new(
+            NodeValue::ReturnType(return_type),
+            None,
+            self.current_token().line(),
+            self.current_token().column(),
+        )))
+    }
+
     fn parse_while_statement(&mut self) -> R<Box<Node>, String> {
         self.next_token(); // 'while' をスキップ
         let mut condition = self.new_empty();
@@ -376,6 +396,7 @@ impl<'a> Parser<'a> {
 
     fn factor(&mut self) -> R<Box<Node>, String> {
         let token = self.current_token().clone();
+        info!("current_token: {:?}", token);
         match token.token_type() {
             TokenType::MultiComment(content, (line, column)) => {
                 self.next_token();
@@ -410,7 +431,8 @@ impl<'a> Parser<'a> {
                         self.current_token().line(),
                         self.current_token().column(),
                         &self.input(),
-                        "Unexpected end of input, no closing DoubleQuote or SingleQuote found"
+                        "Unexpected end of input, no closing DoubleQuote or SingleQuote found: {:?}",
+                        self.current_token(),
                     ));
                 }
             }
@@ -459,7 +481,8 @@ impl<'a> Parser<'a> {
                         self.current_token().line(),
                         self.current_token().column(),
                         &self.input(),
-                        "no closing parenthesis in factor"
+                        "no closing parenthesis in factor: {:?}",
+                        self.current_token(),
                     ));
                 } else {
                     self.next_token();
@@ -472,7 +495,8 @@ impl<'a> Parser<'a> {
                 self.current_token().line(),
                 self.current_token().column(),
                 &self.input(),
-                "Unexpected token in factor"
+                "Unexpected token in factor: {:?}",
+                self.current_token()
             )),
         }
     }
@@ -487,7 +511,8 @@ impl<'a> Parser<'a> {
                     self.current_token().line(),
                     self.current_token().column(),
                     &self.input(),
-                    "Unexpected end of input, no closing curly brace found"
+                    "Unexpected end of input, no closing curly brace found: {:?}",
+                    self.current_token(),
                 ));
             }
 
@@ -500,7 +525,8 @@ impl<'a> Parser<'a> {
                 self.current_token().line(),
                 self.current_token().column(),
                 &self.input(),
-                "no closing curly brace in block"
+                "no closing curly brace in block: {:?}",
+                self.current_token(),
             ));
         } else {
             self.next_token(); // '}' をスキップ
@@ -512,7 +538,18 @@ impl<'a> Parser<'a> {
             )))
         }
     }
-
+    fn parse_data_type(&mut self) -> R<Box<Node>, String> {
+        self.next_token(); // : をスキップ
+        self.next_token(); // 変数名 をスキップ
+        info!("current: {:?}", self.current_token());
+        let data_type = self.expr()?;
+        Ok(Box::new(Node::new(
+            NodeValue::DataType(data_type),
+            None,
+            self.current_token().line(),
+            self.current_token().column(),
+        )))
+    }
     fn parse_single_statement(&mut self) -> R<Box<Node>, String> {
         let node;
         if self.current_token().token_type() == TokenType::Ident
@@ -521,8 +558,9 @@ impl<'a> Parser<'a> {
         {
             self.next_token();
             let var = self.current_token().token_value().clone();
-            self.next_token();
-            self.next_token();
+            self.next_token(); // =
+            self.next_token(); // value
+
             let value_node = self.expr()?;
             node = Node::new(
                 NodeValue::VariableDeclaration(
@@ -532,6 +570,35 @@ impl<'a> Parser<'a> {
                         self.current_token().line(),
                         self.current_token().column(),
                     )),
+                    self.new_empty(),
+                    value_node,
+                ),
+                None,
+                self.current_token().line(),
+                self.current_token().column(),
+            );
+        } else if self.current_token().token_type() == TokenType::Ident
+            && self.current_token().token_value() == "let"
+            && self.peek_next_token(4).token_type() == TokenType::Equals
+        {
+            self.next_token();
+            let var = self.current_token().token_value().clone();
+            let mut data_type = self.new_empty();
+            info!("current_token: {:?}", self.current_token());
+            if self.peek_next_token(1).token_type() == TokenType::Colon {
+                data_type = self.parse_data_type()?;
+            }
+            self.next_token(); // value
+            let value_node = self.expr()?;
+            node = Node::new(
+                NodeValue::VariableDeclaration(
+                    Box::new(Node::new(
+                        NodeValue::Variable(var),
+                        None,
+                        self.current_token().line(),
+                        self.current_token().column(),
+                    )),
+                    data_type,
                     value_node,
                 ),
                 None,

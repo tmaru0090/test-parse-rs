@@ -10,6 +10,7 @@ use lexer::{Lexer, Token};
 use log::info;
 use parser::Node;
 use parser::Parser;
+use serde_json::to_string_pretty;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
@@ -17,7 +18,6 @@ use std::io::{self, BufRead};
 use std::path::Path;
 use std::vec::Vec;
 use types::*;
-
 fn read_files_with_extension(extension: &str) -> R<Vec<String>> {
     let mut results = Vec::new();
     let current_dir = std::env::current_dir()?;
@@ -104,13 +104,18 @@ fn main() -> R<(), String> {
             return Err(e);
         }
     };
-    info!("nodes: ");
-    info!("{:?}", nodes);
-
     // デバッグ用
-    info!("tokens: ");
-    info!("{:?}", tokens);
-    //
+    match to_string_pretty(&tokens) {
+        Ok(json) => info!("tokens: {}", json),
+        Err(e) => info!("Failed to serialize tokens: {}", e),
+    }
+
+    // ノードをJSON形式で整形表示
+    match to_string_pretty(&nodes) {
+        Ok(json) => info!("nodes: {}", json),
+        Err(e) => info!("Failed to serialize nodes: {}", e),
+    }
+
     match decode(&nodes, input_vec.join("\n")) {
         Ok(_) => (),
         Err(e) => {
