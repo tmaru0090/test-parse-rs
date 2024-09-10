@@ -1,0 +1,202 @@
+[
+  {
+    "node_value": {
+      "MultiComment": [
+        [
+          "",
+          "fn f(n)->i32{",
+          "    if n == 0 {",
+          "        return 0;",
+          "    }",
+          "    if n == 1{",
+          "    \treturn 1;",
+          "    }",
+          "    return f(n - 1) + f(n - 2);",
+          "}"
+        ],
+        [
+          1,
+          1
+        ]
+      ]
+    },
+    "node_next": null,
+    "line": 12,
+    "column": 1
+  },
+  {
+    "node_value": {
+      "Function": [
+        "test",
+        [
+          "n"
+        ],
+        {
+          "node_value": {
+            "Block": [
+              {
+                "node_value": {
+                  "Return": {
+                    "node_value": {
+                      "Mul": [
+                        {
+                          "node_value": {
+                            "Call": [
+                              "test",
+                              [
+                                {
+                                  "node_value": {
+                                    "Variable": "n"
+                                  },
+                                  "node_next": null,
+                                  "line": 13,
+                                  "column": 15
+                                }
+                              ]
+                            ]
+                          },
+                          "node_next": null,
+                          "line": 13,
+                          "column": 16
+                        },
+                        {
+                          "node_value": {
+                            "Number": 2
+                          },
+                          "node_next": null,
+                          "line": 13,
+                          "column": 18
+                        }
+                      ]
+                    },
+                    "node_next": null,
+                    "line": 13,
+                    "column": 18
+                  }
+                },
+                "node_next": null,
+                "line": 13,
+                "column": 18
+              },
+              {
+                "node_value": "StatementEnd",
+                "node_next": null,
+                "line": 14,
+                "column": 1
+              }
+            ]
+          },
+          "node_next": null,
+          "line": 16,
+          "column": 1
+        },
+        {
+          "node_value": "Empty",
+          "node_next": null,
+          "line": 16,
+          "column": 1
+        },
+        {
+          "node_value": "Empty",
+          "node_next": null,
+          "line": 12,
+          "column": 9
+        }
+      ]
+    },
+    "node_next": null,
+    "line": 16,
+    "column": 1
+  },
+  {
+    "node_value": {
+      "Function": [
+        "main",
+        [],
+        {
+          "node_value": {
+            "Block": [
+              {
+                "node_value": {
+                  "Return": {
+                    "node_value": {
+                      "Call": [
+                        "test",
+                        [
+                          {
+                            "node_value": {
+                              "Number": 5
+                            },
+                            "node_next": null,
+                            "line": 17,
+                            "column": 15
+                          }
+                        ]
+                      ]
+                    },
+                    "node_next": null,
+                    "line": 17,
+                    "column": 16
+                  }
+                },
+                "node_next": null,
+                "line": 17,
+                "column": 16
+              },
+              {
+                "node_value": "StatementEnd",
+                "node_next": null,
+                "line": 18,
+                "column": 1
+              }
+            ]
+          },
+          "node_next": null,
+          "line": 19,
+          "column": 1
+        },
+        {
+          "node_value": "Empty",
+          "node_next": null,
+          "line": 19,
+          "column": 1
+        },
+        {
+          "node_value": {
+            "ReturnType": {
+              "node_value": {
+                "Variable": "i32"
+              },
+              "node_next": null,
+              "line": 16,
+              "column": 15
+            }
+          },
+          "node_next": null,
+          "line": 16,
+          "column": 15
+        }
+      ]
+    },
+    "node_next": null,
+    "line": 19,
+    "column": 1
+  },
+  {
+    "node_value": {
+      "Call": [
+        "main",
+        []
+      ]
+    },
+    "node_next": null,
+    "line": 19,
+    "column": 7
+  },
+  {
+    "node_value": "StatementEnd",
+    "node_next": null,
+    "line": 19,
+    "column": 7
+  }
+]

@@ -112,7 +112,10 @@ fn main() -> R<(), String> {
 
     // ノードをJSON形式で整形表示
     match to_string_pretty(&nodes) {
-        Ok(json) => info!("nodes: {}", json),
+        Ok(json) => {
+            info!("nodes: {}", json);
+            write_to_file("ast.json",&json).unwrap();
+        },
         Err(e) => info!("Failed to serialize nodes: {}", e),
     }
 
