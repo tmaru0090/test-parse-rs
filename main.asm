@@ -1,1 +1,7 @@
-mov a, eax
+.data
+
+.code
+main PROC
+
+main ENDP
+END main

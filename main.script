@@ -14,7 +14,7 @@ fn test(n){
 }
 
 fn main()->i32{
-	return test(5);
+	return 1000;
 }
 main();
 

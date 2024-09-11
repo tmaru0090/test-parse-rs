@@ -55,14 +55,16 @@ fn decode(nodes: &Vec<Box<Node>>, input: String) -> R<(), String> {
 
     Ok(())
 }
-fn asm(nodes: &Vec<Node>, input: String) -> R<(), String> {
+fn asm(nodes: &Vec<Box<Node>>, input: String, filename: &str) -> R<(), String> {
     // asm generate
 
     #[cfg(feature = "asm")]
     {
-        let mut asm_i = AsmInterpreter::new(input.clone());
-        let asm_src = asm_i.generate_asm(&nodes);
-        write_to_file("main.asm", &asm_src).unwrap();
+        let mut asm_i = AsmInterpreter::new();
+        asm_i.decode(&nodes)?;
+        let asm_src = asm_i.get_asm_code();
+        info!("{:?}", asm_src);
+        write_to_file(filename, &asm_src).unwrap();
     }
     Ok(())
 }
@@ -114,8 +116,8 @@ fn main() -> R<(), String> {
     match to_string_pretty(&nodes) {
         Ok(json) => {
             info!("nodes: {}", json);
-            write_to_file("ast.json",&json).unwrap();
-        },
+            write_to_file("ast.json", &json).unwrap();
+        }
         Err(e) => info!("Failed to serialize nodes: {}", e),
     }
 
@@ -126,6 +128,6 @@ fn main() -> R<(), String> {
             return Err(e);
         }
     }
-    //asm(&nodes, input_vec.join("\n")).unwrap();
+    asm(&nodes, input_vec.join("\n"), "main.asm").unwrap();
     Ok(())
 }

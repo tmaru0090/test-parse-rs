@@ -77,10 +77,8 @@ pub enum NodeValue {
     Mul(Box<Node>, Box<Node>), // 乗算(左辺,右辺)
 
     Div(Box<Node>, Box<Node>), // 除算(左辺,右辺)
-
-    Increment(Box<Node>), // 増加(右辺)
-
-    Decrement(Box<Node>), // 減少(右辺)
+    Increment(Box<Node>),      // 増加(左辺)
+    Decrement(Box<Node>),      // 減少(左辺)
 
     AddAssign(Box<Node>, Box<Node>), // 加算代入(左辺,右辺)
 

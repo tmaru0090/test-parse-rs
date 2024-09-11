@@ -120,28 +120,16 @@
                 "node_value": {
                   "Return": {
                     "node_value": {
-                      "Call": [
-                        "test",
-                        [
-                          {
-                            "node_value": {
-                              "Number": 5
-                            },
-                            "node_next": null,
-                            "line": 17,
-                            "column": 15
-                          }
-                        ]
-                      ]
+                      "Number": 1000
                     },
                     "node_next": null,
                     "line": 17,
-                    "column": 16
+                    "column": 13
                   }
                 },
                 "node_next": null,
                 "line": 17,
-                "column": 16
+                "column": 13
               },
               {
                 "node_value": "StatementEnd",
