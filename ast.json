@@ -21,7 +21,7 @@
       ]
     },
     "node_next": null,
-    "line": 12,
+    "line": 13,
     "column": 1
   },
   {
@@ -49,14 +49,14 @@
                                     "Variable": "n"
                                   },
                                   "node_next": null,
-                                  "line": 13,
+                                  "line": 14,
                                   "column": 15
                                 }
                               ]
                             ]
                           },
                           "node_next": null,
-                          "line": 13,
+                          "line": 14,
                           "column": 16
                         },
                         {
@@ -64,48 +64,48 @@
                             "Number": 2
                           },
                           "node_next": null,
-                          "line": 13,
+                          "line": 14,
                           "column": 18
                         }
                       ]
                     },
                     "node_next": null,
-                    "line": 13,
+                    "line": 14,
                     "column": 18
                   }
                 },
                 "node_next": null,
-                "line": 13,
+                "line": 14,
                 "column": 18
               },
               {
                 "node_value": "StatementEnd",
                 "node_next": null,
-                "line": 14,
+                "line": 15,
                 "column": 1
               }
             ]
           },
           "node_next": null,
-          "line": 16,
+          "line": 17,
           "column": 1
         },
         {
           "node_value": "Empty",
           "node_next": null,
-          "line": 16,
+          "line": 17,
           "column": 1
         },
         {
           "node_value": "Empty",
           "node_next": null,
-          "line": 12,
+          "line": 13,
           "column": 9
         }
       ]
     },
     "node_next": null,
-    "line": 16,
+    "line": 17,
     "column": 1
   },
   {
@@ -118,35 +118,84 @@
             "Block": [
               {
                 "node_value": {
-                  "Return": {
-                    "node_value": {
-                      "Number": 1000
+                  "VariableDeclaration": [
+                    {
+                      "node_value": {
+                        "Variable": "a"
+                      },
+                      "node_next": null,
+                      "line": 18,
+                      "column": 11
                     },
-                    "node_next": null,
-                    "line": 17,
-                    "column": 13
-                  }
+                    {
+                      "node_value": "Empty",
+                      "node_next": null,
+                      "line": 18,
+                      "column": 11
+                    },
+                    {
+                      "node_value": {
+                        "Number": 5
+                      },
+                      "node_next": null,
+                      "line": 18,
+                      "column": 11
+                    }
+                  ]
                 },
                 "node_next": null,
-                "line": 17,
-                "column": 13
+                "line": 18,
+                "column": 11
               },
               {
                 "node_value": "StatementEnd",
                 "node_next": null,
-                "line": 18,
+                "line": 19,
+                "column": 2
+              },
+              {
+                "node_value": {
+                  "Return": {
+                    "node_value": {
+                      "Call": [
+                        "test",
+                        [
+                          {
+                            "node_value": {
+                              "Number": 5
+                            },
+                            "node_next": null,
+                            "line": 19,
+                            "column": 15
+                          }
+                        ]
+                      ]
+                    },
+                    "node_next": null,
+                    "line": 19,
+                    "column": 16
+                  }
+                },
+                "node_next": null,
+                "line": 19,
+                "column": 16
+              },
+              {
+                "node_value": "StatementEnd",
+                "node_next": null,
+                "line": 20,
                 "column": 1
               }
             ]
           },
           "node_next": null,
-          "line": 19,
+          "line": 21,
           "column": 1
         },
         {
           "node_value": "Empty",
           "node_next": null,
-          "line": 19,
+          "line": 21,
           "column": 1
         },
         {
@@ -156,18 +205,18 @@
                 "Variable": "i32"
               },
               "node_next": null,
-              "line": 16,
+              "line": 17,
               "column": 15
             }
           },
           "node_next": null,
-          "line": 16,
+          "line": 17,
           "column": 15
         }
       ]
     },
     "node_next": null,
-    "line": 19,
+    "line": 21,
     "column": 1
   },
   {
@@ -178,13 +227,13 @@
       ]
     },
     "node_next": null,
-    "line": 19,
+    "line": 21,
     "column": 7
   },
   {
     "node_value": "StatementEnd",
     "node_next": null,
-    "line": 19,
+    "line": 21,
     "column": 7
   }
 ]

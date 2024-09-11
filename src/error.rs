@@ -1,7 +1,8 @@
 use anyhow::{Context, Result};
+use colored::*;
 use thiserror::Error;
 use unicode_segmentation::UnicodeSegmentation;
-use unicode_width::UnicodeWidthStr;
+use unicode_width::UnicodeWidthStr; // coloredクレートを使用して色付け
 
 #[derive(Debug, Error)]
 pub enum CompilerError {
@@ -11,91 +12,127 @@ pub enum CompilerError {
         column: usize,
         message: String,
     },
+    #[error("Warning at line {line}, column {column}: {message}")]
+    Warning {
+        line: usize,
+        column: usize,
+        message: String,
+    },
+    #[error("Info at line {line}, column {column}: {message}")]
+    Info {
+        line: usize,
+        column: usize,
+        message: String,
+    },
+    #[error("Note at line {line}, column {column}: {message}")]
+    Note {
+        line: usize,
+        column: usize,
+        message: String,
+    },
+    #[error("Help at line {line}, column {column}: {message}")]
+    Help {
+        line: usize,
+        column: usize,
+        message: String,
+    },
 }
 
 impl CompilerError {
-    pub fn format_error_string(&self, source_code: &str) -> String {
+    pub fn format_error_string(&self, source_code: &str, file_name: &str) -> String {
         match self {
             CompilerError::GenericError {
                 line,
                 column,
                 message,
-            } => {
-                let lines: Vec<&str> = source_code.lines().collect();
-                let mut error_message =
-                    format!("Error at line {}, column {}: {}\n", line, column, message);
-
-                if *line > 0 && *line <= lines.len() {
-                    let error_line = lines[line - 1];
-                    error_message.push_str(error_line);
-                    error_message.push('\n');
-                    if *column > 0 && *column <= error_line.graphemes(true).count() {
-                        let mut char_count = 0;
-                        let mut width_count = 0;
-                        for g in error_line.graphemes(true) {
-                            let width = UnicodeWidthStr::width(g);
-                            if char_count == *column - 1 {
-                                error_message.push('^');
-                                break;
-                            }
-                            char_count += 1;
-                            width_count += width;
-                            error_message.push_str(&" ".repeat(width));
-                        }
-                    } else {
-                        error_message.push_str("Column value is invalid.\n");
-                    }
-                } else {
-                    error_message.push_str("Line value is invalid.\n");
-                }
-
-                error_message
-            }
+            } => self.format_message("error", line, column, message, source_code, file_name),
+            CompilerError::Warning {
+                line,
+                column,
+                message,
+            } => self.format_message("warning", line, column, message, source_code, file_name),
+            CompilerError::Info {
+                line,
+                column,
+                message,
+            } => self.format_message("info", line, column, message, source_code, file_name),
+            CompilerError::Note {
+                line,
+                column,
+                message,
+            } => self.format_message("note", line, column, message, source_code, file_name),
+            CompilerError::Help {
+                line,
+                column,
+                message,
+            } => self.format_message("help", line, column, message, source_code, file_name),
         }
     }
 
-    pub fn format_error_vec(&self, source_code: &Vec<String>) -> String {
-        match self {
-            CompilerError::GenericError {
-                line,
-                column,
-                message,
-            } => {
-                let mut error_message =
-                    format!("Error at line {}, column {}: {}\n", line, column, message);
+    fn format_message(
+        &self,
+        level: &str,
+        line: &usize,
+        column: &usize,
+        message: &str,
+        source_code: &str,
+        file_name: &str,
+    ) -> String {
+        let lines: Vec<&str> = source_code.lines().collect();
+        let mut error_message = format!(
+            "{}: {} at line {}, column {}\n   {} {}:{}:{}\n",
+            level.color(self.get_color(level)),
+            message,
+            line,
+            column,
+            "-->".truecolor(100, 100, 200),
+            file_name,
+            line,
+            column
+        );
 
-                if *line > 0 && *line <= source_code.len() {
-                    let error_line = &source_code[line - 1];
-                    error_message.push_str(error_line);
-                    error_message.push('\n');
-                    if *column > 0 && *column <= error_line.graphemes(true).count() {
-                        let mut char_count = 0;
-                        let mut width_count = 0;
-                        for g in error_line.graphemes(true) {
-                            let width = UnicodeWidthStr::width(g);
-                            if char_count == *column - 1 {
-                                error_message.push('^');
-                                break;
-                            }
-                            char_count += 1;
-                            width_count += width;
-                            error_message.push_str(&" ".repeat(width));
-                        }
-                    } else {
-                        error_message.push_str("Column value is invalid.\n");
+        if *line > 0 && *line <= lines.len() {
+            let error_line = lines[line - 1];
+            error_message.push_str(&format!("{} | {}\n", line, error_line));
+            if *column > 0 && *column <= error_line.graphemes(true).count() {
+                let mut char_count = 0;
+                let mut width_count = 0;
+                error_message.push_str(&format!("{} | ", " ".repeat(line.to_string().len())));
+                for g in error_line.graphemes(true) {
+                    let width = UnicodeWidthStr::width(g);
+                    if char_count == *column - 1 {
+                        error_message.push_str(&" ".repeat(width_count));
+                        error_message.push_str(&"^".red().to_string());
+                        break;
                     }
-                } else {
-                    error_message.push_str("Line value is invalid.\n");
+                    char_count += 1;
+                    width_count += width;
                 }
-
-                error_message
+            } else {
+                error_message.push_str(&"Column value is invalid.\n".red().to_string());
             }
+        } else {
+            error_message.push_str(&"Line value is invalid.\n".red().to_string());
+        }
+
+        error_message
+    }
+
+    fn get_color(&self, level: &str) -> &str {
+        match level {
+            "error" => "red",
+            "warning" => "yellow",
+            "info" => "blue",
+            "note" => "green",
+            "help" => "cyan",
+            _ => "white",
         }
     }
 }
 
 #[macro_export]
 macro_rules! custom_compile_error {
+    // デフォルトのエラーレベルとファイル名を設定
     ($line:expr, $column:expr, $src:expr, $($arg:tt)*) => {
         {
             let error = crate::error::CompilerError::GenericError {
@@ -103,7 +140,75 @@ macro_rules! custom_compile_error {
                 column: $column,
                 message: format!($($arg)*),
             };
-            error.format_error_string($src)
+            error.format_error_string($src, "main.script")
+        }
+    };
+    // エラーレベルを指定する場合
+    ($level:expr, $line:expr, $column:expr, $src:expr, $($arg:tt)*) => {
+        {
+            let error = match $level {
+                "error" => crate::error::CompilerError::GenericError {
+                    line: $line,
+                    column: $column,
+                    message: format!($($arg)*),
+                },
+                "warning" => crate::error::CompilerError::Warning {
+                    line: $line,
+                    column: $column,
+                    message: format!($($arg)*),
+                },
+                "info" => crate::error::CompilerError::Info {
+                    line: $line,
+                    column: $column,
+                    message: format!($($arg)*),
+                },
+                "note" => crate::error::CompilerError::Note {
+                    line: $line,
+                    column: $column,
+                    message: format!($($arg)*),
+                },
+                "help" => crate::error::CompilerError::Help {
+                    line: $line,
+                    column: $column,
+                    message: format!($($arg)*),
+                },
+                _ => panic!("Invalid error level"),
+            };
+            error.format_error_string($src, "src/main.rs")
+        }
+    };
+    // エラーレベルとファイル名を指定する場合
+    ($level:expr, $line:expr, $column:expr, $src:expr, $file_name:expr, $($arg:tt)*) => {
+        {
+            let error = match $level {
+                "error" => crate::error::CompilerError::GenericError {
+                    line: $line,
+                    column: $column,
+                    message: format!($($arg)*),
+                },
+                "warning" => crate::error::CompilerError::Warning {
+                    line: $line,
+                    column: $column,
+                    message: format!($($arg)*),
+                },
+                "info" => crate::error::CompilerError::Info {
+                    line: $line,
+                    column: $column,
+                    message: format!($($arg)*),
+                },
+                "note" => crate::error::CompilerError::Note {
+                    line: $line,
+                    column: $column,
+                    message: format!($($arg)*),
+                },
+                "help" => crate::error::CompilerError::Help {
+                    line: $line,
+                    column: $column,
+                    message: format!($($arg)*),
+                },
+                _ => panic!("Invalid error level"),
+            };
+            error.format_error_string($src, $file_name)
         }
     };
 }

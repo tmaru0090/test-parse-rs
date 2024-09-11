@@ -9,13 +9,14 @@ fn f(n)->i32{
     return f(n - 1) + f(n - 2);
 }
 */
+
 fn test(n){
 	return test(n)*2;
 }
 
 fn main()->i32{
-	return 1000;
+	let a = 5;
+	return test(5);
 }
-main();
-
+main(;
 
