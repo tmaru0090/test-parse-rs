@@ -93,7 +93,8 @@ pub enum NodeValue {
     Assign(Box<Node>, Box<Node>), // 代入(変数,右辺値)
     Block(Vec<Box<Node>>),
     Variable(String),                                               // 変数(変数名)
-    Number(i32),                                                    // 数値(i32の数値型)
+    Int(i64),                                                       // 数値(i64)
+    Float(f64),                                                     // 浮動型少数の数値(f64)
     String(String),                                                 // 文字列(文字列)
     Bool(bool),                                                     // 真偽値(ブーリアン値)
     Unit(()),                                                       // Unit値(Void型)
@@ -104,6 +105,13 @@ pub enum NodeValue {
     Return(Box<Node>),                                              // リターン
     MultiComment(Vec<String>, (usize, usize)),                      // 複数コメント
     SingleComment(String, (usize, usize)),                          // 単一コメント
+    Include(String),                                                // ファイル名
+    TypeDeclaration(Box<Node>, Box<Node>),                          // 型定義(型名,型)
     StatementEnd,                                                   // ステートメントの終わり
     Empty,
+}
+impl Default for NodeValue {
+    fn default() -> Self {
+        NodeValue::Empty
+    }
 }

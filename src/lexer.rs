@@ -31,9 +31,11 @@ impl Token {
 #[derive(Debug, Property, Clone)]
 pub struct Lexer {
     #[property(get, set)]
-    input: String,
+    input_content: String,
     #[property(get, set)]
-    input_vec: Vec<String>,
+    input_path: String,
+    #[property(get, set)]
+    input_content_vec: Vec<String>,
     #[property(get)]
     line: usize,
     #[property(get)]
@@ -43,25 +45,28 @@ pub struct Lexer {
 impl Lexer {
     pub fn new() -> Self {
         Lexer {
-            input: String::new(),
-            input_vec: Vec::new(),
+            input_path: String::new(),
+            input_content: String::new(),
+            input_content_vec: Vec::new(),
             line: 1,
             column: 1,
         }
     }
-    pub fn new_with_value_vec(input_vec: Vec<String>) -> Self {
+    pub fn new_with_value_vec(input_content_vec: Vec<String>) -> Self {
         Lexer {
-            input: String::new(),
-            input_vec,
+            input_path: String::new(),
+            input_content: String::new(),
+            input_content_vec,
             line: 1,
             column: 1,
         }
     }
 
-    pub fn new_with_value(input: String) -> Self {
+    pub fn new_with_value(input_path: String, input_content: String) -> Self {
         Lexer {
-            input,
-            input_vec: Vec::new(),
+            input_path,
+            input_content,
+            input_content_vec: Vec::new(),
             line: 1,
             column: 1,
         }
@@ -73,9 +78,9 @@ impl Lexer {
             '(' | ')' | ',' | '=' | ';' | '@' | '{' | '}' | '<' | '>' | ':'
         )
     }
-    fn tokenize_string(&mut self, input: &String) -> R<Vec<Token>, String> {
+    fn tokenize_string(&mut self, input_content: &String) -> R<Vec<Token>, String> {
         let mut tokens: Vec<Token> = Vec::new();
-        let mut chars = input.chars().peekable();
+        let mut chars = input_content.chars().peekable();
 
         while let Some(&c) = chars.peek() {
             if c.is_whitespace() {
@@ -94,11 +99,17 @@ impl Lexer {
 
             if c.is_digit(10) {
                 let mut number = String::new();
+                let mut has_decimal_point = false;
                 while let Some(&c) = chars.peek() {
                     if c.is_digit(10) {
                         number.push(c);
                         chars.next();
                         self.column += 1;
+                    } else if c == '.' && !has_decimal_point {
+                        number.push(c);
+                        chars.next();
+                        self.column += 1;
+                        has_decimal_point = true;
                     } else {
                         break;
                     }
@@ -130,13 +141,25 @@ impl Lexer {
                 let mut string = String::new();
                 chars.next(); // 開始のクォートをスキップ
                 self.column += 1;
+                let mut closed = false;
                 while let Some(c) = chars.next() {
                     if c == '\'' {
                         self.column += 1;
+                        closed = true;
                         break;
                     }
                     string.push(c);
                     self.column += 1;
+                }
+                if !closed {
+                    return Err(custom_compile_error!(
+                        "error",
+                        start_line,
+                        start_column,
+                        &self.input_path.clone(),
+                        &self.input_content.clone(),
+                        "Single quote not closed",
+                    ));
                 }
                 tokens.push(Token::new(
                     string,
@@ -148,13 +171,25 @@ impl Lexer {
                 let mut string = String::new();
                 chars.next(); // 開始のクォートをスキップ
                 self.column += 1;
+                let mut closed = false;
                 while let Some(c) = chars.next() {
                     if c == '\"' {
                         self.column += 1;
+                        closed = true;
                         break;
                     }
                     string.push(c);
                     self.column += 1;
+                }
+                if !closed {
+                    return Err(custom_compile_error!(
+                        "error",
+                        start_line,
+                        start_column,
+                        &self.input_path.clone(),
+                        &self.input_content.clone(),
+                        "Double quote not closed",
+                    ));
                 }
                 tokens.push(Token::new(
                     string,
@@ -165,8 +200,18 @@ impl Lexer {
             } else if c == '/' {
                 chars.next();
                 self.column += 1;
+
                 if let Some(&next_char) = chars.peek() {
-                    if next_char == '/' {
+                    if next_char == '=' {
+                        tokens.push(Token::new(
+                            "/=".to_string(),
+                            TokenType::DivAssign,
+                            start_line,
+                            start_column,
+                        ));
+                        self.column += 1;
+                        chars.next();
+                    } else if next_char == '/' {
                         chars.next();
                         self.column += 1;
                         let mut comment = String::new();
@@ -213,9 +258,11 @@ impl Lexer {
                         }
                         if !closed {
                             return Err(custom_compile_error!(
+                                "error",
                                 start_line,
                                 start_column,
-                                &input.clone(),
+                                &self.input_path.clone(),
+                                &self.input_content.clone(),
                                 "Multi-line comment not closed",
                             ));
                         }
@@ -228,7 +275,21 @@ impl Lexer {
                             start_line,
                             start_column,
                         ));
+                    } else {
+                        tokens.push(Token::new(
+                            "/".to_string(),
+                            TokenType::Div,
+                            start_line,
+                            start_column,
+                        ));
                     }
+                } else {
+                    tokens.push(Token::new(
+                        "/".to_string(),
+                        TokenType::Div,
+                        start_line,
+                        start_column,
+                    ));
                 }
             } else if c == '=' {
                 chars.next();
@@ -434,28 +495,6 @@ impl Lexer {
                         ));
                     }
                 }
-            } else if c == '/' {
-                chars.next();
-                self.column += 1;
-                if let Some(&next_char) = chars.peek() {
-                    if next_char == '=' {
-                        tokens.push(Token::new(
-                            "/=".to_string(),
-                            TokenType::DivAssign,
-                            start_line,
-                            start_column,
-                        ));
-                        self.column += 1;
-                        chars.next();
-                    } else {
-                        tokens.push(Token::new(
-                            "/".to_string(),
-                            TokenType::Div,
-                            start_line,
-                            start_column,
-                        ));
-                    }
-                }
             } else if self.is_symbol(c) {
                 let token_type = match c {
                     '(' => TokenType::LeftParen,
@@ -471,9 +510,11 @@ impl Lexer {
                     ':' => TokenType::Colon,
                     _ => {
                         return Err(custom_compile_error!(
+                            "error",
                             start_line,
                             start_column,
-                            &input.clone(),
+                            &self.input_path.clone(),
+                            &self.input_content.clone(),
                             "Unexpected symbol"
                         ));
                     }
@@ -488,10 +529,12 @@ impl Lexer {
                 self.column += 1;
             } else {
                 return Err(custom_compile_error!(
+                    "error",
                     start_line,
                     start_column,
-                    &input.clone(),
-                    "Unable to process input"
+                    &self.input_path.clone(),
+                    &self.input_content.clone(),
+                    "Unable to process input_content"
                 ));
             }
         }
@@ -501,13 +544,13 @@ impl Lexer {
     pub fn tokenize(&mut self) -> R<Vec<Token>, String> {
         let mut all_tokens: Vec<Token> = Vec::new();
 
-        // If input_vec is empty, tokenize the input string
-        if self.input_vec.is_empty() {
-            all_tokens.extend(self.tokenize_string(&self.input.clone())?);
+        // If input_content_vec is empty, tokenize the input_content string
+        if self.input_content_vec.is_empty() {
+            all_tokens.extend(self.tokenize_string(&self.input_content.clone())?);
         } else {
-            // Tokenize each string in input_vec
-            for input in &self.input_vec.clone() {
-                all_tokens.extend(self.tokenize_string(input)?);
+            // Tokenize each string in input_content_vec
+            for input_content in &self.input_content_vec.clone() {
+                all_tokens.extend(self.tokenize_string(input_content)?);
             }
         }
 

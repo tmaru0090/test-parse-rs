@@ -1,0 +1,135 @@
+ /* 一つ目のコード
+        fn include_file(&mut self, filename: &str) -> Result<Vec<Box<Node>>, String> {
+            let content = std::fs::read_to_string(filename).map_err(|e| e.to_string())?;
+            let mut lexer = Lexer::new_with_value(content.clone());
+            let tokens = lexer.tokenize()?;
+            let mut parser = Parser::new(&tokens, content);
+            parser.parse()
+        }
+
+        pub fn add_include(
+            &mut self,
+            filepath: &str,
+            nodes: &mut Vec<Box<Node>>,
+        ) -> Result<(), String> {
+            // 現在のファイルパスを保存
+            let original_node = self.current_node.clone();
+
+            // インクルードするファイルのパスをカレントノードに一時的に設定
+            self.current_node = Some((filepath.to_string(), nodes.last().unwrap().clone()));
+
+            // 指定されたファイルをインクルード
+            let included_nodes = self.include_file(filepath)?;
+
+            // 既存のノードリストの先頭に追加
+            for node in included_nodes.into_iter().rev() {
+                nodes.insert(0, node);
+            }
+
+            // 元のファイルパスに戻す
+            self.current_node = original_node;
+
+            Ok(())
+        }
+        pub fn decode(&mut self, nodes: &mut Vec<Box<Node>>) -> Result<Value, String> {
+            let mut result = Value::Null;
+
+            // 現在のファイルパスを保存
+            let original_node = self.current_node.clone();
+
+            // システムのインクルードを追加
+            self.add_include("std.script", nodes)?;
+            for node in nodes {
+                // ノードだけを更新し、ファイル名は保持
+                if let Some((existing_filename, _)) = &self.current_node {
+                    self.current_node = Some((existing_filename.clone(), node.clone()));
+                } else {
+                    self.current_node = Some((self.first_file.0.clone(), node.clone()));
+                }
+
+                match node.node_value() {
+                    NodeValue::Include(filename) => {
+                        // インクルードするファイルのパスをカレントノードに一時的に設定
+                        self.current_node = Some((filename.clone(), node.clone()));
+
+                        let mut included_nodes = self.include_file(&filename)?;
+                        result = self.decode(&mut included_nodes)?;
+
+                        // include処理後にファイル名を元に戻す
+                        self.current_node = original_node.clone();
+                    }
+                    _ => {
+                        result = self.execute_node(node)?;
+                    }
+                }
+            }
+
+            // 元のファイルパスに戻す
+            self.current_node = original_node;
+
+            Ok(result)
+        }
+    */
+
+    /* ニつ目のコード
+    fn include_file(&mut self, filename: &str) -> Result<Vec<Box<Node>>, String> {
+        if let Some(cached_nodes) = self.cache.get(filename) {
+            return Ok(cached_nodes.clone());
+        }
+        let content = std::fs::read_to_string(filename).map_err(|e| e.to_string())?;
+        let mut lexer = Lexer::new_with_value(content.clone());
+        let tokens = lexer.tokenize()?;
+        let mut parser = Parser::new(&tokens, content);
+        let nodes = parser.parse()?;
+        self.cache.insert(filename.to_string(), nodes.clone());
+        Ok(nodes)
+    }
+    pub fn add_include(
+        &mut self,
+        filepath: &str,
+        nodes: &mut Vec<Box<Node>>,
+    ) -> Result<(), String> {
+        // インクルードするファイルのパスを current_node に設定
+        self.current_node = Some((filepath.to_string(), Box::new(Node::default())));
+
+        let included_nodes = self.include_file(filepath)?;
+        nodes.splice(0..0, included_nodes);
+        Ok(())
+    }
+    pub fn decode(&mut self, nodes: &mut Vec<Box<Node>>) -> Result<Value, String> {
+        let mut result = Value::Null;
+        let original_node = self.current_node.clone();
+        self.add_include("std.script", nodes)?;
+
+        for node in nodes.clone() {
+            if let Some((existing_filename, _)) = &self.current_node {
+                self.current_node = Some((existing_filename.clone(), node.clone()));
+            } else {
+                self.current_node = Some((self.first_file.0.clone(), node.clone()));
+            }
+
+            match node.node_value() {
+                NodeValue::Include(filename) => {
+                    self.current_node = Some((filename.clone(), node.clone()));
+                    if !self.nodes_map.contains_key(&filename) {
+                        self.add_include(&filename, nodes)?;
+                    }
+                    let mut included_nodes = self
+                        .nodes_map
+                        .get(&filename)
+                        .ok_or("File not found")?
+                        .clone();
+                    result = self.decode(&mut included_nodes)?;
+                    self.current_node = Some((filename.clone(), node.clone())); // ここでcurrent_nodeを正しく設定
+                }
+                _ => {
+                    result = self.execute_node(&node)?;
+                }
+            }
+        }
+
+        self.current_node = original_node;
+        Ok(result)
+    }
+    */
+

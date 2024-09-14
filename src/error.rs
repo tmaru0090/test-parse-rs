@@ -79,6 +79,7 @@ impl CompilerError {
         file_name: &str,
     ) -> String {
         let lines: Vec<&str> = source_code.lines().collect();
+
         let mut error_message = format!(
             "{}: {} at line {}, column {}\n   {} {}:{}:{}\n",
             level.color(self.get_color(level)),
@@ -90,7 +91,7 @@ impl CompilerError {
             line,
             column
         );
-
+        log::info!("lines len: {:?}", lines.len());
         if *line > 0 && *line <= lines.len() {
             let error_line = lines[line - 1];
             error_message.push_str(&format!("{} | {}\n", line, error_line));
@@ -132,6 +133,7 @@ impl CompilerError {
 
 #[macro_export]
 macro_rules! custom_compile_error {
+  /*
     // デフォルトのエラーレベルとファイル名を設定
     ($line:expr, $column:expr, $src:expr, $($arg:tt)*) => {
         {
@@ -140,7 +142,7 @@ macro_rules! custom_compile_error {
                 column: $column,
                 message: format!($($arg)*),
             };
-            error.format_error_string($src, "main.script")
+            error.format_error_string($src, "default-script")
         }
     };
     // エラーレベルを指定する場合
@@ -177,8 +179,9 @@ macro_rules! custom_compile_error {
             error.format_error_string($src, "src/main.rs")
         }
     };
+    */
     // エラーレベルとファイル名を指定する場合
-    ($level:expr, $line:expr, $column:expr, $src:expr, $file_name:expr, $($arg:tt)*) => {
+    ($level:expr, $line:expr, $column:expr,  $file_name:expr,$src:expr, $($arg:tt)*) => {
         {
             let error = match $level {
                 "error" => crate::error::CompilerError::GenericError {

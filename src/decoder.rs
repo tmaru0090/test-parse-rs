@@ -1,1007 +1,767 @@
 use crate::custom_compile_error;
+use crate::lexer::{Lexer, Token};
 use crate::parser::Node;
+use crate::parser::Parser;
 use crate::types::NodeValue;
 use anyhow::{Context, Result as R};
 use log::{error, info};
 use property_rs::Property;
+use serde_json::{Number, Value};
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::iter::zip;
 use std::ops::{Add, Div, Mul, Sub};
+impl Add for Variable {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        let result = match (self.value, other.value) {
+            (Value::Number(a), Value::Number(b)) => {
+                Value::Number((a.as_i64().unwrap() + b.as_i64().unwrap()).into()).into()
+            }
+            (Value::String(a), Value::String(b)) => Value::String(a + &b).into(),
+            _ => panic!("Unsupported types for addition"),
+        };
+        Variable {
+            data_type: self.data_type,
+            value: result,
+            address: 0,
+        }
+    }
+}
+
+impl Sub for Variable {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self {
+        let result = match (self.value, other.value) {
+            (Value::Number(a), Value::Number(b)) => {
+                Value::Number((a.as_i64().unwrap() - b.as_i64().unwrap()).into()).into()
+            }
+            _ => panic!("Unsupported types for subtraction"),
+        };
+        Variable {
+            data_type: self.data_type,
+            value: result,
+            address: 0,
+        }
+    }
+}
+
+impl Mul for Variable {
+    type Output = Self;
+
+    fn mul(self, other: Self) -> Self {
+        let result = match (self.value, other.value) {
+            (Value::Number(a), Value::Number(b)) => {
+                Value::Number((a.as_i64().unwrap() * b.as_i64().unwrap()).into()).into()
+            }
+            _ => panic!("Unsupported types for multiplication"),
+        };
+        Variable {
+            data_type: self.data_type,
+            value: result,
+            address: 0,
+        }
+    }
+}
+
+impl Div for Variable {
+    type Output = Self;
+
+    fn div(self, other: Self) -> Self {
+        let result = match (self.value, other.value) {
+            (Value::Number(a), Value::Number(b)) => {
+                Value::Number((a.as_i64().unwrap() / b.as_i64().unwrap()).into()).into()
+            }
+            _ => panic!("Unsupported types for division"),
+        };
+        Variable {
+            data_type: self.data_type,
+            value: result,
+            address: 0,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Variable {
+    data_type: Value,
+    value: Value,
+    address: usize,
+}
+
 #[derive(Debug, Clone, Property)]
 pub struct Decoder {
+    // 現在のノード(ファイルパス,ノード)
     #[property(get)]
-    global_variables: HashMap<String, VariableValue>, // グローバルスコープ
-
+    current_node: Option<(String, Box<Node>)>,
+    // ノードのマップ(ファイルパス,全体のノード)
     #[property(get)]
-    func_lists: HashMap<
-        String, // 関数名
-        (
-            Vec<String>,                              // 引数名のリスト
-            Box<Node>,                                // 関数実装(AST)
-            VariableValue,                            // 関数戻り値
-            VariableValue,                            // 関数戻り値の型
-            Vec<Vec<HashMap<String, VariableValue>>>, // 関数ローカルスタック
-        ),
-    >,
+    nodes_map: HashMap<String, Vec<Box<Node>>>,
+    // ノードのキャッシュ(ファイルパス,全体のノード)
     #[property(get)]
-    last_var_name: Option<String>,
-
+    cache: HashMap<String, Vec<Box<Node>>>,
+    // グローバルスコープ(変数名,値)
     #[property(get)]
-    comment_lists: HashMap<String, (Vec<String>, i32)>,
-
+    global_context: HashMap<String, Variable>,
+    // グローバル型定義(型名,型)
     #[property(get)]
-    current_node: Option<Box<Node>>, // 現在のノードを保持
+    type_context: HashMap<String, String>,
+    // コメントリスト((行数,列数),コメントのベクター)
     #[property(get)]
-    current_function: Option<String>, // 現在の関数名を保持するフィールドを追加
+    comment_lists: HashMap<(usize, usize), Vec<String>>,
+    // 最初に渡されたファイル(ファイルパス,内容)
     #[property(get)]
-    input: String,
-}
-
-#[derive(Clone, Debug)]
-pub enum VariableValue {
-    Int32(i32),
-    Int64(i64),
-    Float32(f32),
-    Float64(f64),
-    Str(String),
-    Bool(bool),
-    Unit(()),
-}
-
-// `Add` トレイトの実装
-impl Add for VariableValue {
-    type Output = VariableValue;
-
-    fn add(self, other: VariableValue) -> VariableValue {
-        match (self.clone(), other.clone()) {
-            (VariableValue::Int32(l), VariableValue::Int32(r)) => VariableValue::Int32(l + r),
-            (VariableValue::Int64(l), VariableValue::Int64(r)) => VariableValue::Int64(l + r),
-            (VariableValue::Float32(l), VariableValue::Float32(r)) => VariableValue::Float32(l + r),
-            (VariableValue::Float64(l), VariableValue::Float64(r)) => VariableValue::Float64(l + r),
-            (VariableValue::Str(l), VariableValue::Str(r)) => VariableValue::Str(l + &r),
-            _ => panic!("Unsupported addition between {:?} and {:?}", self, other),
-        }
-    }
-}
-
-// `Sub` トレイトの実装
-impl Sub for VariableValue {
-    type Output = VariableValue;
-
-    fn sub(self, other: VariableValue) -> VariableValue {
-        match (self.clone(), other.clone()) {
-            (VariableValue::Int32(l), VariableValue::Int32(r)) => VariableValue::Int32(l - r),
-            (VariableValue::Int64(l), VariableValue::Int64(r)) => VariableValue::Int64(l - r),
-            (VariableValue::Float32(l), VariableValue::Float32(r)) => VariableValue::Float32(l - r),
-            (VariableValue::Float64(l), VariableValue::Float64(r)) => VariableValue::Float64(l - r),
-            _ => panic!("Unsupported subtraction between {:?} and {:?}", self, other),
-        }
-    }
-}
-
-// `Mul` トレイトの実装
-impl Mul for VariableValue {
-    type Output = VariableValue;
-
-    fn mul(self, other: VariableValue) -> VariableValue {
-        match (self.clone(), other.clone()) {
-            (VariableValue::Int32(l), VariableValue::Int32(r)) => VariableValue::Int32(l * r),
-            (VariableValue::Int64(l), VariableValue::Int64(r)) => VariableValue::Int64(l * r),
-            (VariableValue::Float32(l), VariableValue::Float32(r)) => VariableValue::Float32(l * r),
-            (VariableValue::Float64(l), VariableValue::Float64(r)) => VariableValue::Float64(l * r),
-            _ => panic!("Unsupported subtraction between {:?} and {:?}", self, other),
-        }
-    }
-}
-
-// `Div` トレイトの実装
-impl Div for VariableValue {
-    type Output = VariableValue;
-
-    fn div(self, other: VariableValue) -> VariableValue {
-        match (self.clone(), other.clone()) {
-            (VariableValue::Int32(l), VariableValue::Int32(r)) => VariableValue::Int32(l / r),
-            (VariableValue::Int64(l), VariableValue::Int64(r)) => VariableValue::Int64(l / r),
-            (VariableValue::Float32(l), VariableValue::Float32(r)) => VariableValue::Float32(l / r),
-            (VariableValue::Float64(l), VariableValue::Float64(r)) => VariableValue::Float64(l / r),
-            _ => panic!("Unsupported subtraction between {:?} and {:?}", self, other),
-        }
-    }
+    first_file: (String, String),
+    // 仮想ヒープ領域(u8のベクター)
+    #[property(get)]
+    heap: Vec<u8>,
+    // フリーリスト(usizeのベクター)
+    #[property(get)]
+    free_list: Vec<usize>,
+    #[property(get)]
+    processed_files: HashSet<String>, // 追加
 }
 
 impl Decoder {
-    pub fn evaluate(&mut self, node: &Box<Node>) -> R<VariableValue, String> {
-        self.current_node = Some(node.clone());
-        //info!("current_node: {:?}", self.current_node.clone());
-
-        match &node.node_value() {
-            NodeValue::If(condition, body) => self.evaluate_if_statement(condition, body),
-            NodeValue::While(condition, body) => self.evaluate_while_statement(condition, body),
-            NodeValue::MultiComment(content, (_, _)) => {
-                self.evaluate_multi_comment(content.to_vec())
-            }
-            NodeValue::SingleComment(content, (_, _)) => self.evaluate_single_comment(content),
-            NodeValue::Function(func_name, args, body, ret_value, ret_type) => {
-                self.evaluate_function(func_name, args, body, ret_value, ret_type)
-            }
-            NodeValue::Return(ret_value) => {
-                if self.is_in_function_scope() {
-                    let ret = self.evaluate_return(ret_value);
-                    info!("Return: {:?}", ret);
-                    self.pop_local_stack_frame();
-                    ret
-                } else {
-                    let node = match self.current_node.clone() {
-                        Some(v) => v,
-                        _ => todo!(),
-                    };
-                    return Err(custom_compile_error!(
-                        node.line(),
-                        node.column(),
-                        &self.input(),
-                        "Return statement outside of function scope"
-                    ));
-                }
-            }
-            NodeValue::ReturnType(ret_type) => self.convert_to_primitive_type(ret_type),
-            NodeValue::Call(func_name, args) => self.evaluate_call(node, func_name, args),
-            NodeValue::Number(value) => Ok(VariableValue::Int32(*value)),
-            NodeValue::Bool(value) => Ok(VariableValue::Bool(*value)),
-            NodeValue::String(value) => Ok(VariableValue::Str(value.clone())),
-            NodeValue::Assign(var_node, expr_node) => self.evaluate_assign(var_node, expr_node),
-            NodeValue::Block(nodes) => self.evaluate_block(nodes),
-            NodeValue::Variable(name) => self.evaluate_variable(name),
-            NodeValue::VariableDeclaration(var_node, _, expr_node) => {
-                self.evaluate_variable_declaration(var_node, expr_node)
-            }
-            NodeValue::Add(_left, _right)
-            | NodeValue::Sub(_left, _right)
-            | NodeValue::Mul(_left, _right)
-            | NodeValue::Div(_left, _right)
-            | NodeValue::AddAssign(_left, _right)
-            | NodeValue::SubAssign(_left, _right)
-            | NodeValue::MulAssign(_left, _right)
-            | NodeValue::DivAssign(_left, _right) => self.evaluate_binary_op(node),
-            NodeValue::Increment(_) => self.evaluate_binary_op(node),
-            NodeValue::Decrement(_) => self.evaluate_binary_op(node),
-
-            NodeValue::Empty | NodeValue::StatementEnd => Ok(VariableValue::Unit(())), // 空のノードをvoid(ユニット)で初期化
-
-            _ => {
-                let node = match self.current_node.clone() {
-                    Some(v) => v,
-                    _ => todo!(),
-                };
-                return Err(custom_compile_error!(
-                    node.line(),
-                    node.column(),
-                    &self.input(),
-                    "Unsupported node type: {:?}",
-                    node.node_value()
-                ));
-            }
+    pub fn new(file_path: String, content: String) -> Self {
+        Self {
+            cache: HashMap::new(),
+            nodes_map: HashMap::new(),
+            current_node: None,
+            global_context: HashMap::new(),
+            type_context: HashMap::new(),
+            comment_lists: HashMap::new(),
+            heap: vec![0; 1024 * 1024],
+            free_list: Vec::new(),
+            first_file: (file_path, content),
+            processed_files: HashSet::new(),
         }
     }
-    pub fn convert_to_primitive_type(&mut self, ret_type: &Box<Node>) -> R<VariableValue, String> {
-        let value = self.evaluate(&ret_type)?;
-        Ok(value)
-    }
-    pub fn evaluate_assign(
-        &mut self,
-        var_node: &Box<Node>,
-        expr_node: &Box<Node>,
-    ) -> R<VariableValue, String> {
-        let value = self.evaluate(expr_node)?;
-        if let NodeValue::Variable(var_name) = &var_node.node_value() {
-            let mut assigned = false;
 
-            // 関数ごとのローカルスタックをチェック
-            for local_vars_stack in self
-                .func_lists
-                .values_mut()
-                .flat_map(|(_, _, _, _, stack)| stack.iter_mut())
-            {
-                for local_vars in local_vars_stack {
-                    if local_vars.contains_key(var_name) {
-                        local_vars.insert(var_name.clone(), value.clone());
-                        info!(
-                            "Assigned Local Variable: name: {} value: {:?}",
-                            var_name, value
-                        );
-                        assigned = true;
-                        break;
+    fn allocate(&mut self, size: usize) -> Result<usize, String> {
+        if let Some(index) = self.free_list.pop() {
+            Ok(index)
+        } else {
+            let index = self.heap.len();
+            // ヒープのサイズが不足している場合、拡張する
+            if index + size > self.heap.len() {
+                let new_capacity = (index + size).max(self.heap.len() * 2);
+                self.heap.resize(new_capacity, 0);
+            }
+            self.heap.resize(index + size, 0);
+            Ok(index)
+        }
+    }
+
+    fn deallocate(&mut self, index: usize) {
+        self.free_list.push(index);
+    }
+
+    fn include_file(&mut self, filename: &str) -> Result<Vec<Box<Node>>, String> {
+        if let Some(cached_nodes) = self.cache.get(filename) {
+            return Ok(cached_nodes.clone());
+        }
+        let content = std::fs::read_to_string(filename).map_err(|e| e.to_string())?;
+        let mut lexer = Lexer::new_with_value(filename.to_string(), content.clone());
+        let tokens = lexer.tokenize()?;
+        let mut parser = Parser::new(&tokens, filename.to_string(), content);
+        let nodes = parser.parse()?;
+        self.cache.insert(filename.to_string(), nodes.clone());
+        Ok(nodes)
+    }
+
+    pub fn add_include(
+        &mut self,
+        filepath: &str,
+        nodes: &mut Vec<Box<Node>>,
+    ) -> Result<(), String> {
+        self.current_node = Some((filepath.to_string(), Box::new(Node::default())));
+
+        let included_nodes = self.include_file(filepath)?;
+        nodes.splice(0..0, included_nodes.clone());
+        self.nodes_map.insert(filepath.to_string(), included_nodes);
+        Ok(())
+    }
+
+    pub fn decode(&mut self, nodes: &mut Vec<Box<Node>>) -> Result<Value, String> {
+        let mut result = Value::Null;
+        let original_node = self.current_node.clone();
+        self.add_include("./script/std.script", nodes)?;
+        self.add_include(&self.first_file.0.clone(), nodes)?;
+
+        for (filename, included_nodes) in self.nodes_map.clone() {
+            self.current_node = Some((filename.clone(), Box::new(Node::default())));
+            for node in included_nodes {
+                self.current_node = Some((filename.clone(), node.clone()));
+                match node.node_value() {
+                    NodeValue::Include(filename) => {
+                        self.current_node = Some((filename.clone(), node.clone()));
+                        if !self.nodes_map.contains_key(&filename) {
+                            self.add_include(&filename, nodes)?;
+                        }
+                        let mut included_nodes = self
+                            .nodes_map
+                            .get(&filename)
+                            .ok_or("File not found")?
+                            .clone();
+                        result = self.decode(&mut included_nodes)?;
+                        self.current_node = Some((filename.clone(), node.clone()));
+                    }
+                    _ => {
+                        result = self.execute_node(&node)?;
                     }
                 }
-                if assigned {
-                    break;
+            }
+        }
+
+        self.current_node = original_node;
+        Ok(result)
+    }
+
+    fn get_value_size(&self, v_type: &str, v_value: &Value) -> usize {
+        match v_type {
+            "i32" => std::mem::size_of::<i32>(),
+            "i64" => std::mem::size_of::<i64>(),
+            "f32" => std::mem::size_of::<f32>(),
+            "f64" => std::mem::size_of::<f64>(),
+            "string" => {
+                if let Value::String(ref s) = v_value {
+                    s.len()
+                } else {
+                    0
                 }
             }
-
-            // グローバル変数をチェック
-            if !assigned && self.global_variables.contains_key(var_name) {
-                self.global_variables
-                    .insert(var_name.clone(), value.clone());
-                info!(
-                    "Assigned Global Variable: name: {} value: {:?}",
-                    var_name, value
-                );
-                assigned = true;
-            }
-
-            if !assigned {
-                let node = match self.current_node.clone() {
-                    Some(v) => v,
-                    _ => todo!(),
-                };
-
-                return Err(custom_compile_error!(
-                    node.line(),
-                    node.column(),
-                    &self.input(),
-                    "Variable {:?} not found in any scope",
-                    var_name
-                ));
-            }
-
-            self.last_var_name = Some(var_name.clone());
+            _ => serde_json::to_vec(v_value).unwrap().len(),
+        }
+    }
+    fn allocate_and_copy_to_heap(&mut self, serialized_value: Vec<u8>) -> Result<usize, String> {
+        let node = if let Some((_, node)) = self.current_node.clone() {
+            node
         } else {
-            let node = match self.current_node.clone() {
-                Some(v) => v,
-                _ => todo!(),
-            };
-
+            Box::new(Node::new(NodeValue::Empty, None, 0, 0))
+        };
+        let index = self.allocate(serialized_value.len())?;
+        if index + serialized_value.len() > self.heap.len() {
             return Err(custom_compile_error!(
-                node.line(),
-                node.column(),
-                &self.input(),
-                "Left-hand side of assignment must be a variable."
+                "error",
+                node.clone().line(),
+                node.clone().column(),
+                &self.first_file.0,
+                &self.first_file.1,
+                "Heap overflow: trying to write {} bytes at index {}, but heap size is {}",
+                serialized_value.len(),
+                index,
+                self.heap.len()
             ));
         }
-        Ok(value)
+        self.heap[index..index + serialized_value.len()].copy_from_slice(&serialized_value);
+        Ok(index)
     }
-    fn evaluate_variable_declaration(
-        &mut self,
-        var_node: &Box<Node>,
-        expr_node: &Box<Node>,
-    ) -> R<VariableValue, String> {
-        let var_name = match &var_node.node_value() {
-            NodeValue::Variable(name) => name.clone(),
-            _ => {
-                return Err(custom_compile_error!(
-                    var_node.line(),
-                    var_node.column(),
-                    &self.input(),
-                    "Expected a variable name in variable declaration"
-                ));
+    fn serialize_value(&self, v_type: &str, v_value: &Value) -> Vec<u8> {
+        match v_type {
+            "i32" => {
+                let num = v_value.as_i64().unwrap() as i32;
+                num.to_le_bytes().to_vec()
             }
-        };
-
-        let value = self.evaluate(expr_node)?;
-        let mut is_redefined = false;
-
-        // 関数ごとのローカルスタックをチェック
-        for local_vars_stack in self
-            .func_lists
-            .values()
-            .flat_map(|(_, _, _, _, stack)| stack.iter())
-        {
-            for local_vars in local_vars_stack {
-                if local_vars.contains_key(&var_name) {
-                    is_redefined = true;
-                    break;
+            "i64" => {
+                let num = v_value.as_i64().unwrap();
+                num.to_le_bytes().to_vec()
+            }
+            "f32" => {
+                let num = v_value.as_f64().unwrap() as f32;
+                num.to_le_bytes().to_vec()
+            }
+            "f64" => {
+                let num = v_value.as_f64().unwrap();
+                num.to_le_bytes().to_vec()
+            }
+            "string" => {
+                if let Value::String(ref s) = v_value {
+                    s.as_bytes().to_vec()
+                } else {
+                    vec![]
                 }
             }
-            if is_redefined {
-                break;
-            }
+            _ => serde_json::to_vec(v_value).unwrap(),
         }
-        if self.global_variables.contains_key(&var_name) {
-            is_redefined = true;
-        }
-
-        if is_redefined {
-            let node = match self.current_node.clone() {
-                Some(v) => v,
-                _ => todo!(),
-            };
-
-            return Err(custom_compile_error!(
-                node.line(),
-                node.column(),
-                &self.input(),
-                "The variable name {:?} is already defined",
-                var_name
-            ));
-        }
-
-        // 現在の関数のローカルスタックに変数を追加
-        if let Some(local_vars_stack) = self
-            .func_lists
-            .values_mut()
-            .flat_map(|(_, _, _, _, stack)| stack.last_mut())
-            .next()
-        {
-            if let Some(local_vars) = local_vars_stack.last_mut() {
-                local_vars.insert(var_name.clone(), value.clone());
-                info!(
-                    "Declare Local Variable: name: {} value: {:?} in function: {:?}",
-                    var_name.clone(),
-                    value.clone(),
-                    self.current_function.clone()
-                );
-            }
-        } else {
-            self.global_variables
-                .insert(var_name.clone(), value.clone());
-            info!(
-                "Declare Global Variable: name: {} value: {:?} in function: {:?}",
-                var_name.clone(),
-                value.clone(),
-                self.current_function().clone()
-            );
-        }
-
-        self.last_var_name = Some(var_name.clone());
-        Ok(value)
     }
 
-    fn evaluate_block(&mut self, nodes: &Vec<Box<Node>>) -> R<VariableValue, String> {
-        let current_function = self.current_function.clone();
-        let mut func_lists = self.func_lists();
-        let stack = if let Some(func_name) = current_function.clone() {
-            func_lists
-                .get_mut(&func_name)
-                .and_then(|(_, _, _, _, stacks)| stacks.last_mut())
+    fn get_value_from_heap(
+        &self,
+        heap: &[u8],
+        index: usize,
+        value_size: usize,
+    ) -> Result<Value, String> {
+        let node = if let Some((_, node)) = self.current_node.clone() {
+            node
         } else {
-            None
+            Box::new(Node::new(NodeValue::Empty, None, 0, 0))
         };
 
-        if let Some(local_stack) = stack {
-            local_stack.push(HashMap::new());
-            info!(
-                "in {}: Local stack before evaluation: {:?}",
-                current_function.clone().unwrap_or("unknown".to_string()),
-                local_stack
-            );
-            let mut value = VariableValue::Unit(());
-
-            let nodes_clone = nodes.clone();
-
-            for node in nodes_clone {
-                let node_clone = node.clone();
-                value = self.evaluate(&node_clone)?;
-                if let NodeValue::Return(_) = node.node_value() {
-                    local_stack.pop();
-                    info!(
-                        "in {}: Local stack after pop (return): {:?}",
-                        current_function.clone().unwrap_or("unknown".to_string()),
-                        local_stack
-                    );
-                    return Ok(value);
-                }
-            }
-            info!(
-                "in {}: Local stack before evaluation: {:?}",
-                current_function.clone().unwrap_or("unknown".to_string()),
-                local_stack
-            );
-            local_stack.pop();
-            Ok(value)
+        if index + value_size <= heap.len() {
+            let v_value: Value = serde_json::from_slice(&heap[index..index + value_size]).unwrap();
+            Ok(v_value)
         } else {
-            let node = match self.current_node.clone() {
-                Some(v) => v,
-                _ => todo!(),
-            };
             return Err(custom_compile_error!(
-                node.line(),
-                node.column(),
-                &self.input(),
-                "No local stack found for the current function"
+                "error",
+                node.clone().line(),
+                node.clone().column(),
+                &self.first_file.0,
+                &self.first_file.1,
+                "Index out of range: {} + {} > {}",
+                index,
+                value_size,
+                heap.len()
             ));
         }
     }
-    fn pop_local_stack_frame(&mut self) {
-        if let Some(local_vars_stack) = self
-            .func_lists
-            .values_mut()
-            .flat_map(|(_, _, _, _, stack)| stack.last_mut())
-            .next()
-        {
-            local_vars_stack.pop();
-        }
-    }
 
-    fn evaluate_call(
-        &mut self,
-        node: &Box<Node>,
-        func_name: &String,
-        args: &Vec<Node>,
-    ) -> R<VariableValue, String> {
-        // 一時的に必要なデータをコピー
-        let (param_names, body, local_stack) = {
-            if let Some((param_names, body, _, _, local_stack)) = self.func_lists.get(func_name) {
-                (param_names.clone(), body.clone(), local_stack.clone())
-            } else {
-                return Err(custom_compile_error!(
-                    node.line(),
-                    node.column(),
-                    &self.input(),
-                    "Function {:?} not defined",
-                    func_name
-                ));
-            }
-        };
-
-        if args.len() != param_names.len() {
-            return Err(custom_compile_error!(
-                node.line(),
-                node.column(),
-                &self.input(),
-                "Function {:?} expects {:?} arguments, but {:?} were provided",
-                func_name,
-                param_names.len(),
-                args.len()
-            ));
-        }
-
-        let mut local_vars = HashMap::new();
-        for (param_name, arg) in param_names.iter().zip(args.iter()) {
-            let value = self.evaluate(&Box::new(arg.clone()))?;
-            local_vars.insert(param_name.clone(), value);
-        }
-
-        // ミュータブルな借用を再度取得してローカルスタックを更新
-        if let Some((_, _, _, _, local_stack)) = self.func_lists.get_mut(func_name) {
-            local_stack.push(vec![local_vars]);
-        }
-
-        self.current_function = Some(func_name.clone());
-        let result = self.evaluate(&body);
-
-        // ミュータブルな借用を再度取得してローカルスタックをポップ
-        if let Some((_, _, _, _, local_stack)) = self.func_lists.get_mut(func_name) {
-            local_stack.pop();
-        }
-
-        self.current_function = None;
-        result
-    }
-
-    fn evaluate_return(&mut self, ret_value: &Box<Node>) -> R<VariableValue, String> {
-        let value = self.evaluate(ret_value)?;
-        if self.is_in_function_scope() {
-            self.current_node = None;
-            return Ok(value);
-        }
-        return Err(custom_compile_error!(
-            ret_value.line(),
-            ret_value.column(),
-            &self.input(),
-            "Return Error",
-        ));
-    }
-
-    pub fn evaluate_function(
-        &mut self,
-        func_name: &String,
-        args: &Vec<String>,
-        body: &Box<Node>,
-        ret_value: &Box<Node>,
-        ret_type: &Box<Node>,
-    ) -> R<VariableValue, String> {
-        // まず関数のシグネチャ、型情報だけを登録
-        self.register_function_signature(func_name.clone(), args.clone(), ret_type.clone())?;
-
-        let ret_type = self.convert_to_primitive_type(&ret_type.clone())?;
-        info!(
-            "define function signature: {:?} return_type: {:?}",
-            func_name,
-            ret_type.clone()
-        );
-
-        // 次に関数のボディを評価
-        let ret_value = self.evaluate(ret_value)?;
-        self.register_function_body(func_name.clone(), body.clone(), ret_value.clone())?;
-        info!("define function body: {:?}", func_name);
-
-        Ok(VariableValue::Unit(()))
-    }
-
-    fn register_function_signature(
-        &mut self,
-        name: String,
-        args: Vec<String>,
-        ret_type: Box<Node>,
-    ) -> R<(), String> {
-        if self.func_lists.contains_key(&name) {
-            let node = match self.current_node.clone() {
-                Some(v) => v,
-                _ => todo!(),
-            };
-            return Err(custom_compile_error!(
-                node.line(),
-                node.column(),
-                &self.input(),
-                "Function name {:?} is already defined",
-                name
-            ));
-        }
-        let ret_type = self.convert_to_primitive_type(&ret_type)?;
-        self.func_lists.insert(
-            name.clone(),
-            (
-                args,
-                Box::new(Node::new(NodeValue::Empty, None, 0, 0)),
-                VariableValue::Unit(()),
-                ret_type,
-                Vec::new(),
-            ),
-        );
-        Ok(())
-    }
-
-    fn register_function_body(
-        &mut self,
-        name: String,
-        body: Box<Node>,
-        ret_value: VariableValue,
-    ) -> R<(), String> {
-        // 一時的に必要なデータをコピー
-        let (args, return_type, mut local_stack) = {
-            if let Some((args, _, _, return_type, local_stack)) = self.func_lists.get(&name) {
-                (args.clone(), return_type.clone(), local_stack.clone())
-            } else {
-                let node = match self.current_node.clone() {
-                    Some(v) => v,
-                    _ => todo!(),
-                };
-                return Err(custom_compile_error!(
-                    node.line(),
-                    node.column(),
-                    &self.input(),
-                    "Function name {:?} is not defined",
-                    name
-                ));
-            }
-        };
-
-        // ミュータブルな借用を再度取得して関数のボディを登録
-        if let Some((_, _, _, _, local_stack_ref)) = self.func_lists.get_mut(&name) {
-            *local_stack_ref = Vec::new();
-            local_stack = local_stack_ref.clone();
-        }
-
-        self.func_lists.insert(
-            name.clone(),
-            (args, body, ret_value, return_type, local_stack),
-        );
-
-        Ok(())
-    }
-    fn is_in_function_scope(&self) -> bool {
-        self.func_lists
-            .values()
-            .any(|(_, _, _, _, stack)| !stack.is_empty())
-    }
-    pub fn evaluate_if_statement(
-        &mut self,
-        condition: &Box<Node>,
-        body: &Box<Node>,
-    ) -> R<VariableValue, String> {
-        let bool_value = self.evaluate_binary_op(condition)?;
-        if let VariableValue::Bool(value) = bool_value {
-            if value {
-                return Ok(self.evaluate(&body)?);
-            }
-        }
-        Ok(bool_value)
-    }
-    pub fn evaluate_while_statement(
-        &mut self,
-        condition: &Box<Node>,
-        body: &Box<Node>,
-    ) -> R<VariableValue, String> {
-        let bool_value = self.evaluate_binary_op(condition)?;
-        if let VariableValue::Bool(value) = bool_value {
-            while value {
-                return Ok(self.evaluate(&body)?);
-            }
-        }
-        Ok(bool_value)
-    }
-
-    fn evaluate_multi_comment(&mut self, content: Vec<String>) -> R<VariableValue, String> {
-        self.comment_lists
-            .insert(format!("comment: {:}", 0), (content, 0));
-        Ok(VariableValue::Unit(()))
-    }
-    fn evaluate_single_comment(&mut self, content: &String) -> R<VariableValue, String> {
-        self.comment_lists.insert(
-            format!("comment: {:}", 0),
-            (vec![(*content.clone()).to_string()], 0),
-        );
-
-        Ok(VariableValue::Unit(()))
-    }
-
-    fn evaluate_variable(&mut self, name: &String) -> R<VariableValue, String> {
-        for local_vars_stack in self
-            .func_lists
-            .values()
-            .flat_map(|(_, _, _, _, stack)| stack.iter())
-        {
-            for local_vars in local_vars_stack {
-                if local_vars.contains_key(name) {
-                    info!("Found variable {} in local stack: {:?}", name, local_vars);
-                    return Ok(local_vars[name].clone());
-                }
-            }
-        }
-        if self.global_variables.contains_key(name) {
-            info!(
-                "Found variable {} in global scope: {:?}",
-                name,
-                self.global_variables[name].clone()
-            );
-            Ok(self.global_variables[name].clone())
-        } else {
-            return Ok(VariableValue::Int32(0));
-        }
-    }
-    pub fn decode(&mut self, nodes: &Vec<Box<Node>>) -> R<(), String> {
-        for node in nodes {
-            match &node.node_value() {
-                NodeValue::Assign(var_node, expr_node) => {
-                    let value = self.evaluate(expr_node)?;
-                    if let NodeValue::Variable(var_name) = &var_node.node_value() {
-                        self.global_variables
-                            .insert(var_name.clone(), value.clone());
-                        info!(
-                            "Assign Global Variable: name: {} value: {:?}",
-                            var_name, value
-                        );
+    fn infer_type(&self, value: &Value) -> String {
+        match value {
+            Value::Number(num) => {
+                if num.is_i64() {
+                    let i_value = num.as_i64().unwrap();
+                    if i_value >= i32::MIN as i64 && i_value <= i32::MAX as i64 {
+                        "i32".to_string()
                     } else {
-                        let node = match self.current_node.clone() {
-                            Some(v) => v,
-                            _ => todo!(),
-                        };
+                        "i64".to_string()
+                    }
+                } else if num.is_f64() {
+                    let f_value = num.as_f64().unwrap();
+                    if f_value >= f32::MIN as f64 && f_value <= f32::MAX as f64 {
+                        "f32".to_string()
+                    } else {
+                        "f64".to_string()
+                    }
+                } else {
+                    "unknown".to_string()
+                }
+            }
+            Value::String(_) => "string".to_string(),
+            Value::Bool(_) => "bool".to_string(),
+            _ => "unknown".to_string(),
+        }
+    }
 
+    fn check_type(&self, value: &Value, expected_type: &str) -> Result<Value, String> {
+        let node = if let Some((_, node)) = self.current_node.clone() {
+            node
+        } else {
+            Box::new(Node::new(NodeValue::Empty, None, 0, 0))
+        };
+
+        // 型定義が存在するか確認
+        if !self.type_context.contains_key(expected_type) {
+            return Err(custom_compile_error!(
+                "error",
+                node.clone().line(),
+                node.clone().column(),
+                &self.first_file.0,
+                &self.first_file.1,
+                "Type '{}' is not defined",
+                expected_type
+            ));
+        }
+
+        match expected_type {
+            "i32" => {
+                if let Some(num) = value.as_i64() {
+                    match i32::try_from(num) {
+                        Ok(num_i32) => Ok(Value::Number(serde_json::Number::from(num_i32))),
+                        Err(_) => Err(custom_compile_error!(
+                            "error",
+                            node.clone().line(),
+                            node.clone().column(),
+                            &self.first_file.0,
+                            &self.first_file.1,
+                            "Value out of range for i32: {:?}",
+                            num
+                        )),
+                    }
+                } else {
+                    Err(custom_compile_error!(
+                        "error",
+                        node.clone().line(),
+                        node.clone().column(),
+                        &self.first_file.0,
+                        &self.first_file.1,
+                        "Type mismatch for i32: {:?}",
+                        value
+                    ))
+                }
+            }
+            "i64" => {
+                if let Some(num) = value.as_i64() {
+                    Ok(Value::Number(serde_json::Number::from(num)))
+                } else {
+                    Err(custom_compile_error!(
+                        "error",
+                        node.clone().line(),
+                        node.clone().column(),
+                        &self.first_file.0,
+                        &self.first_file.1,
+                        "Type mismatch for i64: {:?}",
+                        value
+                    ))
+                }
+            }
+            "f32" => {
+                if let Some(num) = value.as_f64() {
+                    Ok(Value::Number(
+                        serde_json::Number::from_f64(num as f64)
+                            .unwrap_or_else(|| serde_json::Number::from(0)),
+                    ))
+                } else {
+                    Err(custom_compile_error!(
+                        "error",
+                        node.clone().line(),
+                        node.clone().column(),
+                        &self.first_file.0,
+                        &self.first_file.1,
+                        "Type mismatch for f32: {:?}",
+                        value
+                    ))
+                }
+            }
+            "f64" => {
+                if let Some(num) = value.as_f64() {
+                    Ok(Value::Number(
+                        serde_json::Number::from_f64(num)
+                            .unwrap_or_else(|| serde_json::Number::from(0)),
+                    ))
+                } else {
+                    Err(custom_compile_error!(
+                        "error",
+                        node.clone().line(),
+                        node.clone().column(),
+                        &self.first_file.0,
+                        &self.first_file.1,
+                        "Type mismatch for f64: {:?}",
+                        value
+                    ))
+                }
+            }
+            _ => Ok(value.clone()),
+        }
+    }
+    fn execute_node(&mut self, node: &Node) -> Result<Value, String> {
+        let mut result = Value::Null;
+        info!("current_node: {:?}", self.current_node());
+        match &node.node_value() {
+            NodeValue::Empty | NodeValue::StatementEnd => Ok(result),
+            NodeValue::MultiComment(content, (line, column)) => {
+                self.comment_lists
+                    .insert((*line, *column), content.clone().to_vec());
+                info!("MultiComment added at line {}, column {}", line, column);
+                Ok(result)
+            }
+            NodeValue::SingleComment(content, (line, column)) => {
+                self.comment_lists
+                    .insert((*line, *column), vec![content.clone()]);
+                info!("SingleComment added at line {}, column {}", line, column);
+                Ok(result)
+            }
+            NodeValue::Block(block) => {
+                let mut r = Value::Null;
+                for b in block {
+                    r = self.execute_node(b)?;
+                }
+                Ok(r)
+            }
+            NodeValue::VariableDeclaration(var_name, data_type, value) => {
+                let name = match var_name.node_value() {
+                    NodeValue::Variable(v) => v,
+                    _ => String::new(),
+                };
+
+                let v_type = if let NodeValue::Empty = data_type.node_value() {
+                    let _value = self.execute_node(&value)?;
+                    Value::String(self.infer_type(&_value))
+                } else {
+                    let v = match data_type.node_value() {
+                        NodeValue::DataType(v_type) => match v_type.node_value() {
+                            NodeValue::Variable(v) => v,
+                            _ => String::new(),
+                        },
+                        _ => String::new(),
+                    };
+                    Value::String(v.into())
+                };
+
+                let v_value = if let NodeValue::Empty = value.node_value() {
+                    Value::Number(serde_json::Number::from(0))
+                } else {
+                    let _value = self.execute_node(&value)?;
+                    self.check_type(&_value, v_type.as_str().unwrap_or(""))?
+                };
+
+                let serialized_value =
+                    self.serialize_value(v_type.as_str().unwrap_or(""), &v_value);
+                let index = self.allocate_and_copy_to_heap(serialized_value)?;
+
+                self.global_context.insert(
+                    name.clone(),
+                    Variable {
+                        value: v_value.clone(),
+                        data_type: v_type.clone(),
+                        address: index,
+                    },
+                );
+
+                info!("VariableDeclaration: name = {:?}, data_type = {:?}, value = {:?}, address = {:?}", name, v_type, v_value, index);
+                result = v_value.clone();
+                Ok(v_value)
+            }
+
+            NodeValue::TypeDeclaration(_type_name, _type) => {
+                let name = match _type_name.node_value() {
+                    NodeValue::Variable(v) => v,
+                    _ => String::new(),
+                };
+                let v_type = match _type.node_value() {
+                    NodeValue::String(v) => v,
+                    _ => String::new(),
+                };
+
+                // 型定義をtype_contextに保存
+                self.type_context.insert(name.clone(), v_type.clone());
+
+                info!(
+                    "TypeDeclaration: type_name = {:?}, type = {:?}",
+                    name, v_type
+                );
+                Ok(Value::String(name.into()))
+            }
+            NodeValue::Int(number) => Ok(Value::Number((*number).into())),
+
+            NodeValue::Float(number) => {
+                let n = Number::from_f64(*number).unwrap();
+                Ok(Value::Number(n.into()))
+            }
+
+            NodeValue::String(s) => Ok(Value::String(s.clone())),
+            NodeValue::Bool(b) => Ok(Value::Bool(*b)),
+
+            NodeValue::Variable(name) => {
+                if let Some(var) = self.global_context.get(name) {
+                    let index = var.address; // アドレスを取得
+                    let value_size =
+                        self.get_value_size(var.data_type.as_str().unwrap_or(""), &var.value);
+
+                    println!(
+                        "Index: {}, Value size: {}, Heap size: {}",
+                        index,
+                        value_size,
+                        self.heap.len()
+                    );
+
+                    self.get_value_from_heap(&self.heap, index, value_size)
+                } else {
+                    Ok(Value::Null)
+                }
+            }
+
+            NodeValue::Add(lhs, rhs) => {
+                let left = self.execute_node(&lhs)?;
+                let right = self.execute_node(&rhs)?;
+                match (left.clone(), right.clone()) {
+                    (Value::Number(l), Value::Number(r)) => {
+                        if l.is_i64() && r.is_i64() {
+                            let result = l.as_i64().unwrap() + r.as_i64().unwrap();
+                            info!("Add: {} + {}", l, r);
+                            Ok(Value::Number(serde_json::Number::from(result)))
+                        } else {
+                            info!("Add: {} + {}", l, r);
+                            Ok(Value::Number(
+                                serde_json::Number::from_f64(
+                                    l.as_f64().unwrap() + r.as_f64().unwrap(),
+                                )
+                                .unwrap(),
+                            ))
+                        }
+                    }
+                    _ => Err(custom_compile_error!(
+                        "error",
+                        node.line(),
+                        node.column(),
+                        &self.first_file.0,
+                        &self.first_file.1,
+                        "Addition operation failed: {:?} + {:?}",
+                        left.clone(),
+                        right.clone()
+                    )),
+                }
+            }
+
+            NodeValue::Sub(lhs, rhs) => {
+                let left = self.execute_node(&lhs)?;
+                let right = self.execute_node(&rhs)?;
+                match (left.clone(), right.clone()) {
+                    (Value::Number(l), Value::Number(r)) => {
+                        if l.is_i64() && r.is_i64() {
+                            let result = l.as_i64().unwrap() - r.as_i64().unwrap();
+                            info!("Sub: {} - {}", l, r);
+                            Ok(Value::Number(serde_json::Number::from(result)))
+                        } else {
+                            info!("Sub: {} - {}", l, r);
+                            Ok(Value::Number(
+                                serde_json::Number::from_f64(
+                                    l.as_f64().unwrap() - r.as_f64().unwrap(),
+                                )
+                                .unwrap(),
+                            ))
+                        }
+                    }
+                    _ => Err(custom_compile_error!(
+                        "error",
+                        node.line(),
+                        node.column(),
+                        &self.first_file.0,
+                        &self.first_file.1,
+                        "Subtraction operation failed: {:?} - {:?}",
+                        left.clone(),
+                        right.clone()
+                    )),
+                }
+            }
+
+            NodeValue::Mul(lhs, rhs) => {
+                let left = self.execute_node(&lhs)?;
+                let right = self.execute_node(&rhs)?;
+                match (left.clone(), right.clone()) {
+                    (Value::Number(l), Value::Number(r)) => {
+                        if l.is_i64() && r.is_i64() {
+                            let result = l.as_i64().unwrap() * r.as_i64().unwrap();
+                            info!("Mul: {} * {}", l, r);
+                            Ok(Value::Number(serde_json::Number::from(result)))
+                        } else {
+                            info!("Mul: {} * {}", l, r);
+                            Ok(Value::Number(
+                                serde_json::Number::from_f64(
+                                    l.as_f64().unwrap() * r.as_f64().unwrap(),
+                                )
+                                .unwrap(),
+                            ))
+                        }
+                    }
+                    _ => Err(custom_compile_error!(
+                        "error",
+                        node.line(),
+                        node.column(),
+                        &self.first_file.0,
+                        &self.first_file.1,
+                        "Multiplication operation failed: {:?} * {:?}",
+                        left.clone(),
+                        right.clone()
+                    )),
+                }
+            }
+
+            NodeValue::Div(lhs, rhs) => {
+                let left = self.execute_node(&lhs)?;
+                let right = self.execute_node(&rhs)?;
+                if let Value::Number(ref r) = right.clone() {
+                    if r.as_f64().unwrap() == 0.0 {
                         return Err(custom_compile_error!(
+                            "error",
                             node.line(),
                             node.column(),
-                            &self.input(),
-                            "Left-hand side of assignment must be a variable."
+                            &self.first_file.0,
+                            &self.first_file.1,
+                            "Division by zero: {:?} / {:?}",
+                            left.clone(),
+                            right.clone()
                         ));
                     }
                 }
-                _ => {
-                    let value = self.evaluate(&Box::new(*node.clone()))?;
-                    // 他の処理が必要ならここに追加
-                }
-            }
-        }
-        Ok(())
-    }
-    fn evaluate_binary_op(&mut self, node: &Box<Node>) -> R<VariableValue, String> {
-        // 条件演算子の処理
-        if let NodeValue::Eq(left, right)
-        | NodeValue::Ne(left, right)
-        | NodeValue::Lt(left, right)
-        | NodeValue::Gt(left, right)
-        | NodeValue::Le(left, right)
-        | NodeValue::Ge(left, right) = &node.node_value()
-        {
-            let left_value = self.evaluate(left)?;
-            let right_value = self.evaluate(right)?;
-
-            match (&node.node_value(), left_value, right_value) {
-                // 等しい (==)
-                (NodeValue::Eq(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
-                    Ok(VariableValue::Bool(l == r))
-                }
-                (NodeValue::Eq(_, _), VariableValue::Str(l), VariableValue::Str(r)) => {
-                    Ok(VariableValue::Bool(l == r))
-                }
-                // 等しくない (!=)
-                (NodeValue::Ne(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
-                    Ok(VariableValue::Bool(l != r))
-                }
-                (NodeValue::Ne(_, _), VariableValue::Str(l), VariableValue::Str(r)) => {
-                    Ok(VariableValue::Bool(l != r))
-                }
-                // 小なり (<)
-                (NodeValue::Lt(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
-                    Ok(VariableValue::Bool(l < r))
-                }
-                // 大なり (>)
-                (NodeValue::Gt(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
-                    Ok(VariableValue::Bool(l > r))
-                }
-                // 以下 (<=)
-                (NodeValue::Le(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
-                    Ok(VariableValue::Bool(l <= r))
-                }
-                // 以上 (>=)
-                (NodeValue::Ge(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
-                    Ok(VariableValue::Bool(l >= r))
-                }
-                _ => Err("Unsupported operation or mismatched types in condition".to_string()),
-            }
-        } else if let NodeValue::Increment(left) | NodeValue::Decrement(left) = &node.node_value() {
-            let left_value = self.evaluate(left)?;
-
-            match (&node.node_value(), left_value) {
-                (NodeValue::Increment(_), VariableValue::Int32(l)) => {
-                    let _lvalue = self.evaluate(left)?;
-                    let new_value = _lvalue.clone() + VariableValue::Int32(1);
-                    let rvalue = match new_value {
-                        VariableValue::Int32(value) => value,
-                        _ => -1,
-                    };
-                    let value = self.evaluate_assign(
-                        left,
-                        &Box::new(Node::new(NodeValue::Number(rvalue), None, 0, 0)),
-                    );
-                    value
-                }
-                (NodeValue::Decrement(_), VariableValue::Int32(l)) => {
-                    let _lvalue = self.evaluate(left)?;
-                    let new_value = _lvalue.clone() - VariableValue::Int32(1);
-                    let rvalue = match new_value {
-                        VariableValue::Int32(value) => value,
-                        _ => -1,
-                    };
-                    let value = self.evaluate_assign(
-                        left,
-                        &Box::new(Node::new(NodeValue::Number(rvalue), None, 0, 0)),
-                    );
-                    value
-                }
-
-                _ => Err("Unsupported operation or mismatched types".to_string()),
-            }
-        }
-        // 通常の演算子の処理
-        else if let NodeValue::Add(left, right)
-        | NodeValue::Sub(left, right)
-        | NodeValue::Mul(left, right)
-        | NodeValue::Div(left, right)
-        | NodeValue::AddAssign(left, right)
-        | NodeValue::SubAssign(left, right)
-        | NodeValue::MulAssign(left, right)
-        | NodeValue::DivAssign(left, right) = &node.node_value()
-        {
-            let left_value = self.evaluate(left)?;
-            let right_value = self.evaluate(right)?;
-            match (&node.node_value(), left_value, right_value) {
-                (NodeValue::Add(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
-                    Ok(VariableValue::Int32(l + r))
-                }
-                (NodeValue::Sub(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
-                    Ok(VariableValue::Int32(l - r))
-                }
-                (NodeValue::Mul(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
-                    Ok(VariableValue::Int32(l * r))
-                }
-                (NodeValue::Div(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
-                    if r == 0 {
-                        Err("Division by zero.".to_string())
-                    } else {
-                        Ok(VariableValue::Int32(l / r))
-                    }
-                }
-                (NodeValue::AddAssign(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
-                    let _lvalue = self.evaluate(left)?;
-                    let _rvalue = self.evaluate(right)?;
-                    let new_value = _lvalue.clone() + _rvalue.clone();
-
-                    let rvalue = match new_value {
-                        VariableValue::Int32(value) => value,
-                        _ => -1,
-                    };
-                    let value = self.evaluate_assign(
-                        left,
-                        &Box::new(Node::new(NodeValue::Number(rvalue), None, 0, 0)),
-                    );
-                    value
-                }
-                (NodeValue::SubAssign(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
-                    let _lvalue = self.evaluate(left)?;
-                    let _rvalue = self.evaluate(right)?;
-                    let new_value = _lvalue.clone() - _rvalue.clone();
-
-                    let rvalue = match new_value {
-                        VariableValue::Int32(value) => value,
-                        _ => -1,
-                    };
-                    let value = self.evaluate_assign(
-                        left,
-                        &Box::new(Node::new(NodeValue::Number(rvalue), None, 0, 0)),
-                    );
-                    value
-                }
-                (NodeValue::MulAssign(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
-                    let _lvalue = self.evaluate(left)?;
-                    let _rvalue = self.evaluate(right)?;
-                    let new_value = _lvalue.clone() * _rvalue.clone();
-
-                    let rvalue = match new_value {
-                        VariableValue::Int32(value) => value,
-                        _ => -1,
-                    };
-                    let value = self.evaluate_assign(
-                        left,
-                        &Box::new(Node::new(NodeValue::Number(rvalue), None, 0, 0)),
-                    );
-                    value
-                }
-                (NodeValue::DivAssign(_, _), VariableValue::Int32(l), VariableValue::Int32(r)) => {
-                    let _lvalue = self.evaluate(left)?;
-                    let _rvalue = self.evaluate(right)?;
-                    let new_value = _lvalue.clone() / _rvalue.clone();
-
-                    let rvalue = match new_value {
-                        VariableValue::Int32(value) => value,
-                        _ => -1,
-                    };
-                    let value = self.evaluate_assign(
-                        left,
-                        &Box::new(Node::new(NodeValue::Number(rvalue), None, 0, 0)),
-                    );
-                    value
-                }
-
-                (NodeValue::Add(_, _), VariableValue::Str(l), VariableValue::Str(r)) => {
-                    Ok(VariableValue::Str(l + &r))
-                }
-                _ => Err("Unsupported operation or mismatched types".to_string()),
-            }
-        } else {
-            Err("Unsupported binary operation".to_string())
-        }
-    }
-}
-impl Decoder {
-    pub fn new(input: String) -> Self {
-        Decoder {
-            global_variables: HashMap::new(),
-            func_lists: HashMap::new(),
-            last_var_name: None,
-            comment_lists: HashMap::new(),
-            current_node: None,
-            current_function: None,
-            input: input.clone(),
-        }
-    }
-}
-
-pub struct AsmInterpreter {
-    variables: HashMap<String, i32>,
-    asm_code: Vec<String>,
-}
-
-impl AsmInterpreter {
-    pub fn new() -> Self {
-        AsmInterpreter {
-            variables: HashMap::new(),
-            asm_code: Vec::new(),
-        }
-    }
-
-    pub fn decode(&mut self, nodes: &Vec<Box<Node>>) -> Result<(), String> {
-        for node in nodes {
-            self.interpret(node)?;
-        }
-        Ok(())
-    }
-
-    fn interpret(&mut self, node: &Box<Node>) -> Result<(), String> {
-        match &node.node_value() {
-            NodeValue::VariableDeclaration(var, _typ, value) => {
-                if let NodeValue::Variable(var_name) = &var.node_value() {
-                    if let NodeValue::Number(num) = &value.node_value() {
-                        self.variables.insert(var_name.clone(), *num);
-                        self.asm_code.push(format!("mov {}, {}", var_name, num));
-                    }
-                }
-            }
-            NodeValue::Assign(var, value) => {
-                if let NodeValue::Variable(var_name) = &var.node_value() {
-                    if let NodeValue::Number(num) = &value.node_value() {
-                        self.variables.insert(var_name.clone(), *num);
-                        self.asm_code.push(format!("mov {}, {}", var_name, num));
-                    }
-                }
-            }
-            NodeValue::Add(lhs, rhs) => {
-                if let NodeValue::Variable(var_name) = &lhs.node_value() {
-                    if let NodeValue::Number(num) = &rhs.node_value() {
-                        if let Some(var_value) = self.variables.get(var_name) {
-                            let result = var_value + num;
-                            self.variables.insert(var_name.clone(), result);
-                            self.asm_code.push(format!("add {}, {}", var_name, num));
+                match (left.clone(), right.clone()) {
+                    (Value::Number(l), Value::Number(r)) => {
+                        if l.is_i64() && r.is_i64() {
+                            let result = l.as_i64().unwrap() / r.as_i64().unwrap();
+                            info!("Div: {} / {}", l, r);
+                            Ok(Value::Number(serde_json::Number::from(result)))
+                        } else {
+                            info!("Div: {} / {}", l, r);
+                            Ok(Value::Number(
+                                serde_json::Number::from_f64(
+                                    l.as_f64().unwrap() / r.as_f64().unwrap(),
+                                )
+                                .unwrap(),
+                            ))
                         }
                     }
+                    _ => Err(custom_compile_error!(
+                        "error",
+                        node.line(),
+                        node.column(),
+                        &self.first_file.0,
+                        &self.first_file.1,
+                        "Division operation failed: {:?} / {:?}",
+                        left.clone(),
+                        right.clone()
+                    )),
                 }
             }
-            NodeValue::Sub(lhs, rhs) => {
-                if let NodeValue::Variable(var_name) = &lhs.node_value() {
-                    if let NodeValue::Number(num) = &rhs.node_value() {
-                        if let Some(var_value) = self.variables.get(var_name) {
-                            let result = var_value - num;
-                            self.variables.insert(var_name.clone(), result);
-                            self.asm_code.push(format!("sub {}, {}", var_name, num));
-                        }
-                    }
-                }
-            }
-            NodeValue::Mul(lhs, rhs) => {
-                if let NodeValue::Variable(var_name) = &lhs.node_value() {
-                    if let NodeValue::Number(num) = &rhs.node_value() {
-                        if let Some(var_value) = self.variables.get(var_name) {
-                            self.asm_code.push(format!("mov eax, {}", var_name));
-                            self.asm_code.push(format!("imul eax, {}", num));
-                            self.asm_code.push(format!("mov {}, eax", var_name));
-                        }
-                    }
-                }
-            }
-            NodeValue::Div(lhs, rhs) => {
-                if let NodeValue::Variable(var_name) = &lhs.node_value() {
-                    if let NodeValue::Number(num) = &rhs.node_value() {
-                        if let Some(var_value) = self.variables.get(var_name) {
-                            self.asm_code.push(format!("mov eax, {}", var_name));
-                            self.asm_code.push(format!("mov ebx, {}", num));
-                            self.asm_code.push("cdq".to_string());
-                            self.asm_code.push("idiv ebx".to_string());
-                            self.asm_code.push(format!("mov {}, eax", var_name));
-                        }
-                    }
-                }
-            }
-            NodeValue::Return(var) => {
-                if let NodeValue::Variable(var_name) = &var.node_value() {
-                    if let Some(_var_value) = self.variables.get(var_name) {
-                        self.asm_code.push(format!("mov eax, {}", var_name));
-                        self.asm_code.push("ret".to_string());
-                    }
-                }
-            }
-            NodeValue::Variable(var_name) => {
-                if let Some(var_value) = self.variables.get(var_name) {
-                    self.asm_code.push(format!("mov eax, {}", var_name));
-                }
-            }
-            NodeValue::Number(num) => {
-                self.asm_code.push(format!("mov eax, {}", num));
-            }
-            NodeValue::If(cond, body) => {
-                self.asm_code.push("cmp".to_string());
-                self.interpret(cond)?;
-                self.asm_code.push("je".to_string());
-                self.interpret(body)?;
-            }
-            NodeValue::While(cond, body) => {
-                self.asm_code.push("cmp".to_string());
-                self.interpret(cond)?;
-                self.asm_code.push("je".to_string());
-                self.interpret(body)?;
-                self.asm_code.push("jmp".to_string());
-            }
-            _ => {}
-        }
-        Ok(())
-    }
 
-    pub fn get_asm_code(&self) -> String {
-        format!(
-            ".data\n{}\n.code\nmain PROC\n{}\nmain ENDP\nEND main",
-            self.variables
-                .keys()
-                .map(|var| format!("{} DWORD ?", var))
-                .collect::<Vec<_>>()
-                .join("\n"),
-            self.asm_code.join("\n")
-        )
+            NodeValue::Function(name, params, body, _, _) => {
+                self.global_context.insert(
+                    name.clone(),
+                    Variable {
+                        data_type: Value::String("function".to_string()),
+                        value: Value::Null,
+                        address: 0,
+                    },
+                );
+                info!("defined Function: {}", name);
+                self.execute_node(&body)
+            }
+            NodeValue::Call(name, args) => {
+                if let Some(Variable {
+                    data_type: _,
+                    value: Value::Null,
+                    address: 0,
+                }) = self.global_context.get(name)
+                {
+                    for (i, arg) in args.iter().enumerate() {
+                        self.global_context.clone().insert(
+                            format!("arg{}", i),
+                            Variable {
+                                data_type: Value::String("argument".to_string()),
+                                value: self.execute_node(arg)?,
+                                address: 0,
+                            },
+                        );
+                    }
+                    info!("Call: {}", name);
+                    self.execute_node(&Node::new(NodeValue::Block(vec![]), None, 0, 0))
+                } else {
+                    Err(custom_compile_error!(
+                        "error",
+                        node.line(),
+                        node.column(),
+                        &self.first_file.0,
+                        &self.first_file.1,
+                        "Function call failed: {:?}",
+                        name
+                    ))
+                }
+            }
+            NodeValue::Return(ret) => {
+                let ret = self.execute_node(&ret)?;
+                info!("Return: {:?}", ret);
+                Ok(ret)
+            }
+            _ => Err(custom_compile_error!(
+                "error",
+                node.line(),
+                node.column(),
+                &self.first_file.0,
+                &self.first_file.1,
+                "Unknown node value: {:?}",
+                node.node_value()
+            )),
+        }
     }
 }

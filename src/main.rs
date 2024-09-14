@@ -9,8 +9,11 @@ use env_logger;
 use lexer::{Lexer, Token};
 use log::info;
 use parser::Node;
+
 use parser::Parser;
 use serde_json::to_string_pretty;
+use serde_json::Value;
+use std::collections::HashMap;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
@@ -18,6 +21,7 @@ use std::io::{self, BufRead};
 use std::path::Path;
 use std::vec::Vec;
 use types::*;
+
 fn read_files_with_extension(extension: &str) -> R<Vec<String>> {
     let mut results = Vec::new();
     let current_dir = std::env::current_dir()?;
@@ -40,31 +44,57 @@ fn read_files_with_extension(extension: &str) -> R<Vec<String>> {
         Ok(results)
     }
 }
+fn read_files_with_path(path_str: &str) -> R<Vec<String>> {
+    let mut results = Vec::new();
+    let current_dir = std::env::current_dir()?;
+    let target_path = current_dir.join(path_str);
+
+    if target_path.is_file() {
+        let file = fs::File::open(&target_path)?;
+        let mut reader = io::BufReader::new(file);
+
+        let mut line = String::new();
+        while reader.read_line(&mut line)? > 0 {
+            results.push(line.clone());
+            line.clear();
+        }
+
+        if results.is_empty() {
+            Err(anyhow!("No content found in the file at path {}", path_str))
+        } else {
+            Ok(results)
+        }
+    } else {
+        Err(anyhow!("No file found at path {}", path_str))
+    }
+}
 fn write_to_file(filename: &str, content: &str) -> R<()> {
     let mut file = File::create(filename)?;
     file.write_all(content.as_bytes())?;
     Ok(())
 }
-fn decode(nodes: &Vec<Box<Node>>, input: String) -> R<(), String> {
+fn decode(file_path: &str, content: String, nodes: &mut Vec<Box<Node>>) -> R<Value, String> {
+    let mut value = Value::Null;
     #[cfg(feature = "decode")]
     {
         // my decode
-        let mut decoder = Decoder::new(input.clone());
-        decoder.decode(&nodes)?
+        let mut decoder = Decoder::new(file_path.to_string(), content.clone());
+        value = decoder.decode(nodes)?;
+        return Ok(value);
     }
-
-    Ok(())
+    Ok(value)
 }
 fn asm(nodes: &Vec<Box<Node>>, input: String, filename: &str) -> R<(), String> {
     // asm generate
 
     #[cfg(feature = "asm")]
-    {
-        let mut asm_i = AsmInterpreter::new();
-        asm_i.decode(&nodes)?;
-        let asm_src = asm_i.get_asm_code();
-        info!("{:?}", asm_src);
-        write_to_file(filename, &asm_src).unwrap();
+    { /*
+             let mut asm_i = AsmInterpreter::new();
+             asm_i.decode(&nodes)?;
+             let asm_src = asm_i.get_asm_code();
+             info!("{:?}", asm_src);
+             write_to_file(filename, &asm_src).unwrap();
+         */
     }
     Ok(())
 }
@@ -75,9 +105,9 @@ fn main() -> R<(), String> {
     let mut lexer = Lexer::new();
     let mut tokens: Vec<Token> = Vec::new();
     let extension = "script"; // 拡張子は "script" のみ
-
+    let input_path = "./script/main.script";
     test_src = String::from("/* コメントでっせ\nにコメでっせ\n*/");
-
+    /*
     // .script ファイルが存在するか確認
     match read_files_with_extension(extension) {
         Ok(lines) => {
@@ -90,6 +120,26 @@ fn main() -> R<(), String> {
             lexer.set_input(test_src);
         }
     }
+    */
+    match read_files_with_path(input_path) {
+        Ok(lines) => {
+            info!("files: {:?}", lines.clone());
+            lexer.set_input_content_vec(lines.clone());
+            input_vec = lines.clone();
+        }
+        Err(_) => {
+            // .script ファイルが存在しない場合はデフォルトのテストソースを使用
+            lexer.set_input_content(test_src);
+        }
+    }
+
+    let input_content = input_vec.join("\n");
+    /*
+        eprintln!(
+            "{}",
+            custom_compile_error!(0, 0, &input, "Type '{}' is not defined", "i32",)
+        );
+    */
     let tokens = match lexer.tokenize() {
         Ok(v) => v,
         Err(e) => {
@@ -97,9 +147,8 @@ fn main() -> R<(), String> {
             return Err(e);
         }
     };
-
-    let mut parser = Parser::new(&tokens, input_vec.join("\n"));
-    let nodes = match parser.parse() {
+    let mut parser = Parser::new(&tokens, input_path.to_string(), input_vec.join("\n"));
+    let mut nodes = match parser.parse() {
         Ok(v) => v,
         Err(e) => {
             eprintln!("{}", e);
@@ -111,7 +160,6 @@ fn main() -> R<(), String> {
         Ok(json) => info!("tokens: {}", json),
         Err(e) => info!("Failed to serialize tokens: {}", e),
     }
-
     // ノードをJSON形式で整形表示
     match to_string_pretty(&nodes) {
         Ok(json) => {
@@ -121,13 +169,14 @@ fn main() -> R<(), String> {
         Err(e) => info!("Failed to serialize nodes: {}", e),
     }
 
-    match decode(&nodes, input_vec.join("\n")) {
-        Ok(_) => (),
+    let d = match decode(input_path, input_content, &mut nodes) {
+        Ok(v) => v,
         Err(e) => {
             eprintln!("{}", e);
             return Err(e);
         }
-    }
+    };
+    info!("{:?}", d);
     asm(&nodes, input_vec.join("\n"), "main.asm").unwrap();
     Ok(())
 }

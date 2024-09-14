@@ -1,0 +1,241 @@
+/*
+          fn parse_single_statement(&mut self) -> R<Box<Node>, String> {
+              let node;
+
+              // 変数宣言(型注訳なし)
+              if self.current_token().token_type() == TokenType::Ident
+                  && self.current_token().token_value() == "let"
+              {
+                  self.next_token();
+                  let var = self.current_token().token_value().clone();
+                  node = Node::new(
+                      NodeValue::VariableDeclaration(
+                          Box::new(Node::new(
+                              NodeValue::Variable(var),
+                              None,
+                              self.current_token().line(),
+                              self.current_token().column(),
+                          )),
+                          self.new_empty(),
+                          self.new_empty(),
+                      ),
+                      None,
+                      self.current_token().line(),
+                      self.current_token().column(),
+                  );
+              }
+              // 型注訳ありの変数定義と代入
+              else if self.current_token().token_type() == TokenType::Ident
+                  && self.current_token().token_value() == "let"
+                  && self.peek_next_token(4).token_type() == TokenType::Equals
+              {
+                  self.next_token();
+                  let var = self.current_token().token_value().clone();
+                  let mut data_type = self.new_empty();
+                  info!("current_token: {:?}", self.current_token());
+                  if self.peek_next_token(1).token_type() == TokenType::Colon {
+                      data_type = self.parse_data_type()?;
+                  }
+                  self.next_token(); // value
+                  let value_node = self.expr()?;
+                  node = Node::new(
+                      NodeValue::VariableDeclaration(
+                          Box::new(Node::new(
+                              NodeValue::Variable(var),
+                              None,
+                              self.current_token().line(),
+                              self.current_token().column(),
+                          )),
+                          data_type,
+                          value_node,
+                      ),
+                      None,
+                      self.current_token().line(),
+                      self.current_token().column(),
+                  );
+              }
+              // 通常変数定義
+              else if self.current_token().token_type() == TokenType::Ident
+                  && self.current_token().token_value() == "let"
+                  && self.peek_next_token(2).token_type() == TokenType::Equals
+              {
+                  self.next_token();
+                  let var = self.current_token().token_value().clone();
+                  self.next_token(); // =
+                  self.next_token(); // value
+                  let value_node = self.expr()?;
+                  node = Node::new(
+                      NodeValue::VariableDeclaration(
+                          Box::new(Node::new(
+                              NodeValue::Variable(var),
+                              None,
+                              self.current_token().line(),
+                              self.current_token().column(),
+                          )),
+                          self.new_empty(),
+                          value_node,
+                      ),
+                      None,
+                      self.current_token().line(),
+                      self.current_token().column(),
+                  );
+              }
+              // 変数代入
+              else if self.current_token().token_type() == TokenType::Ident
+                  && self.peek_next_token(1).token_type() == TokenType::Equals
+              {
+                  let var = self.current_token().token_value().clone();
+                  self.next_token();
+                  self.next_token();
+                  let value_node = self.expr()?;
+                  node = Node::new(
+                      NodeValue::Assign(
+                          Box::new(Node::new(
+                              NodeValue::Variable(var),
+                              None,
+                              self.current_token().line(),
+                              self.current_token().column(),
+                          )),
+                          value_node,
+                      ),
+                      None,
+                      self.current_token().line(),
+                      self.current_token().column(),
+                  );
+              } else if self.current_token().token_type() == TokenType::Ident
+                  && self.current_token().token_value() == "type"
+                  && self.peek_next_token(1).token_type() == TokenType::Equals
+              {
+                  self.next_token();
+                  let _type_name = self.current_token().token_value().clone();
+
+                  self.next_token(); // =
+                  self.next_token(); // value
+                  let value_node = self.expr()?;
+                  node = Node::new(
+                      NodeValue::TypeDeclaration(
+                          Box::new(Node::new(
+                              NodeValue::Variable(_type_name),
+                              None,
+                              self.current_token().line(),
+                              self.current_token().column(),
+                          )),
+                          self.new_empty(),
+                          value_node,
+                      ),
+                      None,
+                      self.current_token().line(),
+                      self.current_token().column(),
+                  );
+              } else if self.current_token().token_type() == TokenType::Ident
+                  && matches!(
+                      self.peek_next_token(1).token_type(),
+                      TokenType::AddAssign
+                          | TokenType::SubAssign
+                          | TokenType::MulAssign
+                          | TokenType::DivAssign
+                          | TokenType::Increment
+                          | TokenType::Decrement
+                  )
+              {
+                  let var = self.current_token().token_value().clone();
+                  let op = self.peek_next_token(1).token_type().clone();
+                  self.next_token();
+                  self.next_token();
+                  let node_value = match op {
+                      TokenType::AddAssign => NodeValue::AddAssign(
+                          Box::new(Node::new(
+                              NodeValue::Variable(var.clone()),
+                              None,
+                              self.current_token().line(),
+                              self.current_token().column(),
+                          )),
+                          self.expr()?,
+                      ),
+                      TokenType::SubAssign => NodeValue::SubAssign(
+                          Box::new(Node::new(
+                              NodeValue::Variable(var.clone()),
+                              None,
+                              self.current_token().line(),
+                              self.current_token().column(),
+                          )),
+                          self.expr()?,
+                      ),
+                      TokenType::MulAssign => NodeValue::MulAssign(
+                          Box::new(Node::new(
+                              NodeValue::Variable(var.clone()),
+                              None,
+                              self.current_token().line(),
+                              self.current_token().column(),
+                          )),
+                          self.expr()?,
+                      ),
+                      TokenType::DivAssign => NodeValue::DivAssign(
+                          Box::new(Node::new(
+                              NodeValue::Variable(var.clone()),
+                              None,
+                              self.current_token().line(),
+                              self.current_token().column(),
+                          )),
+                          self.expr()?,
+                      ),
+                      TokenType::Increment => NodeValue::Increment(Box::new(Node::new(
+                          NodeValue::Variable(var.clone()),
+                          None,
+                          self.current_token().line(),
+                          self.current_token().column(),
+                      ))),
+                      TokenType::Decrement => NodeValue::Decrement(Box::new(Node::new(
+                          NodeValue::Variable(var.clone()),
+                          None,
+                          self.current_token().line(),
+                          self.current_token().column(),
+                      ))),
+                      _ => unreachable!(),
+                  };
+                  node = Node::new(
+                      node_value,
+                      None,
+                      self.current_token().line(),
+                      self.current_token().column(),
+                  );
+              } else if self.current_token().token_type() == TokenType::Ident
+                  && self.current_token().token_value() == "return"
+              {
+                  self.next_token();
+                  let ret_value = self.expr()?;
+                  node = Node::new(
+                      NodeValue::Return(ret_value),
+                      None,
+                      self.current_token().line(),
+                      self.current_token().column(),
+                  );
+              } else if self.current_token().token_type() == TokenType::Ident
+                  && self.current_token().token_value() == "include"
+              {
+                  self.next_token();
+                  let include_file_path = self.current_token().token_value().clone();
+                  node = Node::new(
+                      NodeValue::Include(include_file_path),
+                      None,
+                      self.current_token().line(),
+                      self.current_token().column(),
+                  );
+              } else if self.current_token().token_type() == TokenType::LeftCurlyBrace {
+                  node = *self.parse_block()?;
+              } else if self.current_token().token_type() == TokenType::Semi {
+                  self.next_token();
+                  node = Node::new(
+                      NodeValue::StatementEnd,
+                      None,
+                      self.current_token().line(),
+                      self.current_token().column(),
+                  );
+              } else {
+                  node = *self.expr()?;
+              }
+              Ok(Box::new(node))
+          }
+      */
+
+
