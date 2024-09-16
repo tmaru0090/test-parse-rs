@@ -394,7 +394,8 @@ impl Decoder {
     }
     fn infer_type(&self, value: &Value) -> String {
         match value {
-            Value::Null => "unit".to_string(),
+            Value::Array(_) => "array".to_string(),
+            Value::Null => "void".to_string(),
             Value::Number(num) => {
                 if num.is_i64() {
                     let i_value = num.as_i64().unwrap();
@@ -527,6 +528,29 @@ impl Decoder {
 
         info!("global_contexts: {:?}", self.context.global_context.clone());
         match &node.node_value() {
+            NodeValue::Array(data_type, values) => {
+                // 型を評価
+                let v_type = match data_type.node_value(){
+                    NodeValue::DataType(d) => self.execute_node(&d)?,
+                    _=> Value::Null,
+                };
+                // 各値を評価し、型チェックを行う
+                let mut evaluated_values = Vec::new();
+                for value in values {
+                    let v_value = self.execute_node(&*value)?;
+                    let temp_string = String::new();
+                    let v_type = match v_type {Value::String(ref v) => v,_ => &temp_string};
+                    self.check_type(&v_value, &v_type)?;
+                    evaluated_values.push(v_value);
+                }
+                // 配列をシリアライズしてヒープにコピー
+                let serialized_array =
+                    self.serialize_value("Array", &Value::Array(evaluated_values.clone()));
+                let index = self.allocate_and_copy_to_heap(serialized_array.clone())?;
+                info!("serialized_array: {:?} index: {:?}",serialized_array.clone(),index);
+                // 結果を返す
+                Ok(Value::Array(evaluated_values))
+            }
             NodeValue::Empty | NodeValue::StatementEnd => Ok(result),
             NodeValue::MultiComment(content, (line, column)) => {
                 self.context
@@ -549,6 +573,7 @@ impl Decoder {
                 }
                 Ok(r)
             }
+
             NodeValue::Assign(var_name, value) => {
                 let name = match var_name.node_value() {
                     NodeValue::Variable(v) => v,
@@ -560,6 +585,8 @@ impl Decoder {
 
                 if let Some(mut variable) = variable_data {
                     let new_value = self.execute_node(&value)?;
+
+                    // 型チェックを追加
                     self.check_type(&new_value, variable.data_type.as_str().unwrap_or(""))?;
 
                     let serialized_value =
@@ -588,6 +615,7 @@ impl Decoder {
                     ))
                 }
             }
+
             NodeValue::VariableDeclaration(var_name, data_type, value) => {
                 let name = match var_name.node_value() {
                     NodeValue::Variable(v) => v,

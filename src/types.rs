@@ -33,7 +33,7 @@ pub enum TokenType {
     LeftCurlyBrace,                            // }
     LeftSquareBrace,                           // [
     RightSquareBrace,                          // ]
-    Comma,                                     // ,
+    Conma,                                     // ,
     Equals,                                    // =
     AtSign,                                    // @
     Semi,                                      // ;
@@ -107,6 +107,7 @@ pub enum NodeValue {
     SingleComment(String, (usize, usize)),                          // 単一コメント
     Include(String),                                                // ファイル名
     TypeDeclaration(Box<Node>, Box<Node>),                          // 型定義(型名,型)
+    Array(Box<Node>, Vec<Box<Node>>),                               // 配列(型名,値)
     StatementEnd,                                                   // ステートメントの終わり
     Empty,
 }

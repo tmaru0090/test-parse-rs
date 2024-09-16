@@ -75,7 +75,7 @@ impl Lexer {
     fn is_symbol(&self, c: char) -> bool {
         matches!(
             c,
-            '(' | ')' | ',' | '=' | ';' | '@' | '{' | '}' | '<' | '>' | ':'
+            '(' | ')' | ',' | '=' | ';' | '@' | '{' | '}' | '<' | '>' | ':' | '[' | ']'
         )
     }
     fn tokenize_string(&mut self, input_content: &String) -> R<Vec<Token>, String> {
@@ -503,7 +503,7 @@ impl Lexer {
                     '}' => TokenType::RightCurlyBrace,
                     '[' => TokenType::LeftSquareBrace,
                     ']' => TokenType::RightSquareBrace,
-                    ',' => TokenType::Comma,
+                    ',' => TokenType::Conma,
                     '=' => TokenType::Equals,
                     '@' => TokenType::AtSign,
                     ';' => TokenType::Semi,

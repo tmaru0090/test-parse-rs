@@ -274,7 +274,7 @@ impl<'a> Parser<'a> {
         while self.current_token().token_type() != TokenType::RightParen {
             let arg = self.expr()?;
             args.push(*arg);
-            if self.current_token().token_type() == TokenType::Comma {
+            if self.current_token().token_type() == TokenType::Conma {
                 self.next_token(); // ',' をスキップ
             }
         }
@@ -297,7 +297,7 @@ impl<'a> Parser<'a> {
         while self.current_token().token_type() != TokenType::RightParen {
             let arg = self.expr()?;
             args.push(*arg);
-            if self.current_token().token_type() == TokenType::Comma {
+            if self.current_token().token_type() == TokenType::Conma {
                 self.next_token(); // ',' をスキップ
             }
         }
@@ -599,7 +599,23 @@ impl<'a> Parser<'a> {
             self.current_token().column(),
         )))
     }
-
+    fn parse_array(&mut self, data_type: &Box<Node>) -> R<Box<Node>, String> {
+        self.next_token(); // [ をスキップ
+        let mut value_vec = vec![];
+        while self.current_token().token_type() != TokenType::RightSquareBrace {
+            value_vec.push(self.expr()?);
+            if self.current_token().token_type() == TokenType::Conma {
+                self.next_token(); // ',' をスキップ
+            }
+        }
+        self.next_token(); // ] をスキップ
+        Ok(Box::new(Node::new(
+            NodeValue::Array(data_type.clone(), value_vec),
+            None,
+            self.current_token().line(),
+            self.current_token().column(),
+        )))
+    }
     fn parse_single_statement(&mut self) -> R<Box<Node>, String> {
         let node;
         if self.current_token().token_type() == TokenType::Ident
@@ -619,7 +635,14 @@ impl<'a> Parser<'a> {
                 self.next_token();
                 self.next_token();
             }
-            value_node = self.expr()?;
+
+            if self.peek_next_token(1).token_type() == TokenType::LeftSquareBrace
+                || self.current_token().token_type() == TokenType::LeftSquareBrace
+            {
+                value_node = self.parse_array(&data_type)?;
+            } else {
+                value_node = self.expr()?;
+            }
             node = Node::new(
                 NodeValue::VariableDeclaration(
                     Box::new(Node::new(
