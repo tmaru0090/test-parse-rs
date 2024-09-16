@@ -1,1 +1,8 @@
 // main.script
+
+l mpv_cmd ="mpv"; 
+l args = "../../../../Downloads/pokemon-bw-end.wav";
+l out = cmd(mpv_cmd,args);
+
+l a:i32 = 0.1;
+

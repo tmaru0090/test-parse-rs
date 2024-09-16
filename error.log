@@ -1,4 +1,0 @@
-error: Variable 'b' is not mutable at line 4, column 9
-   --> ./script/main.script:4:9
-4 | b = 1919;
-  |         ^
