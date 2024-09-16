@@ -10,7 +10,91 @@
       ]
     },
     "node_next": null,
-    "line": 1,
+    "line": 2,
     "column": 1
+  },
+  {
+    "node_value": {
+      "Include": "script/test.script"
+    },
+    "node_next": null,
+    "line": 2,
+    "column": 9
+  },
+  {
+    "node_value": {
+      "String": "script/test.script"
+    },
+    "node_next": null,
+    "line": 4,
+    "column": 1
+  },
+  {
+    "node_value": {
+      "VariableDeclaration": [
+        {
+          "node_value": {
+            "Variable": "a"
+          },
+          "node_next": null,
+          "line": 4,
+          "column": 12
+        },
+        {
+          "node_value": "Empty",
+          "node_next": null,
+          "line": 4,
+          "column": 5
+        },
+        {
+          "node_value": {
+            "Int": 100
+          },
+          "node_next": null,
+          "line": 4,
+          "column": 12
+        }
+      ]
+    },
+    "node_next": null,
+    "line": 4,
+    "column": 12
+  },
+  {
+    "node_value": "StatementEnd",
+    "node_next": null,
+    "line": 5,
+    "column": 1
+  },
+  {
+    "node_value": {
+      "Assign": [
+        {
+          "node_value": {
+            "Variable": "a"
+          },
+          "node_next": null,
+          "line": 5,
+          "column": 9
+        },
+        {
+          "node_value": {
+            "Int": 1999
+          },
+          "node_next": null,
+          "line": 5,
+          "column": 9
+        }
+      ]
+    },
+    "node_next": null,
+    "line": 5,
+    "column": 9
+  },
+  {
+    "node_value": "StatementEnd",
+    "node_next": null,
+    "line": 5,
+    "column": 9
   }
 ]

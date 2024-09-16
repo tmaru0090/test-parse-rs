@@ -4,3 +4,5 @@ type f32 = "f32";
 type i64 = "i64";
 type f64 = "f64";
 type string = "string";
+type void = "unit";
+
