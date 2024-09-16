@@ -27,6 +27,7 @@ pub enum TokenType {
     /*識別子*/
     Ident,
     /*その他*/
+    Reference,                                 // &
     LeftParen,                                 // (
     RightParen,                                // )
     RightCurlyBrace,                           // {
@@ -88,7 +89,8 @@ pub enum NodeValue {
 
     DivAssign(Box<Node>, Box<Node>), // 除算代入(左辺,右辺)
 
-    VariableDeclaration(Box<Node>, Box<Node>, Box<Node>, bool, bool), //変数定義(変数,型,右辺値,スコープフラグ,可変フラグ)
+    //VariableDeclaration(Box<Node>, Box<Node>, Box<Node>, bool, bool), //変数定義(変数,型,右辺値,スコープフラグ,可変フラグ)
+    VariableDeclaration(Box<Node>, Box<Node>, Box<Node>, bool, bool, bool), //変数定義(変数,型,右辺値,スコープフラグ,可変フラグ,参照フラグ)
 
     Assign(Box<Node>, Box<Node>), // 代入(変数,右辺値)
     Block(Vec<Box<Node>>),

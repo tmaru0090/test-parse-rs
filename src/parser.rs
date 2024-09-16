@@ -685,7 +685,11 @@ impl<'a> Parser<'a> {
                 self.next_token();
                 self.next_token();
             }
-
+            let mut is_reference = false;
+            if self.current_token().token_type() == TokenType::Reference {
+                is_reference = true;
+                self.next_token();
+            }
             if self.peek_next_token(1).token_type() == TokenType::LeftSquareBrace
                 || self.current_token().token_type() == TokenType::LeftSquareBrace
             {
@@ -723,6 +727,7 @@ impl<'a> Parser<'a> {
                     value_node,
                     is_local,
                     is_mutable,
+                    is_reference,
                 ),
                 None,
                 self.current_token().line(),

@@ -73,6 +73,13 @@ fn write_to_file(filename: &str, content: &str) -> R<()> {
     file.write_all(content.as_bytes())?;
     Ok(())
 }
+fn remove_ansi_sequences(input: &str) -> String {
+    input
+        .replace("\u{1b}[31m", "")
+        .replace("\u{1b}[0m", "")
+        .replace("\u{1b}[38;2;100;100;200m", "")
+        .replace("\u{1b}[0m", "")
+}
 fn decode(file_path: &str, content: String, nodes: &mut Vec<Box<Node>>) -> R<Value, String> {
     let mut value = Value::Null;
     #[cfg(feature = "decode")]
@@ -101,45 +108,18 @@ fn asm(nodes: &Vec<Box<Node>>, input: String, filename: &str) -> R<(), String> {
 fn main() -> R<(), String> {
     env_logger::init();
     let mut input_vec: Vec<String> = Vec::new();
-    let mut test_src = String::new();
     let mut lexer = Lexer::new();
     let mut tokens: Vec<Token> = Vec::new();
-    let extension = "script"; // 拡張子は "script" のみ
     let input_path = "./script/main.script";
-    test_src = String::from("/* コメントでっせ\nにコメでっせ\n*/");
-    /*
-    // .script ファイルが存在するか確認
-    match read_files_with_extension(extension) {
-        Ok(lines) => {
-            info!("files: {:?}", lines.clone());
-            lexer.set_input_vec(lines.clone());
-            input_vec = lines.clone();
-        }
-        Err(_) => {
-            // .script ファイルが存在しない場合はデフォルトのテストソースを使用
-            lexer.set_input(test_src);
-        }
-    }
-    */
     match read_files_with_path(input_path) {
         Ok(lines) => {
             info!("files: {:?}", lines.clone());
             lexer.set_input_content_vec(lines.clone());
-            input_vec = lines.clone();
         }
-        Err(_) => {
-            // .script ファイルが存在しない場合はデフォルトのテストソースを使用
-            lexer.set_input_content(test_src);
-        }
+        Err(_) => {}
     }
 
     let input_content = input_vec.join("\n");
-    /*
-        eprintln!(
-            "{}",
-            custom_compile_error!(0, 0, &input, "Type '{}' is not defined", "i32",)
-        );
-    */
     let tokens = match lexer.tokenize() {
         Ok(v) => v,
         Err(e) => {
@@ -173,6 +153,8 @@ fn main() -> R<(), String> {
         Ok(v) => v,
         Err(e) => {
             eprintln!("{}", e);
+            let err = remove_ansi_sequences(&e);
+            write_to_file("error.log", &err);
             return Err(e);
         }
     };

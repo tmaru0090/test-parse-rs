@@ -385,7 +385,21 @@ impl Lexer {
                         ));
                         self.column += 1;
                         chars.next();
+                    } else {
+                        tokens.push(Token::new(
+                            "&".to_string(),
+                            TokenType::Reference,
+                            start_line,
+                            start_column,
+                        ));
                     }
+                } else {
+                    tokens.push(Token::new(
+                        "&".to_string(),
+                        TokenType::Reference,
+                        start_line,
+                        start_column,
+                    ));
                 }
             } else if c == '|' {
                 chars.next();

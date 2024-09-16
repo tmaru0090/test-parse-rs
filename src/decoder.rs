@@ -603,8 +603,8 @@ impl Decoder {
     }
     fn execute_node(&mut self, node: &Node) -> R<Value, String> {
         let mut result = Value::Null;
-        info!("global_contexts: {:?}", self.context.global_context.clone());
-        info!("local_contexts: {:?}", self.context.local_context.clone());
+        //info!("global_contexts: {:?}", self.context.global_context.clone());
+        //info!("local_contexts: {:?}", self.context.local_context.clone());
         match &node.node_value() {
             NodeValue::If(condition, body) => {
                 // 条件を評価
@@ -793,81 +793,6 @@ impl Decoder {
                     ))
                 }
             }
-
-            /*
-                        NodeValue::Call(func_name, args) => {
-                            // 関数が定義されているかチェック
-                            let func_var = match self.context.global_context.get(func_name) {
-                                Some(f) => f,
-                                None => {
-                                    return Err(custom_compile_error!(
-                                        "error",
-                                        node.line(),
-                                        node.column(),
-                                        &self.current_node.clone().unwrap().0,
-                                        &self
-                                            .file_contents
-                                            .get(&self.current_node.clone().unwrap().0)
-                                            .unwrap(),
-                                        "Function '{}' is not defined",
-                                        func_name
-                                    ));
-                                }
-                            };
-
-                            // ヒープから関数の情報を取得
-                            let func_index = match func_var.value {
-                                Value::Number(ref n) => n.as_u64().unwrap() as usize,
-                                _ => {
-                                    return Err(custom_compile_error!(
-                                        "error",
-                                        node.line(),
-                                        node.column(),
-                                        &self.current_node.clone().unwrap().0,
-                                        &self
-                                            .file_contents
-                                            .get(&self.current_node.clone().unwrap().0)
-                                            .unwrap(),
-                                        "Invalid function index"
-                                    ))
-                                }
-                            };
-                            let serialized_func_info = self
-                                .read_from_heap(func_index, self.get_value_size("Function", &func_var.value))?;
-                            let func_info: serde_json::Value =
-                                serde_json::from_slice(&serialized_func_info).map_err(|e| e.to_string())?;
-
-                            // 引数を設定
-                            let func_args = func_info["args"].as_array().unwrap();
-                            let body = serde_json::from_value::<Node>(func_info["body"].clone())
-                                .map_err(|e| e.to_string())?;
-                            let return_type = &func_info["return_type"];
-
-                            for (i, arg) in args.iter().enumerate() {
-                                let arg_value = self.execute_node(arg)?;
-                                let arg_name = func_args[i]["0"].as_str().unwrap();
-                                let arg_address = func_args[i]["1"].as_u64().unwrap() as usize;
-                                self.context.local_context.insert(
-                                    arg_name.to_string(),
-                                    Variable {
-                                        value: arg_value.clone(),
-                                        data_type: Value::String("Argument".into()),
-                                        address: arg_address,
-                                    },
-                                );
-                            }
-
-                            // 関数のボディを実行
-                            let result = self.execute_node(&body)?;
-
-                            // ローカルコンテキストをクリア
-                            self.context.local_context.clear();
-
-                            // 戻り値の型チェック
-                            self.check_type(&result, return_type.as_str().unwrap_or(""))?;
-                            Ok(result)
-                        }
-            */
             NodeValue::Function(name, args, body, return_type, _) => {
                 let func_name = name; // すでに String 型なのでそのまま使う
 
@@ -923,7 +848,15 @@ impl Decoder {
                 info!("FunctionDeclaration: name = {:?}, args = {:?}, body = {:?}, return_type = {:?}", func_name, arg_addresses, body, return_type);
                 Ok(Value::Null)
             }
-            NodeValue::VariableDeclaration(var_name, data_type, value, is_local, is_mutable) => {
+            NodeValue::VariableDeclaration(
+                var_name,
+                data_type,
+                value,
+                is_local,
+                is_mutable,
+                is_reference,
+            ) => {
+                info!("is_reference: {:?}", is_reference);
                 let name = match var_name.node_value() {
                     NodeValue::Variable(v) => v,
                     _ => String::new(),
@@ -931,6 +864,8 @@ impl Decoder {
 
                 let v_type;
                 let v_value;
+                let address;
+
                 {
                     // 一時的にcontextの借用を解除
                     let context = if *is_local {
@@ -976,27 +911,81 @@ impl Decoder {
                     };
                 }
 
-                let serialized_value =
-                    self.serialize_value(v_type.as_str().unwrap_or(""), &v_value);
-                let index = self.allocate_and_copy_to_heap(serialized_value)?;
+                if *is_reference {
+                    // 参照型の場合、右辺の変数名を取り出してアドレスを取得して直接変更
+                    address = {
+                        let context = if *is_local {
+                            &mut self.context.local_context
+                        } else {
+                            &mut self.context.global_context
+                        };
 
-                let context = if *is_local {
-                    &mut self.context.local_context
+                        match value.node_value() {
+                            NodeValue::Variable(v) => {
+                                if let Some(variable) = context.get(&v) {
+                                    variable.address
+                                } else {
+                                    return Err(custom_compile_error!(
+                                        "error",
+                                        node.line(),
+                                        node.column(),
+                                        &self.current_node.clone().unwrap().0,
+                                        &self
+                                            .file_contents
+                                            .get(&self.current_node.clone().unwrap().0)
+                                            .unwrap(),
+                                        "Variable '{}' not found in context",
+                                        v
+                                    ));
+                                }
+                            }
+                            _ => {
+                                // 変数以外の値の場合、新しいアドレスを割り当てる
+                                let serialized_value =
+                                    self.serialize_value(v_type.as_str().unwrap_or(""), &v_value);
+                                self.allocate_and_copy_to_heap(serialized_value)?
+                            }
+                        }
+                    };
+
+                    let context = if *is_local {
+                        &mut self.context.local_context
+                    } else {
+                        &mut self.context.global_context
+                    };
+
+                    context.insert(
+                        name.clone(),
+                        Variable {
+                            value: v_value.clone(),
+                            data_type: v_type.clone(),
+                            address,
+                            is_mutable: *is_mutable,
+                        },
+                    );
                 } else {
-                    &mut self.context.global_context
-                };
+                    let serialized_value =
+                        self.serialize_value(v_type.as_str().unwrap_or(""), &v_value);
+                    address = self.allocate_and_copy_to_heap(serialized_value)?;
 
-                context.insert(
-                    name.clone(),
-                    Variable {
-                        value: v_value.clone(),
-                        data_type: v_type.clone(),
-                        address: index,
-                        is_mutable: *is_mutable,
-                    },
-                );
+                    let context = if *is_local {
+                        &mut self.context.local_context
+                    } else {
+                        &mut self.context.global_context
+                    };
 
-                info!("VariableDeclaration: name = {:?}, data_type = {:?}, value = {:?}, address = {:?}", name, v_type, v_value, index);
+                    context.insert(
+                        name.clone(),
+                        Variable {
+                            value: v_value.clone(),
+                            data_type: v_type.clone(),
+                            address,
+                            is_mutable: *is_mutable,
+                        },
+                    );
+                }
+
+                info!("VariableDeclaration: name = {:?}, data_type = {:?}, value = {:?}, address = {:?}", name, v_type, v_value, address);
                 result = v_value.clone();
 
                 Ok(v_value)

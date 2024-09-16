@@ -1,0 +1,76 @@
+
+            /*
+                        NodeValue::Call(func_name, args) => {
+                            // 関数が定義されているかチェック
+                            let func_var = match self.context.global_context.get(func_name) {
+                                Some(f) => f,
+                                None => {
+                                    return Err(custom_compile_error!(
+                                        "error",
+                                        node.line(),
+                                        node.column(),
+                                        &self.current_node.clone().unwrap().0,
+                                        &self
+                                            .file_contents
+                                            .get(&self.current_node.clone().unwrap().0)
+                                            .unwrap(),
+                                        "Function '{}' is not defined",
+                                        func_name
+                                    ));
+                                }
+                            };
+
+                            // ヒープから関数の情報を取得
+                            let func_index = match func_var.value {
+                                Value::Number(ref n) => n.as_u64().unwrap() as usize,
+                                _ => {
+                                    return Err(custom_compile_error!(
+                                        "error",
+                                        node.line(),
+                                        node.column(),
+                                        &self.current_node.clone().unwrap().0,
+                                        &self
+                                            .file_contents
+                                            .get(&self.current_node.clone().unwrap().0)
+                                            .unwrap(),
+                                        "Invalid function index"
+                                    ))
+                                }
+                            };
+                            let serialized_func_info = self
+                                .read_from_heap(func_index, self.get_value_size("Function", &func_var.value))?;
+                            let func_info: serde_json::Value =
+                                serde_json::from_slice(&serialized_func_info).map_err(|e| e.to_string())?;
+
+                            // 引数を設定
+                            let func_args = func_info["args"].as_array().unwrap();
+                            let body = serde_json::from_value::<Node>(func_info["body"].clone())
+                                .map_err(|e| e.to_string())?;
+                            let return_type = &func_info["return_type"];
+
+                            for (i, arg) in args.iter().enumerate() {
+                                let arg_value = self.execute_node(arg)?;
+                                let arg_name = func_args[i]["0"].as_str().unwrap();
+                                let arg_address = func_args[i]["1"].as_u64().unwrap() as usize;
+                                self.context.local_context.insert(
+                                    arg_name.to_string(),
+                                    Variable {
+                                        value: arg_value.clone(),
+                                        data_type: Value::String("Argument".into()),
+                                        address: arg_address,
+                                    },
+                                );
+                            }
+
+                            // 関数のボディを実行
+                            let result = self.execute_node(&body)?;
+
+                            // ローカルコンテキストをクリア
+                            self.context.local_context.clear();
+
+                            // 戻り値の型チェック
+                            self.check_type(&result, return_type.as_str().unwrap_or(""))?;
+                            Ok(result)
+                        }
+            */
+
