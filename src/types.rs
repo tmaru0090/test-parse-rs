@@ -94,23 +94,23 @@ pub enum NodeValue {
 
     Assign(Box<Node>, Box<Node>), // 代入(変数,右辺値)
     Block(Vec<Box<Node>>),
-    Variable(String),                                               // 変数(変数名)
-    Int(i64),                                                       // 数値(i64)
-    Float(f64),                                                     // 浮動型少数の数値(f64)
-    String(String),                                                 // 文字列(文字列)
-    Bool(bool),                                                     // 真偽値(ブーリアン値)
-    Unit(()),                                                       // Unit値(Void型)
-    Function(String, Vec<String>, Box<Node>, Box<Node>, Box<Node>), // 関数定義(関数名,引数名リスト,ボディ,戻り値,戻り値の型)
-    ReturnType(Box<Node>),                                          // 関数の戻り値の型(戻り値の型)
-    DataType(Box<Node>),                                            // 変数の型
-    Call(String, Vec<Node>),                                        // 関数呼び出し
-    Return(Box<Node>),                                              // リターン
-    MultiComment(Vec<String>, (usize, usize)),                      // 複数コメント
-    SingleComment(String, (usize, usize)),                          // 単一コメント
-    Include(String),                                                // ファイル名
-    TypeDeclaration(Box<Node>, Box<Node>),                          // 型定義(型名,型)
-    Array(Box<Node>, Vec<Box<Node>>),                               // 配列(型名,値)
-    StatementEnd,                                                   // ステートメントの終わり
+    Variable(String), // 変数(変数名)
+    Int(i64),         // 数値(i64)
+    Float(f64),       // 浮動型少数の数値(f64)
+    String(String),   // 文字列(文字列)
+    Bool(bool),       // 真偽値(ブーリアン値)
+    Unit(()),         // Unit値(Void型)
+    Function(String, Vec<String>, Box<Node>, Box<Node>, Box<Node>, bool), // 関数定義(関数名,引数名リスト,ボディ,戻り値,戻り値の型,システム関数フラグ)
+    ReturnType(Box<Node>),                     // 関数の戻り値の型(戻り値の型)
+    DataType(Box<Node>),                       // 変数の型
+    Call(String, Vec<Node>, bool), // 関数呼び出し(関数名,引数名リスト,システム関数フラグ)
+    Return(Box<Node>),             // リターン
+    MultiComment(Vec<String>, (usize, usize)), // 複数コメント
+    SingleComment(String, (usize, usize)), // 単一コメント
+    Include(String),               // ファイル名
+    TypeDeclaration(Box<Node>, Box<Node>), // 型定義(型名,型)
+    Array(Box<Node>, Vec<Box<Node>>), // 配列(型名,値)
+    StatementEnd,                  // ステートメントの終わり
     Empty,
 }
 impl Default for NodeValue {

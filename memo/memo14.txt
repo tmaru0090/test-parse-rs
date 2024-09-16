@@ -1,0 +1,156 @@
+    /*
+    fn parse_function_call(&mut self, func_name: String, is_system: bool) -> R<Box<Node>, String> {
+        self.next_token(); // '(' をスキップ
+        let mut args = Vec::new();
+        while self.current_token().token_type() != TokenType::RightParen {
+            let arg = self.expr()?;
+
+            //panic!("{:?}", arg.clone());
+            args.push(*arg);
+            if self.current_token().token_type() == TokenType::Conma {
+                self.next_token(); // ',' をスキップ
+            }
+        }
+        //panic!("{:?}",args.clone());
+        self.next_token(); // ')' をスキップ
+        Ok(Box::new(Node::new(
+            NodeValue::Call(func_name, args, is_system),
+            None,
+            self.current_token().line(),
+            self.current_token().column(),
+        )))
+    }
+    */
+/*
+    fn factor(&mut self) -> R<Box<Node>, String> {
+        let mut is_system = false;
+        //   info!("current_token: {:?}", token);
+        if self.current_token().token_type() == TokenType::AtSign {
+            self.next_token(); // '@' をスキップ
+            is_system = true;
+        }
+
+        match self.current_token().token_type() {
+            TokenType::MultiComment(content, (line, column)) => {
+                self.next_token();
+                Ok(Box::new(Node::new(
+                    NodeValue::MultiComment(content, (line, column)),
+                    None,
+                    self.current_token().line(),
+                    self.current_token().column(),
+                )))
+            }
+            TokenType::SingleComment(content, (line, column)) => {
+                self.next_token();
+                Ok(Box::new(Node::new(
+                    NodeValue::SingleComment(content, (line, column)),
+                    None,
+                    self.current_token().line(),
+                    self.current_token().column(),
+                )))
+            }
+
+            TokenType::DoubleQuote | TokenType::SingleQuote => {
+                if let Ok(string) = self.current_token().token_value().parse::<String>() {
+                    self.next_token();
+                    Ok(Box::new(Node::new(
+                        NodeValue::String(string),
+                        None,
+                        self.current_token().line(),
+                        self.current_token().column(),
+                    )))
+                } else {
+                    return Err(custom_compile_error!(
+                        "error",
+                        self.current_token().line(),
+                        self.current_token().column(),
+
+                        &self.input_path(),
+                        &self.input_content(),
+                        "Unexpected end of input_content, no closing DoubleQuote or SingleQuote found: {:?}",
+                        self.current_token(),
+                    ));
+                }
+            }
+            TokenType::Ident => {
+                if self.current_token().token_value() == "if" {
+                    self.parse_if_statement()
+                } else if self.current_token().token_value() == "while" {
+                    self.parse_while_statement()
+                } else if self.current_token().token_value() == "fn" {
+                    self.parse_function_definition()
+                } else if let Ok(bool_value) = self.current_token().token_value().parse::<bool>() {
+                    self.next_token();
+                    Ok(Box::new(Node::new(
+                        NodeValue::Bool(bool_value),
+                        None,
+                        self.current_token().line(),
+                        self.current_token().column(),
+                    )))
+                } else if let Ok(number) = self.current_token().token_value().parse::<i64>() {
+                    self.next_token();
+                    Ok(Box::new(Node::new(
+                        NodeValue::Int(number),
+                        None,
+                        self.current_token().line(),
+                        self.current_token().column(),
+                    )))
+                } else if let Ok(number) = self.current_token().token_value().parse::<f64>() {
+                    self.next_token();
+                    Ok(Box::new(Node::new(
+                        NodeValue::Float(number),
+                        None,
+                        self.current_token().line(),
+                        self.current_token().column(),
+                    )))
+                } else {
+                    let ident = self.current_token().token_value().clone();
+                    self.next_token();
+                    if self.current_token().token_type() == TokenType::Ident
+                        && self.peek_next_token(1).token_type() == TokenType::LeftParen
+                    {
+                        self.parse_function_call(ident, is_system)
+                    } else {
+                        Ok(Box::new(Node::new(
+                            NodeValue::Variable(self.current_token().token_value().clone()),
+                            None,
+                            self.current_token().line(),
+                            self.current_token().column(),
+                        )))
+                    }
+                }
+            }
+            TokenType::LeftParen => {
+                self.next_token();
+                let expr = self.expr()?;
+                if self.current_token().token_type() != TokenType::RightParen {
+                    return Err(custom_compile_error!(
+                        "error",
+                        self.current_token().line(),
+                        self.current_token().column(),
+                        &self.input_path(),
+                        &self.input_content(),
+                        "no closing parenthesis in factor: {:?}",
+                        self.current_token(),
+                    ));
+                } else {
+                    self.next_token();
+                    Ok(expr)
+                }
+            }
+            TokenType::LeftCurlyBrace => self.parse_block(),
+
+            _ => Err(custom_compile_error!(
+                "error",
+                self.current_token().line(),
+                self.current_token().column(),
+                &self.input_path(),
+                &self.input_content(),
+                "Unexpected token in factor: {:?}",
+                self.current_token()
+            )),
+        }
+    }
+    */
+
+

@@ -16,6 +16,8 @@ pub struct Node {
     line: usize,
     #[property(get)]
     column: usize,
+    #[property(get)]
+    is_statement: bool,
 }
 impl Default for Node {
     fn default() -> Self {
@@ -24,6 +26,7 @@ impl Default for Node {
             node_next: None,
             line: 0,
             column: 0,
+            is_statement: false,
         }
     }
 }
@@ -39,6 +42,7 @@ impl Node {
             node_next,
             line,
             column,
+            is_statement: false,
         }
     }
 }
@@ -268,7 +272,8 @@ impl<'a> Parser<'a> {
         }
         Ok(node)
     }
-    fn parse_function_call(&mut self, token: Token) -> R<Box<Node>, String> {
+
+    fn parse_function_call(&mut self, token: Token, is_system: bool) -> R<Box<Node>, String> {
         self.next_token(); // '(' をスキップ
         let mut args = Vec::new();
         while self.current_token().token_type() != TokenType::RightParen {
@@ -280,7 +285,7 @@ impl<'a> Parser<'a> {
         }
         self.next_token(); // ')' をスキップ
         Ok(Box::new(Node::new(
-            NodeValue::Call(token.token_value().clone(), args),
+            NodeValue::Call(token.token_value().clone(), args, is_system),
             None,
             self.current_token().line(),
             self.current_token().column(),
@@ -289,6 +294,11 @@ impl<'a> Parser<'a> {
 
     fn parse_function_definition(&mut self) -> R<Box<Node>, String> {
         self.next_token(); // 'fn' をスキップ
+        let mut is_system = false;
+        if self.current_token().token_type() == TokenType::AtSign {
+            self.next_token(); // '@' をスキップ
+            is_system = true;
+        }
         let name = self.current_token().token_value().clone();
         self.next_token(); // 関数名をスキップ
         self.next_token(); // '(' をスキップ
@@ -327,6 +337,7 @@ impl<'a> Parser<'a> {
                 Box::new(*body),
                 ret_value,
                 return_type,
+                is_system,
             ),
             None,
             self.current_token().line(),
@@ -453,11 +464,16 @@ impl<'a> Parser<'a> {
             self.current_token().column(),
         )))
     }
-
     fn factor(&mut self) -> R<Box<Node>, String> {
-        let token = self.current_token().clone();
-        //   info!("current_token: {:?}", token);
-        match token.token_type() {
+        let mut token = self.current_token().clone();
+        let mut is_system = false;
+        if token.token_type() == TokenType::AtSign {
+            self.next_token();
+            token = self.current_token().clone();
+            is_system = true;
+        }
+
+        match self.current_token().token_type() {
             TokenType::MultiComment(content, (line, column)) => {
                 self.next_token();
                 Ok(Box::new(Node::new(
@@ -533,7 +549,7 @@ impl<'a> Parser<'a> {
                 } else {
                     self.next_token();
                     if self.current_token().token_type() == TokenType::LeftParen {
-                        self.parse_function_call(token)
+                        self.parse_function_call(token, is_system)
                     } else {
                         Ok(Box::new(Node::new(
                             NodeValue::Variable(token.token_value().clone()),
@@ -575,6 +591,7 @@ impl<'a> Parser<'a> {
             )),
         }
     }
+
     fn parse_block(&mut self) -> R<Box<Node>, String> {
         if self.current_token().token_type() == TokenType::LeftCurlyBrace {
             self.next_token(); // '{' をスキップ
@@ -665,6 +682,7 @@ impl<'a> Parser<'a> {
         {
             self.next_token();
             let mut is_mutable = false;
+            let mut is_statement = false;
             if self.current_token().token_value() == "mut"
                 || self.current_token().token_value() == "mutable"
             {
@@ -714,9 +732,11 @@ impl<'a> Parser<'a> {
                     break;
                 }
             }
-
-            node = Node::new(
-                NodeValue::VariableDeclaration(
+            if self.current_token().token_type() == TokenType::Semi {
+                is_statement = true;
+            }
+            node = Node {
+                node_value: NodeValue::VariableDeclaration(
                     Box::new(Node::new(
                         NodeValue::Variable(var),
                         None,
@@ -729,10 +749,11 @@ impl<'a> Parser<'a> {
                     is_mutable,
                     is_reference,
                 ),
-                None,
-                self.current_token().line(),
-                self.current_token().column(),
-            );
+                node_next: None,
+                line: self.current_token().line(),
+                column: self.current_token().column(),
+                is_statement,
+            };
         } else if self.current_token().token_type() == TokenType::Ident
             && self.peek_next_token(2).token_type() == TokenType::Equals
             && self.current_token().token_value() == "type"
@@ -860,10 +881,12 @@ impl<'a> Parser<'a> {
                 self.current_token().line(),
                 self.current_token().column(),
             );
-        } else if self.current_token().token_type() == TokenType::Ident
-            && self.current_token().token_value() == "include"
+        } else if self.current_token().token_type() == TokenType::AtSign
+            && (self.peek_next_token(1).token_type() == TokenType::Ident
+                && self.peek_next_token(1).token_value() == "include")
         {
-            self.next_token();
+            self.next_token(); // @
+            self.next_token(); // include
             let include_file_path = self.current_token().token_value().clone();
             node = Node::new(
                 NodeValue::Include(include_file_path),
@@ -875,16 +898,10 @@ impl<'a> Parser<'a> {
             node = *self.parse_block()?;
         } else if self.current_token().token_type() == TokenType::Semi {
             self.next_token();
-            node = Node::new(
-                NodeValue::StatementEnd,
-                None,
-                self.current_token().line(),
-                self.current_token().column(),
-            );
+            node = Node::default();
         } else {
             node = *self.expr()?;
         }
-
         Ok(Box::new(node))
     }
     fn parse_statement(&mut self) -> R<Vec<Box<Node>>, String> {

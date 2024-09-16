@@ -225,11 +225,14 @@ impl Decoder {
     pub fn decode(&mut self, nodes: &mut Vec<Box<Node>>) -> R<Value, String> {
         let mut result = Value::Null;
         let original_node = self.current_node.clone();
-        let default_script_dir = std::path::Path::new("./script");
-        std::env::set_current_dir(&default_script_dir)
-            .expect("カレントディレクトリの設定に失敗しました");
+        //let default_script_dir = std::path::Path::new("./script");
+        //let path = std::env::current_dir()
+        //                        .expect("カレントディレクトリの取得に失敗しました");
+        //info!("{:?}",path);
+        //std::env::set_current_dir(&default_script_dir)
+        //   .expect("カレントディレクトリの設定に失敗しました");
         // std.scriptを読み込む
-        self.add_include("std.script", nodes)?;
+        self.add_include("script/std.script", nodes)?;
         // 他のファイルを読み込む
         self.add_include(&self.first_file.0.clone(), nodes)?;
         for (filename, included_nodes) in self.nodes_map.clone() {
@@ -716,7 +719,7 @@ impl Decoder {
                 // 結果を返す
                 Ok(Value::Array(evaluated_values))
             }
-            NodeValue::Empty | NodeValue::StatementEnd => Ok(result),
+            NodeValue::Empty => Ok(result),
             NodeValue::MultiComment(content, (line, column)) => {
                 self.context
                     .comment_lists
@@ -800,138 +803,157 @@ impl Decoder {
                     ))
                 }
             }
-            NodeValue::Call(name, args) => {
+            NodeValue::Call(name, args, is_system) => {
                 // 一時的にすぐ呼べる形にしているが安全性皆無
                 // 本来はインタプリタの関数として登録してから呼び出す必要あり
-                match name.as_str() {
-                    "sleep" => {
-                        if args.len() != 1 {
-                            return Err("sleep expects exactly one argument".into());
-                        }
-                        let duration = match self.execute_node(&args[0])? {
-                            Value::Number(n) => {
-                                n.as_u64().ok_or("sleep expects a positive integer")?
-                            }
-                            _ => return Err("sleep expects a number as the duration".into()),
-                        };
-                        sleep(Duration::from_secs(duration));
-                    }
-                    "print" => {
-                        for a in args {
-                            let _value = self.execute_node(a)?;
-                            let value = match _value {
-                                Value::String(v) => v,
-                                _ => format!("{}", _value),
-                            };
-                            print!("{}", value);
-                        }
-                    }
-                    "println" => {
-                        for a in args {
-                            let _value = self.execute_node(a)?;
-                            let value = match _value {
-                                Value::String(v) => v,
-                                _ => format!("{}", _value),
-                            };
-                            println!("{}", value);
-                        }
-                    }
-                    "read_file" => {
-                        if args.len() != 1 {
-                            return Err("read_file expects exactly one argument".into());
-                        }
-                        let file_name = match self.execute_node(&args[0])? {
-                            Value::String(v) => v,
-                            _ => return Err("read_file expects a string as the file name".into()),
-                        };
-                        let mut file = File::open(file_name).unwrap();
-                        let mut contents = String::new();
-                        file.read_to_string(&mut contents).unwrap();
-                        return Ok(Value::String(contents));
-                    }
-                    "write_file" => {
-                        if args.len() != 2 {
-                            return Err("write_file expects exactly two arguments".into());
-                        }
-                        let file_name = match self.execute_node(&args[0])? {
-                            Value::String(v) => v,
-                            _ => return Err("write_file expects a string as the file name".into()),
-                        };
-                        let content = match self.execute_node(&args[1])? {
-                            Value::String(v) => v,
-                            _ => return Err("write_file expects a string as the content".into()),
-                        };
-                        let mut file = File::create(file_name).unwrap();
-                        file.write_all(content.as_bytes()).unwrap();
-                    }
 
-                    "cmd" => {
-                        if args.len() < 1 {
-                            return Err("execute_command expects at least one argument".into());
-                        }
-                        let command = match self.execute_node(&args[0])? {
-                            Value::String(v) => v,
-                            _ => {
-                                return Err("execute_command expects a string as the command".into())
+                if *is_system {
+                    match name.as_str() {
+                        "sleep" => {
+                            if args.len() != 1 {
+                                return Err("sleep expects exactly one argument".into());
                             }
-                        };
-                        let command_args: Vec<String> = args[1..]
-                            .iter()
-                            .map(|arg| match self.execute_node(arg) {
-                                Ok(Value::String(v)) => Ok(v),
-                                Ok(v) => Ok(format!("{}", v)),
-                                Err(e) => Err(e),
-                            })
-                            .collect::<Result<Vec<String>, _>>()?;
-                        let output = Command::new(command)
-                            .args(&command_args)
-                            .output()
-                            .expect("外部コマンドの実行に失敗しました");
-                        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-                        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-                        return Ok(Value::Array(vec![
-                            Value::String(stdout),
-                            Value::String(stderr),
-                        ]));
-                    }
+                            let duration = match self.execute_node(&args[0])? {
+                                Value::Number(n) => {
+                                    n.as_u64().ok_or("sleep expects a positive integer")?
+                                }
+                                _ => return Err("sleep expects a number as the duration".into()),
+                            };
+                            sleep(Duration::from_secs(duration));
+                        }
+                        "print" => {
+                            for a in args {
+                                let _value = self.execute_node(a)?;
+                                let value = match _value {
+                                    Value::String(v) => v,
+                                    _ => format!("{}", _value),
+                                };
+                                print!("{}", value);
+                            }
+                        }
+                        "println" => {
+                            for a in args {
+                                let _value = self.execute_node(a)?;
+                                let value = match _value {
+                                    Value::String(v) => v,
+                                    _ => format!("{}", _value),
+                                };
+                                println!("{}", value);
+                            }
+                        }
+                        "read_file" => {
+                            if args.len() != 1 {
+                                return Err("read_file expects exactly one argument".into());
+                            }
+                            let file_name = match self.execute_node(&args[0])? {
+                                Value::String(v) => v,
+                                _ => {
+                                    return Err("read_file expects a string as the file name".into())
+                                }
+                            };
+                            let mut file = File::open(file_name).unwrap();
+                            let mut contents = String::new();
+                            file.read_to_string(&mut contents).unwrap();
+                            return Ok(Value::String(contents));
+                        }
+                        "write_file" => {
+                            if args.len() != 2 {
+                                return Err("write_file expects exactly two arguments".into());
+                            }
+                            let file_name = match self.execute_node(&args[0])? {
+                                Value::String(v) => v,
+                                _ => {
+                                    return Err(
+                                        "write_file expects a string as the file name".into()
+                                    )
+                                }
+                            };
+                            let content = match self.execute_node(&args[1])? {
+                                Value::String(v) => v,
+                                _ => {
+                                    return Err("write_file expects a string as the content".into())
+                                }
+                            };
+                            let mut file = File::create(file_name).unwrap();
+                            file.write_all(content.as_bytes()).unwrap();
+                        }
 
-                    "set_env" => {
-                        if args.len() != 2 {
-                            return Err("set_env expects exactly two arguments".into());
-                        }
-                        let var_name = match self.execute_node(&args[0])? {
-                            Value::String(v) => v,
-                            _ => return Err("set_env expects a string as the variable name".into()),
-                        };
-                        let var_value = match self.execute_node(&args[1])? {
-                            Value::String(v) => v,
-                            _ => {
-                                return Err("set_env expects a string as the variable value".into())
+                        "cmd" => {
+                            if args.len() < 1 {
+                                return Err("execute_command expects at least one argument".into());
                             }
-                        };
-                        std::env::set_var(var_name, var_value);
-                    }
-                    "current_dir" => {
-                        let path = std::env::current_dir()
-                            .expect("カレントディレクトリの取得に失敗しました");
-                        return Ok(Value::String(path.to_string_lossy().to_string()));
-                    }
-                    "change_dir" => {
-                        if args.len() != 1 {
-                            return Err("change_dir expects exactly one argument".into());
+                            let command = match self.execute_node(&args[0])? {
+                                Value::String(v) => v,
+                                _ => {
+                                    return Err(
+                                        "execute_command expects a string as the command".into()
+                                    )
+                                }
+                            };
+                            let command_args: Vec<String> = args[1..]
+                                .iter()
+                                .map(|arg| match self.execute_node(arg) {
+                                    Ok(Value::String(v)) => Ok(v),
+                                    Ok(v) => Ok(format!("{}", v)),
+                                    Err(e) => Err(e),
+                                })
+                                .collect::<Result<Vec<String>, _>>()?;
+                            let output = Command::new(command)
+                                .args(&command_args)
+                                .output()
+                                .expect("外部コマンドの実行に失敗しました");
+                            let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+                            let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+                            return Ok(Value::Array(vec![
+                                Value::String(stdout),
+                                Value::String(stderr),
+                            ]));
                         }
-                        let path = match self.execute_node(&args[0])? {
-                            Value::String(v) => v,
-                            _ => return Err("change_dir expects a string as the path".into()),
-                        };
-                        std::env::set_current_dir(path)
-                            .expect("カレントディレクトリの変更に失敗しました");
+
+                        "set_env" => {
+                            if args.len() != 2 {
+                                return Err("set_env expects exactly two arguments".into());
+                            }
+                            let var_name = match self.execute_node(&args[0])? {
+                                Value::String(v) => v,
+                                _ => {
+                                    return Err(
+                                        "set_env expects a string as the variable name".into()
+                                    )
+                                }
+                            };
+                            let var_value = match self.execute_node(&args[1])? {
+                                Value::String(v) => v,
+                                _ => {
+                                    return Err(
+                                        "set_env expects a string as the variable value".into()
+                                    )
+                                }
+                            };
+                            std::env::set_var(var_name, var_value);
+                        }
+                        "current_dir" => {
+                            let path = std::env::current_dir()
+                                .expect("カレントディレクトリの取得に失敗しました");
+                            return Ok(Value::String(path.to_string_lossy().to_string()));
+                        }
+                        "change_dir" => {
+                            if args.len() != 1 {
+                                return Err("change_dir expects exactly one argument".into());
+                            }
+                            let path = match self.execute_node(&args[0])? {
+                                Value::String(v) => v,
+                                _ => return Err("change_dir expects a string as the path".into()),
+                            };
+                            std::env::set_current_dir(path)
+                                .expect("カレントディレクトリの変更に失敗しました");
+                        }
+                        _ => return Err(format!("Unknown function: {}", name)),
                     }
-                    _ => return Err(format!("Unknown function: {}", name)),
                 }
                 Ok(Value::Null)
             }
-            NodeValue::Function(name, args, body, return_type, _) => {
+            NodeValue::Function(name, args, body, return_value, return_type, is_system) => {
                 let func_name = name; // すでに String 型なのでそのまま使う
 
                 // 関数がすでに定義されているかチェック
@@ -994,6 +1016,20 @@ impl Decoder {
                 is_mutable,
                 is_reference,
             ) => {
+                // ステートメントフラグのチェック
+                if !node.is_statement() {
+                    return Err(custom_compile_error!(
+                        "error",
+                        node.line(),
+                        node.column(),
+                        &self.current_node.clone().unwrap().0,
+                        &self
+                            .file_contents
+                            .get(&self.current_node.clone().unwrap().0)
+                            .unwrap(),
+                        "Variable declaration must be a statement"
+                    ));
+                }
                 info!("is_reference: {:?}", is_reference);
                 let name = match var_name.node_value() {
                     NodeValue::Variable(v) => v,

@@ -110,7 +110,7 @@ fn main() -> R<(), String> {
     let mut input_vec: Vec<String> = Vec::new();
     let mut lexer = Lexer::new();
     let mut tokens: Vec<Token> = Vec::new();
-    let input_path = "main.script";
+    let input_path = "./script/main.script";
     match read_files_with_path(input_path) {
         Ok(lines) => {
             info!("files: {:?}", lines.clone());
@@ -144,7 +144,7 @@ fn main() -> R<(), String> {
     match to_string_pretty(&nodes) {
         Ok(json) => {
             info!("nodes: {}", json);
-            write_to_file("./script-deps/ast.json", &json).unwrap();
+            write_to_file("script-deps/ast.json", &json).unwrap();
         }
         Err(e) => info!("Failed to serialize nodes: {}", e),
     }
@@ -154,7 +154,7 @@ fn main() -> R<(), String> {
         Err(e) => {
             eprintln!("{}", e);
             let err = remove_ansi_sequences(&e);
-            write_to_file("../script-deps/error.log", &err).unwrap();
+            write_to_file("script-deps/error.log", &err).unwrap();
             return Err(e);
         }
     };

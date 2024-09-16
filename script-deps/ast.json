@@ -1,1 +1,148 @@
-[]
+[
+  {
+    "node_value": {
+      "SingleComment": [
+        " main.script",
+        [
+          1,
+          1
+        ]
+      ]
+    },
+    "node_next": null,
+    "line": 2,
+    "column": 1,
+    "is_statement": false
+  },
+  {
+    "node_value": {
+      "Include": "./script/test.script"
+    },
+    "node_next": null,
+    "line": 2,
+    "column": 10,
+    "is_statement": false
+  },
+  {
+    "node_value": {
+      "String": "./script/test.script"
+    },
+    "node_next": null,
+    "line": 4,
+    "column": 1,
+    "is_statement": false
+  },
+  {
+    "node_value": {
+      "SingleComment": [
+        "l mpv_cmd =\"mpv\"; ",
+        [
+          4,
+          1
+        ]
+      ]
+    },
+    "node_next": null,
+    "line": 5,
+    "column": 1,
+    "is_statement": false
+  },
+  {
+    "node_value": {
+      "SingleComment": [
+        "l args = \"C:/Users/tanukimaru/Downloads/pokemon-bw-densetu.wav\";",
+        [
+          5,
+          1
+        ]
+      ]
+    },
+    "node_next": null,
+    "line": 6,
+    "column": 1,
+    "is_statement": false
+  },
+  {
+    "node_value": {
+      "SingleComment": [
+        "l args2 = \"../../../../Downloads/pokemon-bw-end.wav\";",
+        [
+          6,
+          1
+        ]
+      ]
+    },
+    "node_next": null,
+    "line": 7,
+    "column": 1,
+    "is_statement": false
+  },
+  {
+    "node_value": {
+      "SingleComment": [
+        "l out = @cmd(mpv_cmd,args);",
+        [
+          7,
+          1
+        ]
+      ]
+    },
+    "node_next": null,
+    "line": 8,
+    "column": 1,
+    "is_statement": false
+  },
+  {
+    "node_value": {
+      "SingleComment": [
+        "l out2 = @cmd(mpv_cmd,args2);",
+        [
+          8,
+          1
+        ]
+      ]
+    },
+    "node_next": null,
+    "line": 11,
+    "column": 1,
+    "is_statement": false
+  },
+  {
+    "node_value": {
+      "VariableDeclaration": [
+        {
+          "node_value": {
+            "Variable": "a"
+          },
+          "node_next": null,
+          "line": 11,
+          "column": 7,
+          "is_statement": false
+        },
+        {
+          "node_value": "Empty",
+          "node_next": null,
+          "line": 11,
+          "column": 3,
+          "is_statement": false
+        },
+        {
+          "node_value": {
+            "Int": 1000
+          },
+          "node_next": null,
+          "line": 11,
+          "column": 7,
+          "is_statement": false
+        },
+        false,
+        false,
+        false
+      ]
+    },
+    "node_next": null,
+    "line": 11,
+    "column": 7,
+    "is_statement": false
+  }
+]
