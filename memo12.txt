@@ -1,0 +1,115 @@
+NodeValue::Function(name, params, body, return_value, return_type) => {
+                // 関数名をヒープに保存
+                let serialized_name = self.serialize_value("string", &Value::String(name.clone()));
+                let name_index = self.allocate_and_copy_to_heap(serialized_name)?;
+
+                // 引数名リストをヒープに保存
+                let serialized_params = self.serialize_value(
+                    "params",
+                    &Value::Array(params.iter().map(|p| Value::String(p.clone())).collect()),
+                );
+                let params_index = self.allocate_and_copy_to_heap(serialized_params)?;
+
+                // 関数本体をヒープに保存
+                let serialized_body =
+                    self.serialize_value("body", &Value::String(format!("{:?}", body)));
+                let body_index = self.allocate_and_copy_to_heap(serialized_body)?;
+
+                // 戻り値をヒープに保存
+                let serialized_return_value = self.serialize_value(
+                    "return_value",
+                    &Value::String(format!("{:?}", return_value)),
+                );
+                let return_value_index = self.allocate_and_copy_to_heap(serialized_return_value)?;
+
+                // 戻り値の型をヒープに保存
+                let serialized_return_type = self
+                    .serialize_value("return_type", &Value::String(format!("{:?}", return_type)));
+                let return_type_index = self.allocate_and_copy_to_heap(serialized_return_type)?;
+
+                // グローバルコンテキストに関数を登録
+                self.context.global_context.insert(
+                    name.clone(),
+                    Variable {
+                        data_type: Value::String("function".to_string()),
+                        value: Value::Null,
+                        address: name_index, // 関数名のアドレスを保存
+                    },
+                );
+
+                // ログ出力
+                info!(
+        "FunctionDefinition: name = {:?}, params = {:?}, body = {:?}, return_value = {:?}, return_type = {:?}, name_address = {:?}, params_address = {:?}, body_address = {:?}, return_value_address = {:?}, return_type_address = {:?}",
+        name, params, body, return_value, return_type, name_index, params_index, body_index, return_value_index, return_type_index
+    );
+                self.execute_node(&body)
+            }
+
+                 
+NodeValue::Call(name, args) => {
+    if let Some(Variable {
+        data_type: _,
+        value: Value::Null,
+        address: function_address,
+    }) = self.context.global_context.get(name)
+    {
+        // 関数の詳細をヒープから取得
+        let function_name = self.deserialize_value("string", &self.read_from_heap(*function_address, 256)?)?;
+        let params_address = usize::from_le_bytes(self.read_from_heap(*function_address + 256, 8)?.try_into().unwrap());
+        let body_address = usize::from_le_bytes(self.read_from_heap(*function_address + 264, 8)?.try_into().unwrap());
+        let return_value_address = usize::from_le_bytes(self.read_from_heap(*function_address + 272, 8)?.try_into().unwrap());
+        let return_type_address = usize::from_le_bytes(self.read_from_heap(*function_address + 280, 8)?.try_into().unwrap());
+
+        // 引数をローカルスコープに設定
+        let params: Vec<String> = self.deserialize_value("params", &self.read_from_heap(params_address, 256)?)?;
+        self.context.enter_scope(); // ローカルスコープに入る
+        for (i, arg) in args.iter().enumerate() {
+            let arg_value = self.execute_node(arg)?;
+            let serialized_arg = self.serialize_value("argument", &arg_value);
+            let arg_index = self.allocate_and_copy_to_heap(serialized_arg)?;
+
+            self.context.local_context.last_mut().unwrap().insert(
+                params[i].clone(),
+                Variable {
+                    data_type: Value::String("argument".to_string()),
+                    value: arg_value.clone(),
+                    address: arg_index,
+                },
+            );
+
+            info!(
+                "Argument: name = {}, value = {:?}, address = {:?}",
+                params[i], arg_value, arg_index
+            );
+        }
+
+        // 関数本体を実行
+        let body: Node = self.deserialize_value("body", &self.read_from_heap(body_address, 1024)?)?;
+        let result = self.execute_node(&body)?;
+
+        // 戻り値を取得
+        let return_value: Node = self.deserialize_value("return_value", &self.read_from_heap(return_value_address, 256)?)?;
+        let return_type: String = self.deserialize_value("return_type", &self.read_from_heap(return_type_address, 256)?)?;
+        self.check_type(&result, &return_type)?;
+
+        self.context.exit_scope(); // ローカルスコープを出る
+
+        info!("Call: {}", name);
+        Ok(result)
+    } else {
+        Err(custom_compile_error!(
+            "error",
+            node.line(),
+            node.column(),
+            &self.current_node.clone().unwrap().0,
+            &self
+                .file_contents
+                .get(&self.current_node.clone().unwrap().0)
+                .unwrap(),
+            "Function call failed: {:?}",
+            name
+        ))
+    }
+}
+
+

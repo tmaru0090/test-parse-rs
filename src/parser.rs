@@ -5,8 +5,8 @@ use crate::types::{NodeValue, TokenType};
 use anyhow::{anyhow, Context, Result as R};
 use log::{error, info, warn};
 use property_rs::Property;
-use serde::Serialize;
-#[derive(Debug, PartialEq, Clone, Property, Serialize)]
+use serde::{Deserialize, Serialize};
+#[derive(Debug, PartialEq, Clone, Property, Serialize, Deserialize)]
 pub struct Node {
     #[property(get)]
     node_value: NodeValue,
@@ -397,6 +397,36 @@ impl<'a> Parser<'a> {
             self.current_token().column(),
         )))
     }
+    fn parse_for_statement(&mut self) -> R<Box<Node>, String> {
+        self.next_token(); // for
+        let var = self.current_token().token_value().clone();
+        self.next_token(); // var
+        self.next_token(); // in
+        let array = self.current_token().token_value().clone();
+        self.next_token(); // { をスキップ
+        let body = self.parse_block()?;
+        Ok(Box::new(Node::new(
+            NodeValue::For(
+                Box::new(Node::new(
+                    NodeValue::Variable(var),
+                    None,
+                    self.current_token().line(),
+                    self.current_token().column(),
+                )),
+                Box::new(Node::new(
+                    NodeValue::Variable(array),
+                    None,
+                    self.current_token().line(),
+                    self.current_token().column(),
+                )),
+                body,
+            ),
+            None,
+            self.current_token().line(),
+            self.current_token().column(),
+        )))
+    }
+
     fn parse_return_type(&mut self) -> R<Box<Node>, String> {
         self.next_token(); // '->' をスキップ
         let return_type = self.expr()?;
@@ -619,9 +649,29 @@ impl<'a> Parser<'a> {
     fn parse_single_statement(&mut self) -> R<Box<Node>, String> {
         let node;
         if self.current_token().token_type() == TokenType::Ident
+            && self.current_token().token_value() == "if"
+        {
+            node = *self.parse_if_statement()?;
+        } else if self.current_token().token_type() == TokenType::Ident
+            && self.current_token().token_value() == "for"
+            && self.peek_next_token(2).token_value() == "in"
+        {
+            node = *self.parse_for_statement()?;
+        } else if self.current_token().token_type() == TokenType::Ident
             && self.current_token().token_value() == "let"
+            || self.current_token().token_value() == "var"
+            || self.current_token().token_value() == "l"
+            || self.current_token().token_value() == "v"
         {
             self.next_token();
+            let mut is_mutable = false;
+            if self.current_token().token_value() == "mut"
+                || self.current_token().token_value() == "mutable"
+            {
+                self.next_token();
+                is_mutable = true;
+            }
+
             let var = self.current_token().token_value().clone();
             let mut data_type = self.new_empty();
             let mut value_node = self.new_empty();
@@ -643,6 +693,24 @@ impl<'a> Parser<'a> {
             } else {
                 value_node = self.expr()?;
             }
+
+            // ローカルスコープフラグの初期化
+            let mut is_local = false;
+
+            // 現在のトークンがブロック内にあるか確認
+            let mut brace_count = 0;
+            for i in (0..self.i).rev() {
+                match self.tokens[i].token_type() {
+                    TokenType::LeftCurlyBrace => brace_count += 1,
+                    TokenType::RightCurlyBrace => brace_count -= 1,
+                    _ => {}
+                }
+                if brace_count > 0 {
+                    is_local = true;
+                    break;
+                }
+            }
+
             node = Node::new(
                 NodeValue::VariableDeclaration(
                     Box::new(Node::new(
@@ -653,6 +721,8 @@ impl<'a> Parser<'a> {
                     )),
                     data_type,
                     value_node,
+                    is_local,
+                    is_mutable,
                 ),
                 None,
                 self.current_token().line(),

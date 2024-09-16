@@ -1,6 +1,6 @@
 use crate::parser::Node;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 #[derive(PartialEq, Debug, Clone, Serialize)]
 pub enum TokenType {
     /*基本算術演算子*/
@@ -45,14 +45,14 @@ pub enum TokenType {
     RightArrow,                                // ->
     Eof,                                       // EOF
 }
-#[derive(PartialEq, Debug, Clone, Serialize)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub enum NodeValue {
     /*制御構造文*/
     If(Box<Node>, Box<Node>), // If(条件,ボディ)
     Else(Box<Node>),
-    ElseIf(Box<Node>, Box<Node>), // ElseIf(条件,ボディ)
-    While(Box<Node>, Box<Node>),  // ElseIf(条件,ボディ)
-    For(Box<Node>, Box<Node>),    // For(値、イテレータ|コレクション値)
+    ElseIf(Box<Node>, Box<Node>),         // ElseIf(条件,ボディ)
+    While(Box<Node>, Box<Node>),          // ElseIf(条件,ボディ)
+    For(Box<Node>, Box<Node>, Box<Node>), // For(値、イテレータ|コレクション値|配列,ボディ)
     /* 条件用演算子 */
     Eq(Box<Node>, Box<Node>), // 等しい (左辺,右辺)
     Ne(Box<Node>, Box<Node>), // 等しくない (左辺,右辺)
@@ -88,7 +88,7 @@ pub enum NodeValue {
 
     DivAssign(Box<Node>, Box<Node>), // 除算代入(左辺,右辺)
 
-    VariableDeclaration(Box<Node>, Box<Node>, Box<Node>), //変数定義(変数,型,右辺値)
+    VariableDeclaration(Box<Node>, Box<Node>, Box<Node>, bool, bool), //変数定義(変数,型,右辺値,スコープフラグ,可変フラグ)
 
     Assign(Box<Node>, Box<Node>), // 代入(変数,右辺値)
     Block(Vec<Box<Node>>),

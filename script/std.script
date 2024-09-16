@@ -6,3 +6,4 @@ type f64 = "f64";
 type string = "string";
 type void = "unit";
 type array = "array";
+type bool = "bool";

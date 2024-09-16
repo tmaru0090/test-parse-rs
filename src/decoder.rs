@@ -26,6 +26,7 @@ impl Add for Variable {
             data_type: self.data_type,
             value: result,
             address: 0,
+            is_mutable: false,
         }
     }
 }
@@ -44,6 +45,7 @@ impl Sub for Variable {
             data_type: self.data_type,
             value: result,
             address: 0,
+            is_mutable: false,
         }
     }
 }
@@ -62,6 +64,7 @@ impl Mul for Variable {
             data_type: self.data_type,
             value: result,
             address: 0,
+            is_mutable: false,
         }
     }
 }
@@ -80,6 +83,7 @@ impl Div for Variable {
             data_type: self.data_type,
             value: result,
             address: 0,
+            is_mutable: false,
         }
     }
 }
@@ -89,9 +93,12 @@ pub struct Variable {
     data_type: Value,
     value: Value,
     address: usize,
+    is_mutable: bool, // 可変性を示すフィールドを追加
 }
+
 #[derive(Debug, Clone, Property)]
 pub struct Context {
+    pub local_context: IndexMap<String, Variable>,
     pub global_context: IndexMap<String, Variable>,
     pub type_context: IndexMap<String, String>,
     pub comment_lists: IndexMap<(usize, usize), Vec<String>>,
@@ -99,6 +106,7 @@ pub struct Context {
 impl Context {
     fn new() -> Self {
         Context {
+            local_context: IndexMap::new(),
             global_context: IndexMap::new(),
             type_context: IndexMap::new(),
             comment_lists: IndexMap::new(),
@@ -309,6 +317,68 @@ impl Decoder {
             .copy_from_slice(&serialized_value);
         Ok(())
     }
+    pub fn read_from_heap(&self, address: usize, size: usize) -> Result<Vec<u8>, String> {
+        if address + size > self.memory_mgr.heap.len() {
+            return Err(format!(
+                "Heap overflow: trying to read {} bytes at address {}, but heap size is {}",
+                size,
+                address,
+                self.memory_mgr.heap.len()
+            ));
+        }
+
+        Ok(self.memory_mgr.heap[address..address + size].to_vec())
+    }
+
+    fn deserialize_value(&self, v_type: &str, data: &[u8]) -> Result<Value, String> {
+        match v_type {
+            "i32" => {
+                if data.len() != 4 {
+                    return Err("Invalid data length for i32".to_string());
+                }
+                let num = i32::from_le_bytes(data.try_into().unwrap());
+                Ok(Value::Number(num.into()))
+            }
+            "i64" => {
+                if data.len() != 8 {
+                    return Err("Invalid data length for i64".to_string());
+                }
+                let num = i64::from_le_bytes(data.try_into().unwrap());
+                Ok(Value::Number(num.into()))
+            }
+            "f32" => {
+                if data.len() != 4 {
+                    return Err("Invalid data length for f32".to_string());
+                }
+                let num = f32::from_le_bytes(data.try_into().unwrap());
+                Ok(Value::Number(
+                    serde_json::Number::from_f64(num as f64).unwrap(),
+                ))
+            }
+            "f64" => {
+                if data.len() != 8 {
+                    return Err("Invalid data length for f64".to_string());
+                }
+                let num = f64::from_le_bytes(data.try_into().unwrap());
+                Ok(Value::Number(serde_json::Number::from_f64(num).unwrap()))
+            }
+            "string" => {
+                let s = String::from_utf8(data.to_vec()).map_err(|e| e.to_string())?;
+                Ok(Value::String(s))
+            }
+            "array" => {
+                // 配列の各要素の型を指定する必要があります
+                // ここでは仮に "element_type" としていますが、適切な型を指定してください
+                let mut elements = Vec::new();
+                let element_size = 4; // 仮のサイズ、適切なサイズを指定してください
+                for chunk in data.chunks(element_size) {
+                    elements.push(self.deserialize_value("element_type", chunk)?);
+                }
+                Ok(Value::Array(elements))
+            }
+            _ => serde_json::from_slice(data).map_err(|e| e.to_string()),
+        }
+    }
     fn serialize_value(&self, v_type: &str, v_value: &Value) -> Vec<u8> {
         match v_type {
             "i32" => {
@@ -334,10 +404,18 @@ impl Decoder {
                     vec![]
                 }
             }
+            "array" => {
+                if let Value::Array(ref arr) = v_value {
+                    arr.iter()
+                        .flat_map(|elem| self.serialize_value(v_type, elem))
+                        .collect()
+                } else {
+                    vec![]
+                }
+            }
             _ => serde_json::to_vec(v_value).unwrap(),
         }
     }
-
     fn get_value_from_heap(
         &self,
         heap: &[u8],
@@ -525,29 +603,109 @@ impl Decoder {
     }
     fn execute_node(&mut self, node: &Node) -> R<Value, String> {
         let mut result = Value::Null;
-
         info!("global_contexts: {:?}", self.context.global_context.clone());
+        info!("local_contexts: {:?}", self.context.local_context.clone());
         match &node.node_value() {
+            NodeValue::If(condition, body) => {
+                // 条件を評価
+                let cond_value = self.execute_node(&condition)?;
+                // 条件が真の場合、ボディを実行
+                if let Value::Bool(true) = cond_value {
+                    self.execute_node(&body)?;
+                }
+                Ok(Value::Null)
+            }
+            NodeValue::For(value, array, body) => {
+                // arrayが配列であることを確認
+                if let Value::Array(ref arr) = self.execute_node(&array)? {
+                    for elem in arr {
+                        // valueにarrayの要素をセット
+                        let variable = Variable {
+                            data_type: elem.clone(),
+                            value: elem.clone(),
+                            address: 0, // アドレスは後で設定
+                            is_mutable: false,
+                        };
+                        let value_name = match value.node_value() {
+                            NodeValue::Variable(v) => v,
+                            _ => {
+                                return Err(custom_compile_error!(
+                                    "error",
+                                    node.line(),
+                                    node.column(),
+                                    &self.current_node.clone().unwrap().0,
+                                    &self
+                                        .file_contents
+                                        .get(&self.current_node.clone().unwrap().0)
+                                        .unwrap(),
+                                    "Expected a variable for the loop value"
+                                ))
+                            }
+                        };
+
+                        // 変数をヒープに追加
+                        let serialized_value = self.serialize_value(
+                            variable.data_type.as_str().unwrap_or(""),
+                            &variable.value,
+                        );
+                        let index = self.allocate_and_copy_to_heap(serialized_value)?;
+                        let mut temp_variable = variable.clone();
+                        temp_variable.address = index;
+
+                        self.context
+                            .global_context
+                            .insert(value_name.clone(), temp_variable.clone());
+
+                        // bodyを実行
+                        self.execute_node(&body)?;
+                        // valueをグローバルスコープから削除
+                        self.context.global_context.swap_remove(&value_name);
+                    }
+                    Ok(Value::Null)
+                } else {
+                    Err(custom_compile_error!(
+                        "error",
+                        node.line(),
+                        node.column(),
+                        &self.current_node.clone().unwrap().0,
+                        &self
+                            .file_contents
+                            .get(&self.current_node.clone().unwrap().0)
+                            .unwrap(),
+                        "Expected an array for the For loop"
+                    ))
+                }
+            }
             NodeValue::Array(data_type, values) => {
                 // 型を評価
-                let v_type = match data_type.node_value(){
+                let v_type = match data_type.node_value() {
                     NodeValue::DataType(d) => self.execute_node(&d)?,
-                    _=> Value::Null,
+                    _ => Value::Null,
                 };
                 // 各値を評価し、型チェックを行う
                 let mut evaluated_values = Vec::new();
                 for value in values {
                     let v_value = self.execute_node(&*value)?;
                     let temp_string = String::new();
-                    let v_type = match v_type {Value::String(ref v) => v,_ => &temp_string};
+                    /*
+                    info!("type: {:?}",data_type.clone());
+                    let v_type = match v_type {
+                        Value::String(ref v) => v,
+                        _ => &temp_string,
+                    };
                     self.check_type(&v_value, &v_type)?;
+                    */
                     evaluated_values.push(v_value);
                 }
                 // 配列をシリアライズしてヒープにコピー
                 let serialized_array =
-                    self.serialize_value("Array", &Value::Array(evaluated_values.clone()));
+                    self.serialize_value("array", &Value::Array(evaluated_values.clone()));
                 let index = self.allocate_and_copy_to_heap(serialized_array.clone())?;
-                info!("serialized_array: {:?} index: {:?}",serialized_array.clone(),index);
+                info!(
+                    "serialized_array: {:?} index: {:?}",
+                    serialized_array.clone(),
+                    index
+                );
                 // 結果を返す
                 Ok(Value::Array(evaluated_values))
             }
@@ -566,11 +724,16 @@ impl Decoder {
                 info!("SingleComment added at line {}, column {}", line, column);
                 Ok(result)
             }
+
             NodeValue::Block(block) => {
                 let mut r = Value::Null;
+                let initial_local_context = self.context.local_context.clone(); // 現在のローカルコンテキストを保存
+
                 for b in block {
                     r = self.execute_node(b)?;
                 }
+
+                self.context.local_context = initial_local_context; // ブロックの処理が終わったらローカルコンテキストを元に戻す
                 Ok(r)
             }
 
@@ -584,22 +747,37 @@ impl Decoder {
                 let variable_data = self.context.global_context.get(&name).cloned();
 
                 if let Some(mut variable) = variable_data {
-                    let new_value = self.execute_node(&value)?;
+                    // 可変性のチェックを追加
+                    if variable.is_mutable {
+                        let new_value = self.execute_node(&value)?;
 
-                    // 型チェックを追加
-                    self.check_type(&new_value, variable.data_type.as_str().unwrap_or(""))?;
+                        // 型チェックを追加
+                        self.check_type(&new_value, variable.data_type.as_str().unwrap_or(""))?;
 
-                    let serialized_value =
-                        self.serialize_value(variable.data_type.as_str().unwrap_or(""), &new_value);
-                    self.copy_to_heap(variable.address, serialized_value)?;
+                        let serialized_value = self
+                            .serialize_value(variable.data_type.as_str().unwrap_or(""), &new_value);
+                        self.copy_to_heap(variable.address, serialized_value)?;
 
-                    // 変数の値を更新
-                    variable.value = new_value.clone();
-                    self.context.global_context.insert(name.clone(), variable);
-                    info!("Assign: name = {:?}, new_value = {:?}", name, new_value);
-                    result = new_value.clone();
-
-                    Ok(new_value)
+                        // 変数の値を更新
+                        variable.value = new_value.clone();
+                        self.context.global_context.insert(name.clone(), variable);
+                        info!("Assign: name = {:?}, new_value = {:?}", name, new_value);
+                        result = new_value.clone();
+                        Ok(new_value)
+                    } else {
+                        Err(custom_compile_error!(
+                            "error",
+                            node.line(),
+                            node.column(),
+                            &self.current_node.clone().unwrap().0,
+                            &self
+                                .file_contents
+                                .get(&self.current_node.clone().unwrap().0)
+                                .unwrap(),
+                            "Variable '{}' is not mutable",
+                            name
+                        ))
+                    }
                 } else {
                     Err(custom_compile_error!(
                         "error",
@@ -616,13 +794,85 @@ impl Decoder {
                 }
             }
 
-            NodeValue::VariableDeclaration(var_name, data_type, value) => {
-                let name = match var_name.node_value() {
-                    NodeValue::Variable(v) => v,
-                    _ => String::new(),
-                };
+            /*
+                        NodeValue::Call(func_name, args) => {
+                            // 関数が定義されているかチェック
+                            let func_var = match self.context.global_context.get(func_name) {
+                                Some(f) => f,
+                                None => {
+                                    return Err(custom_compile_error!(
+                                        "error",
+                                        node.line(),
+                                        node.column(),
+                                        &self.current_node.clone().unwrap().0,
+                                        &self
+                                            .file_contents
+                                            .get(&self.current_node.clone().unwrap().0)
+                                            .unwrap(),
+                                        "Function '{}' is not defined",
+                                        func_name
+                                    ));
+                                }
+                            };
 
-                if self.context.global_context.contains_key(&name) {
+                            // ヒープから関数の情報を取得
+                            let func_index = match func_var.value {
+                                Value::Number(ref n) => n.as_u64().unwrap() as usize,
+                                _ => {
+                                    return Err(custom_compile_error!(
+                                        "error",
+                                        node.line(),
+                                        node.column(),
+                                        &self.current_node.clone().unwrap().0,
+                                        &self
+                                            .file_contents
+                                            .get(&self.current_node.clone().unwrap().0)
+                                            .unwrap(),
+                                        "Invalid function index"
+                                    ))
+                                }
+                            };
+                            let serialized_func_info = self
+                                .read_from_heap(func_index, self.get_value_size("Function", &func_var.value))?;
+                            let func_info: serde_json::Value =
+                                serde_json::from_slice(&serialized_func_info).map_err(|e| e.to_string())?;
+
+                            // 引数を設定
+                            let func_args = func_info["args"].as_array().unwrap();
+                            let body = serde_json::from_value::<Node>(func_info["body"].clone())
+                                .map_err(|e| e.to_string())?;
+                            let return_type = &func_info["return_type"];
+
+                            for (i, arg) in args.iter().enumerate() {
+                                let arg_value = self.execute_node(arg)?;
+                                let arg_name = func_args[i]["0"].as_str().unwrap();
+                                let arg_address = func_args[i]["1"].as_u64().unwrap() as usize;
+                                self.context.local_context.insert(
+                                    arg_name.to_string(),
+                                    Variable {
+                                        value: arg_value.clone(),
+                                        data_type: Value::String("Argument".into()),
+                                        address: arg_address,
+                                    },
+                                );
+                            }
+
+                            // 関数のボディを実行
+                            let result = self.execute_node(&body)?;
+
+                            // ローカルコンテキストをクリア
+                            self.context.local_context.clear();
+
+                            // 戻り値の型チェック
+                            self.check_type(&result, return_type.as_str().unwrap_or(""))?;
+                            Ok(result)
+                        }
+            */
+            NodeValue::Function(name, args, body, return_type, _) => {
+                let func_name = name; // すでに String 型なのでそのまま使う
+
+                // 関数がすでに定義されているかチェック
+                if self.context.global_context.contains_key(func_name.as_str()) {
                     return Err(custom_compile_error!(
                         "error",
                         node.line(),
@@ -632,11 +882,79 @@ impl Decoder {
                             .file_contents
                             .get(&self.current_node.clone().unwrap().0)
                             .unwrap(),
-                        "Variable '{}' is already defined",
-                        name
+                        "Function '{}' is already defined",
+                        func_name
                     ));
-                } else {
-                    let v_type = if let NodeValue::Empty = data_type.node_value() {
+                }
+
+                // 関数の引数を連続したアドレスに設定
+                let mut arg_addresses = Vec::new();
+                for (i, arg) in args.iter().enumerate() {
+                    let arg_name = arg; // すでに String 型なのでそのまま使う
+
+                    let serialized_value =
+                        serde_json::to_vec(&Value::Number(serde_json::Number::from(i)))
+                            .map_err(|e| e.to_string())?;
+                    let index = self.allocate_and_copy_to_heap(serialized_value)?;
+                    arg_addresses.push((arg_name.clone(), index));
+                }
+
+                // 関数の情報をシリアライズしてヒープに格納
+                let func_info = serde_json::json!({
+                    "args": arg_addresses,
+                    "body": body,
+                    "return_type": return_type,
+                });
+                let serialized_func_info =
+                    serde_json::to_vec(&func_info).map_err(|e| e.to_string())?;
+                let func_index = self.allocate_and_copy_to_heap(serialized_func_info)?;
+
+                // 関数の情報をグローバルコンテキストに保存
+                self.context.global_context.insert(
+                    func_name.clone(),
+                    Variable {
+                        value: Value::Number(serde_json::Number::from(func_index)),
+                        data_type: Value::String("Function".into()),
+                        address: func_index,
+                        is_mutable: false,
+                    },
+                );
+
+                info!("FunctionDeclaration: name = {:?}, args = {:?}, body = {:?}, return_type = {:?}", func_name, arg_addresses, body, return_type);
+                Ok(Value::Null)
+            }
+            NodeValue::VariableDeclaration(var_name, data_type, value, is_local, is_mutable) => {
+                let name = match var_name.node_value() {
+                    NodeValue::Variable(v) => v,
+                    _ => String::new(),
+                };
+
+                let v_type;
+                let v_value;
+                {
+                    // 一時的にcontextの借用を解除
+                    let context = if *is_local {
+                        &mut self.context.local_context
+                    } else {
+                        &mut self.context.global_context
+                    };
+
+                    if context.contains_key(&name) {
+                        return Err(custom_compile_error!(
+                            "error",
+                            node.line(),
+                            node.column(),
+                            &self.current_node.clone().unwrap().0,
+                            &self
+                                .file_contents
+                                .get(&self.current_node.clone().unwrap().0)
+                                .unwrap(),
+                            "Variable '{}' is already defined",
+                            name
+                        ));
+                    }
+
+                    v_type = if let NodeValue::Empty = data_type.node_value() {
                         let _value = self.execute_node(&value)?;
                         Value::String(self.infer_type(&_value))
                     } else {
@@ -650,30 +968,38 @@ impl Decoder {
                         Value::String(v.into())
                     };
 
-                    let v_value = if let NodeValue::Empty = value.node_value() {
+                    v_value = if let NodeValue::Empty = value.node_value() {
                         Value::Number(serde_json::Number::from(0))
                     } else {
                         let _value = self.execute_node(&value)?;
                         self.check_type(&_value, v_type.as_str().unwrap_or(""))?
                     };
-
-                    let serialized_value =
-                        self.serialize_value(v_type.as_str().unwrap_or(""), &v_value);
-                    let index = self.allocate_and_copy_to_heap(serialized_value)?;
-
-                    self.context.global_context.insert(
-                        name.clone(),
-                        Variable {
-                            value: v_value.clone(),
-                            data_type: v_type.clone(),
-                            address: index,
-                        },
-                    );
-                    info!("VariableDeclaration: name = {:?}, data_type = {:?}, value = {:?}, address = {:?}", name, v_type, v_value, index);
-                    result = v_value.clone();
-
-                    Ok(v_value)
                 }
+
+                let serialized_value =
+                    self.serialize_value(v_type.as_str().unwrap_or(""), &v_value);
+                let index = self.allocate_and_copy_to_heap(serialized_value)?;
+
+                let context = if *is_local {
+                    &mut self.context.local_context
+                } else {
+                    &mut self.context.global_context
+                };
+
+                context.insert(
+                    name.clone(),
+                    Variable {
+                        value: v_value.clone(),
+                        data_type: v_type.clone(),
+                        address: index,
+                        is_mutable: *is_mutable,
+                    },
+                );
+
+                info!("VariableDeclaration: name = {:?}, data_type = {:?}, value = {:?}, address = {:?}", name, v_type, v_value, index);
+                result = v_value.clone();
+
+                Ok(v_value)
             }
 
             NodeValue::TypeDeclaration(_type_name, _type) => {
@@ -681,6 +1007,20 @@ impl Decoder {
                     NodeValue::Variable(v) => v,
                     _ => String::new(),
                 };
+                if self.context.type_context.contains_key(&name) {
+                    return Err(custom_compile_error!(
+                        "error",
+                        node.line(),
+                        node.column(),
+                        &self.current_node.clone().unwrap().0,
+                        &self
+                            .file_contents
+                            .get(&self.current_node.clone().unwrap().0)
+                            .unwrap(),
+                        "type '{}' is already defined",
+                        name
+                    ));
+                }
                 let v_type = match _type.node_value() {
                     NodeValue::String(v) => v,
                     _ => String::new(),
@@ -708,7 +1048,22 @@ impl Decoder {
             NodeValue::Bool(b) => Ok(Value::Bool(*b)),
 
             NodeValue::Variable(name) => {
-                if let Some(var) = self.context.global_context.get(name) {
+                if let Some(var) = self.context.local_context.get(name) {
+                    // ローカルスコープで変数を見つけた場合
+                    let index = var.address; // アドレスを取得
+                    let value_size =
+                        self.get_value_size(var.data_type.as_str().unwrap_or(""), &var.value);
+
+                    println!(
+                        "Index: {}, Value size: {}, Heap size: {}",
+                        index,
+                        value_size,
+                        self.memory_mgr.heap.len()
+                    );
+
+                    self.get_value_from_heap(&self.memory_mgr.heap, index, value_size)
+                } else if let Some(var) = self.context.global_context.get(name) {
+                    // グローバルスコープで変数を見つけた場合
                     let index = var.address; // アドレスを取得
                     let value_size =
                         self.get_value_size(var.data_type.as_str().unwrap_or(""), &var.value);
@@ -885,97 +1240,7 @@ impl Decoder {
                     )),
                 }
             }
-            NodeValue::Function(name, params, body, return_value, return_type) => {
-                // 関数名をヒープに保存
-                let serialized_name = self.serialize_value("string", &Value::String(name.clone()));
-                let name_index = self.allocate_and_copy_to_heap(serialized_name)?;
 
-                // 引数名リストをヒープに保存
-                let serialized_params = self.serialize_value(
-                    "params",
-                    &Value::Array(params.iter().map(|p| Value::String(p.clone())).collect()),
-                );
-                let params_index = self.allocate_and_copy_to_heap(serialized_params)?;
-
-                // 関数本体をヒープに保存
-                let serialized_body =
-                    self.serialize_value("body", &Value::String(format!("{:?}", body)));
-                let body_index = self.allocate_and_copy_to_heap(serialized_body)?;
-
-                // 戻り値をヒープに保存
-                let serialized_return_value = self.serialize_value(
-                    "return_value",
-                    &Value::String(format!("{:?}", return_value)),
-                );
-                let return_value_index = self.allocate_and_copy_to_heap(serialized_return_value)?;
-
-                // 戻り値の型をヒープに保存
-                let serialized_return_type = self
-                    .serialize_value("return_type", &Value::String(format!("{:?}", return_type)));
-                let return_type_index = self.allocate_and_copy_to_heap(serialized_return_type)?;
-
-                // グローバルコンテキストに関数を登録
-                self.context.global_context.insert(
-                    name.clone(),
-                    Variable {
-                        data_type: Value::String("function".to_string()),
-                        value: Value::Null,
-                        address: name_index, // 関数名のアドレスを保存
-                    },
-                );
-
-                // ログ出力
-                info!(
-        "FunctionDefinition: name = {:?}, params = {:?}, body = {:?}, return_value = {:?}, return_type = {:?}, name_address = {:?}, params_address = {:?}, body_address = {:?}, return_value_address = {:?}, return_type_address = {:?}",
-        name, params, body, return_value, return_type, name_index, params_index, body_index, return_value_index, return_type_index
-    );
-                self.execute_node(&body)
-            }
-
-            NodeValue::Call(name, args) => {
-                if let Some(Variable {
-                    data_type: _,
-                    value: Value::Null,
-                    address: 0,
-                }) = self.context.global_context.get(name)
-                {
-                    for (i, arg) in args.iter().enumerate() {
-                        let arg_value = self.execute_node(arg)?;
-                        let serialized_arg = self.serialize_value("argument", &arg_value);
-                        let arg_index = self.allocate_and_copy_to_heap(serialized_arg)?;
-
-                        self.context.global_context.insert(
-                            format!("arg{}", i),
-                            Variable {
-                                data_type: Value::String("argument".to_string()),
-                                value: arg_value.clone(),
-                                address: arg_index,
-                            },
-                        );
-
-                        info!(
-                            "Argument: index = {}, value = {:?}, address = {:?}",
-                            i, arg_value, arg_index
-                        );
-                    }
-
-                    info!("Call: {}", name);
-                    self.execute_node(&Node::new(NodeValue::Block(vec![]), None, 0, 0))
-                } else {
-                    Err(custom_compile_error!(
-                        "error",
-                        node.line(),
-                        node.column(),
-                        &self.current_node.clone().unwrap().0,
-                        &self
-                            .file_contents
-                            .get(&self.current_node.clone().unwrap().0)
-                            .unwrap(),
-                        "Function call failed: {:?}",
-                        name
-                    ))
-                }
-            }
             NodeValue::Return(ret) => {
                 let ret = self.execute_node(&ret)?;
                 info!("Return: {:?}", ret);
