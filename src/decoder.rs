@@ -641,7 +641,7 @@ impl Decoder {
                             _ => {
                                 return Err(custom_compile_error!(
                                     "error",
-                                    node.line(),
+                                    node.line()-1,
                                     node.column(),
                                     &self.current_node.clone().unwrap().0,
                                     &self
@@ -675,7 +675,7 @@ impl Decoder {
                 } else {
                     Err(custom_compile_error!(
                         "error",
-                        node.line(),
+                        node.line()-1,
                         node.column(),
                         &self.current_node.clone().unwrap().0,
                         &self
@@ -777,7 +777,7 @@ impl Decoder {
                     } else {
                         Err(custom_compile_error!(
                             "error",
-                            node.line(),
+                            node.line()-1,
                             node.column(),
                             &self.current_node.clone().unwrap().0,
                             &self
@@ -791,7 +791,7 @@ impl Decoder {
                 } else {
                     Err(custom_compile_error!(
                         "error",
-                        node.line(),
+                        node.line()-1,
                         node.column(),
                         &self.current_node.clone().unwrap().0,
                         &self
@@ -960,7 +960,7 @@ impl Decoder {
                 if self.context.global_context.contains_key(func_name.as_str()) {
                     return Err(custom_compile_error!(
                         "error",
-                        node.line(),
+                        node.line()-1,
                         node.column(),
                         &self.current_node.clone().unwrap().0,
                         &self
@@ -1020,7 +1020,7 @@ impl Decoder {
                 if !node.is_statement() {
                     return Err(custom_compile_error!(
                         "error",
-                        node.line(),
+                        node.line()- 1,
                         node.column(),
                         &self.current_node.clone().unwrap().0,
                         &self
@@ -1051,7 +1051,7 @@ impl Decoder {
                     if context.contains_key(&name) {
                         return Err(custom_compile_error!(
                             "error",
-                            node.line(),
+                            node.line()-1,
                             node.column(),
                             &self.current_node.clone().unwrap().0,
                             &self
@@ -1101,7 +1101,7 @@ impl Decoder {
                                 } else {
                                     return Err(custom_compile_error!(
                                         "error",
-                                        node.line(),
+                                        node.line()-1,
                                         node.column(),
                                         &self.current_node.clone().unwrap().0,
                                         &self
@@ -1173,7 +1173,7 @@ impl Decoder {
                 if self.context.type_context.contains_key(&name) {
                     return Err(custom_compile_error!(
                         "error",
-                        node.line(),
+                        node.line()-1,
                         node.column(),
                         &self.current_node.clone().unwrap().0,
                         &self
@@ -1271,7 +1271,7 @@ impl Decoder {
 
                     _ => Err(custom_compile_error!(
                         "error",
-                        node.line(),
+                        node.line()-1,
                         node.column(),
                         &self.current_node.clone().unwrap().0,
                         &self
@@ -1306,7 +1306,7 @@ impl Decoder {
                     }
                     _ => Err(custom_compile_error!(
                         "error",
-                        node.line(),
+                        node.line()-1,
                         node.column(),
                         &self.first_file.0,
                         &self.first_file.1,
@@ -1338,7 +1338,7 @@ impl Decoder {
                     }
                     _ => Err(custom_compile_error!(
                         "error",
-                        node.line(),
+                        node.line()-1,
                         node.column(),
                         &self.current_node.clone().unwrap().0,
                         &self
@@ -1359,7 +1359,7 @@ impl Decoder {
                     if r.as_f64().unwrap() == 0.0 {
                         return Err(custom_compile_error!(
                             "error",
-                            node.line(),
+                            node.line()-1,
                             node.column(),
                             &self.current_node.clone().unwrap().0,
                             &self
@@ -1390,7 +1390,7 @@ impl Decoder {
                     }
                     _ => Err(custom_compile_error!(
                         "error",
-                        node.line(),
+                        node.line()-1,
                         node.column(),
                         &self.current_node.clone().unwrap().0,
                         &self
@@ -1411,7 +1411,7 @@ impl Decoder {
             }
             _ => Err(custom_compile_error!(
                 "error",
-                node.line(),
+                node.line()-1,
                 node.column(),
                 &self.current_node.clone().unwrap().0,
                 &self

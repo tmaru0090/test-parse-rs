@@ -1,11 +1,7 @@
 // main.script
 @include "./script/test.script"
 
-//l mpv_cmd ="mpv"; 
-//l args = "C:/Users/tanukimaru/Downloads/pokemon-bw-densetu.wav";
-//l args2 = "../../../../Downloads/pokemon-bw-end.wav";
-//l out = @cmd(mpv_cmd,args);
-//l out2 = @cmd(mpv_cmd,args2);
+l mpv_cmd ="mpv";
+l args = "C:/Users/tanukimaru/Downloads/pokemon-bw2-t-sentou.wav";
+l out = @cmd(mpv_cmd,args);
 
-
-l a = 1000
