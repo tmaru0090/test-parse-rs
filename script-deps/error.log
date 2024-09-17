@@ -1,4 +1,4 @@
-error: Variable declaration must be a statement at line 4, column 1
-   --> ./script/main.script:4:1
-4 | l mpv_cmd ="mpv"
-  | ^
+error: Variable 'b' is not mutable at line 9, column 6
+   --> ./script/main.script:9:6
+9 | l b = &a;
+  |      ^

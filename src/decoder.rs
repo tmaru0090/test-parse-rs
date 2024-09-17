@@ -4,6 +4,8 @@ use crate::parser::Node;
 use crate::parser::Parser;
 use crate::types::NodeValue;
 use anyhow::Result as R;
+use chrono::{DateTime, Local, Utc};
+use hostname::get;
 use indexmap::IndexMap;
 use log::info;
 use property_rs::Property;
@@ -15,6 +17,8 @@ use std::ops::{Add, Div, Mul, Sub};
 use std::process::{Command, Output};
 use std::thread::sleep;
 use std::time::Duration;
+use std::time::UNIX_EPOCH;
+use whoami;
 
 impl Add for Variable {
     type Output = Self;
@@ -641,7 +645,7 @@ impl Decoder {
                             _ => {
                                 return Err(custom_compile_error!(
                                     "error",
-                                    node.line()-1,
+                                    node.line() - 1,
                                     node.column(),
                                     &self.current_node.clone().unwrap().0,
                                     &self
@@ -675,7 +679,7 @@ impl Decoder {
                 } else {
                     Err(custom_compile_error!(
                         "error",
-                        node.line()-1,
+                        node.line() - 1,
                         node.column(),
                         &self.current_node.clone().unwrap().0,
                         &self
@@ -686,36 +690,73 @@ impl Decoder {
                     ))
                 }
             }
+            /*
+                NodeValue::Array(data_type, values) => {
+                    // 型を評価
+                    let v_type = match data_type.node_value() {
+                        NodeValue::DataType(d) => self.execute_node(&d)?,
+                        _ => Value::Null,
+                    };
+                    // 各値を評価し、型チェックを行う
+                    let mut evaluated_values = Vec::new();
+                    for value in values {
+                        let v_value = self.execute_node(&*value)?;
+                        let temp_string = String::new();
+                        /*
+                        info!("type: {:?}",data_type.clone());
+                        let v_type = match v_type {
+                            Value::String(ref v) => v,
+                            _ => &temp_string,
+                        };
+                        self.check_type(&v_value, &v_type)?;
+                        */
+                        evaluated_values.push(v_value);
+                    }
+                    // 配列をシリアライズしてヒープにコピー
+                    let serialized_array =
+                        self.serialize_value("array", &Value::Array(evaluated_values.clone()));
+                    let index = self.allocate_and_copy_to_heap(serialized_array.clone())?;
+                    info!(
+                        "serialized_array: {:?} index: {:?}",
+                        serialized_array.clone(),
+                        index
+                    );
+                    // 結果を返す
+                    Ok(Value::Array(evaluated_values))
+                }
+            */
             NodeValue::Array(data_type, values) => {
                 // 型を評価
                 let v_type = match data_type.node_value() {
                     NodeValue::DataType(d) => self.execute_node(&d)?,
                     _ => Value::Null,
                 };
+
                 // 各値を評価し、型チェックを行う
                 let mut evaluated_values = Vec::new();
                 for value in values {
                     let v_value = self.execute_node(&*value)?;
-                    let temp_string = String::new();
-                    /*
-                    info!("type: {:?}",data_type.clone());
-                    let v_type = match v_type {
-                        Value::String(ref v) => v,
-                        _ => &temp_string,
-                    };
-                    self.check_type(&v_value, &v_type)?;
-                    */
+                    //self.check_type(&v_value, v_type.as_str().unwrap_or(""))?;
                     evaluated_values.push(v_value);
                 }
-                // 配列をシリアライズしてヒープにコピー
-                let serialized_array =
-                    self.serialize_value("array", &Value::Array(evaluated_values.clone()));
-                let index = self.allocate_and_copy_to_heap(serialized_array.clone())?;
+
+                // 配列の各要素をシリアライズしてヒープに連続してコピー
+                let mut serialized_array = Vec::new();
+                for value in &evaluated_values {
+                    let serialized_value =
+                        self.serialize_value(v_type.as_str().unwrap_or(""), value);
+                    serialized_array.extend(serialized_value);
+                }
+
+                // 配列全体をヒープにコピー
+                let index = self.allocate(serialized_array.len())?;
+                self.copy_to_heap(index, serialized_array.clone())?;
+
                 info!(
                     "serialized_array: {:?} index: {:?}",
-                    serialized_array.clone(),
-                    index
+                    serialized_array, index
                 );
+
                 // 結果を返す
                 Ok(Value::Array(evaluated_values))
             }
@@ -777,7 +818,7 @@ impl Decoder {
                     } else {
                         Err(custom_compile_error!(
                             "error",
-                            node.line()-1,
+                            node.line() - 1,
                             node.column(),
                             &self.current_node.clone().unwrap().0,
                             &self
@@ -791,7 +832,7 @@ impl Decoder {
                 } else {
                     Err(custom_compile_error!(
                         "error",
-                        node.line()-1,
+                        node.line() - 1,
                         node.column(),
                         &self.current_node.clone().unwrap().0,
                         &self
@@ -809,6 +850,88 @@ impl Decoder {
 
                 if *is_system {
                     match name.as_str() {
+                        "get_file_metadata" => {
+                            if args.len() != 1 {
+                                return Err("get_file_metadata expects exactly one argument".into());
+                            }
+                            let file_path = match self.execute_node(&args[0])? {
+                                Value::String(v) => v,
+                                _ => {
+                                    return Err(
+                                        "get_file_metadata expects a string as the file path"
+                                            .into(),
+                                    )
+                                }
+                            };
+                            let metadata = std::fs::metadata(file_path).unwrap();
+                            let file_size = metadata.len();
+                            let created = metadata
+                                .created()
+                                .unwrap()
+                                .duration_since(UNIX_EPOCH)
+                                .unwrap()
+                                .as_secs();
+                            let modified = metadata
+                                .modified()
+                                .unwrap()
+                                .duration_since(UNIX_EPOCH)
+                                .unwrap()
+                                .as_secs();
+                            let result = format!(
+        "Size: {} bytes, Created: {} seconds since UNIX epoch, Modified: {} seconds since UNIX epoch",
+        file_size, created, modified
+    );
+                            return Ok(Value::String(result));
+                        }
+                        "get_hostname" => {
+                            if !args.is_empty() {
+                                return Err("get_hostname expects no arguments".into());
+                            }
+                            let hostname = hostname::get().unwrap().to_string_lossy().to_string();
+                            return Ok(Value::String(hostname));
+                        }
+                        "get_os" => {
+                            if !args.is_empty() {
+                                return Err("get_os expects no arguments".into());
+                            }
+                            let os = std::env::consts::OS;
+                            return Ok(Value::String(os.to_string()));
+                        }
+                        "get_username" => {
+                            if !args.is_empty() {
+                                return Err("get_user expects no arguments".into());
+                            }
+                            let user = whoami::username();
+                            return Ok(Value::String(user));
+                        }
+                        "get_env" => {
+                            if args.len() != 1 {
+                                return Err("get_env expects exactly one argument".into());
+                            }
+                            let var_name = match self.execute_node(&args[0])? {
+                                Value::String(v) => v,
+                                _ => {
+                                    return Err(
+                                        "get_env expects a string as the variable name".into()
+                                    )
+                                }
+                            };
+                            let var_value = std::env::var(&var_name).unwrap_or_default();
+                            return Ok(Value::String(var_value));
+                        }
+
+                        "now" => {
+                            if args.len() != 1 {
+                                return Err("now expects exactly one argument".into());
+                            }
+                            let format = match self.execute_node(&args[0])? {
+                                Value::String(v) => v,
+                                _ => return Err("sleep expects a number as the duration".into()),
+                            };
+                            let now = Local::now();
+                            return Ok(Value::String(now.format(&format).to_string()));
+                        }
+
                         "sleep" => {
                             if args.len() != 1 {
                                 return Err("sleep expects exactly one argument".into());
@@ -960,7 +1083,7 @@ impl Decoder {
                 if self.context.global_context.contains_key(func_name.as_str()) {
                     return Err(custom_compile_error!(
                         "error",
-                        node.line()-1,
+                        node.line() - 1,
                         node.column(),
                         &self.current_node.clone().unwrap().0,
                         &self
@@ -1020,7 +1143,7 @@ impl Decoder {
                 if !node.is_statement() {
                     return Err(custom_compile_error!(
                         "error",
-                        node.line()- 1,
+                        node.line() - 1,
                         node.column(),
                         &self.current_node.clone().unwrap().0,
                         &self
@@ -1051,7 +1174,7 @@ impl Decoder {
                     if context.contains_key(&name) {
                         return Err(custom_compile_error!(
                             "error",
-                            node.line()-1,
+                            node.line() - 1,
                             node.column(),
                             &self.current_node.clone().unwrap().0,
                             &self
@@ -1101,7 +1224,7 @@ impl Decoder {
                                 } else {
                                     return Err(custom_compile_error!(
                                         "error",
-                                        node.line()-1,
+                                        node.line() - 1,
                                         node.column(),
                                         &self.current_node.clone().unwrap().0,
                                         &self
@@ -1173,7 +1296,7 @@ impl Decoder {
                 if self.context.type_context.contains_key(&name) {
                     return Err(custom_compile_error!(
                         "error",
-                        node.line()-1,
+                        node.line() - 1,
                         node.column(),
                         &self.current_node.clone().unwrap().0,
                         &self
@@ -1271,7 +1394,7 @@ impl Decoder {
 
                     _ => Err(custom_compile_error!(
                         "error",
-                        node.line()-1,
+                        node.line() - 1,
                         node.column(),
                         &self.current_node.clone().unwrap().0,
                         &self
@@ -1306,7 +1429,7 @@ impl Decoder {
                     }
                     _ => Err(custom_compile_error!(
                         "error",
-                        node.line()-1,
+                        node.line() - 1,
                         node.column(),
                         &self.first_file.0,
                         &self.first_file.1,
@@ -1338,7 +1461,7 @@ impl Decoder {
                     }
                     _ => Err(custom_compile_error!(
                         "error",
-                        node.line()-1,
+                        node.line() - 1,
                         node.column(),
                         &self.current_node.clone().unwrap().0,
                         &self
@@ -1359,7 +1482,7 @@ impl Decoder {
                     if r.as_f64().unwrap() == 0.0 {
                         return Err(custom_compile_error!(
                             "error",
-                            node.line()-1,
+                            node.line() - 1,
                             node.column(),
                             &self.current_node.clone().unwrap().0,
                             &self
@@ -1390,7 +1513,7 @@ impl Decoder {
                     }
                     _ => Err(custom_compile_error!(
                         "error",
-                        node.line()-1,
+                        node.line() - 1,
                         node.column(),
                         &self.current_node.clone().unwrap().0,
                         &self
@@ -1411,7 +1534,7 @@ impl Decoder {
             }
             _ => Err(custom_compile_error!(
                 "error",
-                node.line()-1,
+                node.line() - 1,
                 node.column(),
                 &self.current_node.clone().unwrap().0,
                 &self

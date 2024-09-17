@@ -1,7 +1,8 @@
 // main.script
-@include "./script/test.script"
+/*
+ 
+	@cmd("mpv","../../../Downloads/pokemon-bw-syouri-mokuzen.wav");
+	@cmd("mpv","../../../Downloads/pokemon-bw-t-sentou.wav");
+*/ 
 
-l mpv_cmd ="mpv";
-l args = "C:/Users/tanukimaru/Downloads/pokemon-bw2-t-sentou.wav";
-l out = @cmd(mpv_cmd,args);
 

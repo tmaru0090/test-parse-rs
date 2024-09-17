@@ -87,13 +87,14 @@ impl Lexer {
                 if c == '\n' {
                     self.line += 1;
                     self.column = 1;
+                } else if c == '\t' {
+                    self.column += 4; // タブ文字を4スペースとして扱う
                 } else {
                     self.column += 1;
                 }
                 chars.next();
                 continue;
             }
-
             let start_line = self.line();
             let start_column = self.column();
 
@@ -251,6 +252,9 @@ impl Lexer {
                                 self.column = 1;
                                 lines.push(comment.clone());
                                 comment.clear();
+                            } else if c == '\t' {
+                                comment.push_str("    "); // タブを4つのスペースに変換
+                                self.column += 4;
                             } else {
                                 comment.push(c);
                                 self.column += 1;
@@ -266,6 +270,7 @@ impl Lexer {
                                 "Multi-line comment not closed",
                             ));
                         }
+
                         if !comment.is_empty() {
                             lines.push(comment);
                         }
