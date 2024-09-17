@@ -3,6 +3,5 @@
  
 	@cmd("mpv","../../../Downloads/pokemon-bw-syouri-mokuzen.wav");
 	@cmd("mpv","../../../Downloads/pokemon-bw-t-sentou.wav");
-*/ 
-
-
+*/
+	l a:i32  = "";

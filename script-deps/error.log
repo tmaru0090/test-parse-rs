@@ -1,4 +1,4 @@
-error: Variable 'b' is not mutable at line 9, column 6
-   --> ./script/main.script:9:6
-9 | l b = &a;
-  |      ^
+error: Type mismatch for i32: String("") at line 7, column 15
+   --> ./script/main.script:7:15
+7 | 	l a:i32  = "";
+  |               ^

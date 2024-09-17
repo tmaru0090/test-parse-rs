@@ -87,9 +87,7 @@ impl Lexer {
                 if c == '\n' {
                     self.line += 1;
                     self.column = 1;
-                } else if c == '\t' {
-                    self.column += 4; // タブ文字を4スペースとして扱う
-                } else {
+                } else{
                     self.column += 1;
                 }
                 chars.next();

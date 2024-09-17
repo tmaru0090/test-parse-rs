@@ -42,42 +42,33 @@
           },
           "node_next": null,
           "line": 6,
-          "column": 13,
-          "is_statement": false
-        },
-        {
-          "node_value": "Empty",
-          "node_next": null,
-          "line": 6,
-          "column": 3,
+          "column": 14,
           "is_statement": false
         },
         {
           "node_value": {
-            "Div": [
-              {
-                "node_value": {
-                  "Int": 1000
-                },
-                "node_next": null,
-                "line": 6,
-                "column": 11,
-                "is_statement": false
+            "DataType": {
+              "node_value": {
+                "Variable": "i32"
               },
-              {
-                "node_value": {
-                  "Int": 2
-                },
-                "node_next": null,
-                "line": 6,
-                "column": 13,
-                "is_statement": false
-              }
-            ]
+              "node_next": null,
+              "line": 6,
+              "column": 10,
+              "is_statement": false
+            }
           },
           "node_next": null,
           "line": 6,
-          "column": 13,
+          "column": 10,
+          "is_statement": false
+        },
+        {
+          "node_value": {
+            "String": ""
+          },
+          "node_next": null,
+          "line": 6,
+          "column": 14,
           "is_statement": false
         },
         false,
@@ -87,123 +78,8 @@
     },
     "node_next": null,
     "line": 6,
-    "column": 13,
+    "column": 14,
     "is_statement": true
-  },
-  {
-    "node_value": "Empty",
-    "node_next": null,
-    "line": 0,
-    "column": 0,
-    "is_statement": false
-  },
-  {
-    "node_value": {
-      "VariableDeclaration": [
-        {
-          "node_value": {
-            "Variable": "b"
-          },
-          "node_next": null,
-          "line": 7,
-          "column": 13,
-          "is_statement": false
-        },
-        {
-          "node_value": "Empty",
-          "node_next": null,
-          "line": 7,
-          "column": 7,
-          "is_statement": false
-        },
-        {
-          "node_value": {
-            "Variable": "a"
-          },
-          "node_next": null,
-          "line": 7,
-          "column": 13,
-          "is_statement": false
-        },
-        false,
-        true,
-        true
-      ]
-    },
-    "node_next": null,
-    "line": 7,
-    "column": 13,
-    "is_statement": true
-  },
-  {
-    "node_value": "Empty",
-    "node_next": null,
-    "line": 0,
-    "column": 0,
-    "is_statement": false
-  },
-  {
-    "node_value": {
-      "Assign": [
-        {
-          "node_value": {
-            "Variable": "b"
-          },
-          "node_next": null,
-          "line": 8,
-          "column": 6,
-          "is_statement": false
-        },
-        {
-          "node_value": {
-            "Int": 0
-          },
-          "node_next": null,
-          "line": 8,
-          "column": 6,
-          "is_statement": false
-        }
-      ]
-    },
-    "node_next": null,
-    "line": 8,
-    "column": 6,
-    "is_statement": false
-  },
-  {
-    "node_value": "Empty",
-    "node_next": null,
-    "line": 0,
-    "column": 0,
-    "is_statement": false
-  },
-  {
-    "node_value": {
-      "Assign": [
-        {
-          "node_value": {
-            "Variable": "b"
-          },
-          "node_next": null,
-          "line": 9,
-          "column": 6,
-          "is_statement": false
-        },
-        {
-          "node_value": {
-            "Variable": "a"
-          },
-          "node_next": null,
-          "line": 9,
-          "column": 6,
-          "is_statement": false
-        }
-      ]
-    },
-    "node_next": null,
-    "line": 9,
-    "column": 6,
-    "is_statement": false
   },
   {
     "node_value": "Empty",
