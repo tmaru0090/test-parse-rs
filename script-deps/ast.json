@@ -16,20 +16,19 @@
   },
   {
     "node_value": {
-      "MultiComment": [
-        [
-          "",
-          "@cmd(\"mpv\",\"../../../Downloads/pokemon-bw-syouri-mokuzen.wav\");",
-          "@cmd(\"mpv\",\"../../../Downloads/pokemon-bw-t-sentou.wav\");"
-        ],
-        [
-          2,
-          1
-        ]
-      ]
+      "Include": "test.script"
     },
     "node_next": null,
-    "line": 6,
+    "line": 2,
+    "column": 10,
+    "is_statement": false
+  },
+  {
+    "node_value": {
+      "String": "test.script"
+    },
+    "node_next": null,
+    "line": 3,
     "column": 1,
     "is_statement": false
   },
@@ -38,37 +37,31 @@
       "VariableDeclaration": [
         {
           "node_value": {
-            "Variable": "a"
+            "Variable": "dir"
           },
           "node_next": null,
-          "line": 6,
-          "column": 14,
+          "line": 3,
+          "column": 23,
+          "is_statement": false
+        },
+        {
+          "node_value": "Empty",
+          "node_next": null,
+          "line": 3,
+          "column": 3,
           "is_statement": false
         },
         {
           "node_value": {
-            "DataType": {
-              "node_value": {
-                "Variable": "i32"
-              },
-              "node_next": null,
-              "line": 6,
-              "column": 10,
-              "is_statement": false
-            }
+            "Call": [
+              "current_dir",
+              [],
+              true
+            ]
           },
           "node_next": null,
-          "line": 6,
-          "column": 10,
-          "is_statement": false
-        },
-        {
-          "node_value": {
-            "String": ""
-          },
-          "node_next": null,
-          "line": 6,
-          "column": 14,
+          "line": 3,
+          "column": 23,
           "is_statement": false
         },
         false,
@@ -77,8 +70,8 @@
       ]
     },
     "node_next": null,
-    "line": 6,
-    "column": 14,
+    "line": 3,
+    "column": 23,
     "is_statement": true
   },
   {

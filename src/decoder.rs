@@ -229,14 +229,9 @@ impl Decoder {
     pub fn decode(&mut self, nodes: &mut Vec<Box<Node>>) -> R<Value, String> {
         let mut result = Value::Null;
         let original_node = self.current_node.clone();
-        //let default_script_dir = std::path::Path::new("./script");
-        //let path = std::env::current_dir()
-        //                        .expect("カレントディレクトリの取得に失敗しました");
-        //info!("{:?}",path);
-        //std::env::set_current_dir(&default_script_dir)
-        //   .expect("カレントディレクトリの設定に失敗しました");
+
         // std.scriptを読み込む
-        self.add_include("script/std.script", nodes)?;
+        self.add_include("./std.script", nodes)?;
         // 他のファイルを読み込む
         self.add_include(&self.first_file.0.clone(), nodes)?;
         for (filename, included_nodes) in self.nodes_map.clone() {

@@ -106,13 +106,19 @@ fn asm(nodes: &Vec<Box<Node>>, input: String, filename: &str) -> R<(), String> {
 }
 
 fn main() -> R<(), String> {
+    let default_script_dir = std::path::Path::new("./script");
+
+    std::env::set_current_dir(&default_script_dir)
+        .expect("カレントディレクトリの設定に失敗しました");
+
     env_logger::init();
-   let mut lexer = Lexer::new();
-    let input_path = "./script/main.script";
+    let mut lexer = Lexer::new();
+
+    let input_path = "main.script";
     let mut input_content = String::new();
     match read_files_with_path(input_path) {
         Ok(lines) => {
-           // 空行を取り除いて結合
+            // 空行を取り除いて結合
             input_content = lines
                 .iter()
                 .filter(|line| !line.trim().is_empty())
@@ -149,7 +155,7 @@ fn main() -> R<(), String> {
     match to_string_pretty(&nodes) {
         Ok(json) => {
             info!("nodes: {}", json);
-            write_to_file("script-deps/ast.json", &json).unwrap();
+            write_to_file("../script-deps/ast.json", &json).unwrap();
         }
         Err(e) => info!("Failed to serialize nodes: {}", e),
     }
@@ -159,7 +165,7 @@ fn main() -> R<(), String> {
         Err(e) => {
             eprintln!("{}", e);
             let err = remove_ansi_sequences(&e);
-            write_to_file("script-deps/error.log", &err).unwrap();
+            write_to_file("../script-deps/error.log", &err).unwrap();
             return Err(e);
         }
     };

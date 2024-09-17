@@ -87,7 +87,7 @@ impl Lexer {
                 if c == '\n' {
                     self.line += 1;
                     self.column = 1;
-                } else{
+                } else {
                     self.column += 1;
                 }
                 chars.next();
