@@ -1,0 +1,59 @@
+    /*
+                        NodeValue::Function(name, args, body, return_value, return_type, is_system) => {
+                            let func_name = name; // すでに String 型なのでそのまま使う
+
+                            // 関数がすでに定義されているかチェック
+                            if self.context.global_context.contains_key(func_name.as_str()) {
+                                return Err(custom_compile_error!(
+                                    "error",
+                                    node.line() - 1,
+                                    node.column(),
+                                    &self.current_node.clone().unwrap().0,
+                                    &self
+                                        .file_contents
+                                        .get(&self.current_node.clone().unwrap().0)
+                                        .unwrap(),
+                                    "Function '{}' is already defined",
+                                    func_name
+                                ));
+                            }
+
+                            // 関数の引数を連続したアドレスに設定
+                            let mut arg_addresses = Vec::new();
+                            for (i, arg) in args.iter().enumerate() {
+                                let arg_name = arg; // すでに String 型なのでそのまま使う
+                                let serialized_value =
+                                    serde_json::to_vec(&Value::Number(serde_json::Number::from(i)))
+                                        .map_err(|e| e.to_string())?;
+                                let index = self.allocate_and_copy_to_heap(serialized_value)?;
+                                arg_addresses.push((arg_name.clone(), index));
+                            }
+
+                            // 関数の情報をシリアライズしてヒープに格納
+                            let func_info = serde_json::json!({
+                                "args": arg_addresses,
+                                "body": body,
+                                "return_type": return_type,
+                            });
+                            let serialized_func_info =
+                                serde_json::to_vec(&func_info).map_err(|e| e.to_string())?;
+                            let func_info_size = serialized_func_info.len(); // シリアライズされたデータのサイズを記録
+
+                            let func_index = self.allocate_and_copy_to_heap(serialized_func_info)?;
+                            // 関数の情報をグローバルコンテキストに保存
+                            self.context.global_context.insert(
+                                func_name.clone(),
+                                Variable {
+                                    value: Value::Number(serde_json::Number::from(func_index)),
+                                    data_type: Value::String("Function".into()),
+                                    address: func_index,
+                                    is_mutable: false,
+                                    size: func_info_size,
+                                },
+                            );
+
+                            info!("FunctionDeclaration: name = {:?}, args = {:?}, body = {:?}, return_type = {:?}", func_name, arg_addresses, body, return_type);
+                            Ok(Value::Null)
+                        }
+            */
+

@@ -85,7 +85,7 @@ fn decode(file_path: &str, content: String, nodes: &mut Vec<Box<Node>>) -> R<Val
     #[cfg(feature = "decode")]
     {
         let mut decoder = Decoder::new(file_path.to_string(), content.clone());
-        value = decoder.decode(nodes)?;
+        value = decoder.decode(nodes, 0)?;
         return Ok(value);
     }
     Ok(value)

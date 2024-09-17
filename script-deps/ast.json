@@ -28,57 +28,8 @@
       "String": "test.script"
     },
     "node_next": null,
-    "line": 3,
-    "column": 1,
-    "is_statement": false
-  },
-  {
-    "node_value": {
-      "VariableDeclaration": [
-        {
-          "node_value": {
-            "Variable": "dir"
-          },
-          "node_next": null,
-          "line": 3,
-          "column": 23,
-          "is_statement": false
-        },
-        {
-          "node_value": "Empty",
-          "node_next": null,
-          "line": 3,
-          "column": 3,
-          "is_statement": false
-        },
-        {
-          "node_value": {
-            "Call": [
-              "current_dir",
-              [],
-              true
-            ]
-          },
-          "node_next": null,
-          "line": 3,
-          "column": 23,
-          "is_statement": false
-        },
-        false,
-        false,
-        false
-      ]
-    },
-    "node_next": null,
-    "line": 3,
-    "column": 23,
-    "is_statement": true
-  },
-  {
-    "node_value": "Empty",
-    "node_next": null,
-    "line": 0,
-    "column": 0,
+    "line": 2,
+    "column": 10,
     "is_statement": false
   }
 ]

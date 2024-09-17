@@ -1,0 +1,309 @@
+ if *is_system {
+                    match name.as_str() {
+                        "get_file_metadata" => {
+                            if args.len() != 1 {
+                                return Err("get_file_metadata expects exactly one argument".into());
+                            }
+                            let file_path = match self.execute_node(&args[0])? {
+                                Value::String(v) => v,
+                                _ => {
+                                    return Err(
+                                        "get_file_metadata expects a string as the file path"
+                                            .into(),
+                                    )
+                                }
+                            };
+                            let metadata = std::fs::metadata(file_path).unwrap();
+                            let file_size = metadata.len();
+                            let created = metadata
+                                .created()
+                                .unwrap()
+                                .duration_since(UNIX_EPOCH)
+                                .unwrap()
+                                .as_secs();
+                            let modified = metadata
+                                .modified()
+                                .unwrap()
+                                .duration_since(UNIX_EPOCH)
+                                .unwrap()
+                                .as_secs();
+                            let result = format!(
+                "Size: {} bytes, Created: {} seconds since UNIX epoch, Modified: {} seconds since UNIX epoch",
+                file_size, created, modified
+            );
+                            return Ok(Value::String(result));
+                        }
+                        "get_hostname" => {
+                            if !args.is_empty() {
+                                return Err("get_hostname expects no arguments".into());
+                            }
+                            let hostname = hostname::get().unwrap().to_string_lossy().to_string();
+                            return Ok(Value::String(hostname));
+                        }
+                        "get_os" => {
+                            if !args.is_empty() {
+                                return Err("get_os expects no arguments".into());
+                            }
+                            let os = std::env::consts::OS;
+                            return Ok(Value::String(os.to_string()));
+                        }
+                        "get_username" => {
+                            if !args.is_empty() {
+                                return Err("get_user expects no arguments".into());
+                            }
+                            let user = whoami::username();
+                            return Ok(Value::String(user));
+                        }
+                        "get_env" => {
+                            if args.len() != 1 {
+                                return Err("get_env expects exactly one argument".into());
+                            }
+                            let var_name = match self.execute_node(&args[0])? {
+                                Value::String(v) => v,
+                                _ => {
+                                    return Err(
+                                        "get_env expects a string as the variable name".into()
+                                    )
+                                }
+                            };
+                            let var_value = std::env::var(&var_name).unwrap_or_default();
+                            return Ok(Value::String(var_value));
+                        }
+
+                        "now" => {
+                            if args.len() != 1 {
+                                return Err("now expects exactly one argument".into());
+                            }
+                            let format = match self.execute_node(&args[0])? {
+                                Value::String(v) => v,
+                                _ => return Err("sleep expects a number as the duration".into()),
+                            };
+                            let now = Local::now();
+                            return Ok(Value::String(now.format(&format).to_string()));
+                        }
+
+                        "sleep" => {
+                            if args.len() != 1 {
+                                return Err("sleep expects exactly one argument".into());
+                            }
+                            let duration = match self.execute_node(&args[0])? {
+                                Value::Number(n) => {
+                                    n.as_u64().ok_or("sleep expects a positive integer")?
+                                }
+                                _ => return Err("sleep expects a number as the duration".into()),
+                            };
+                            sleep(Duration::from_secs(duration));
+                        }
+                        "print" => {
+                            for a in args {
+                                let _value = self.execute_node(a)?;
+                                let value = match _value {
+                                    Value::String(v) => v,
+                                    _ => format!("{}", _value),
+                                };
+                                print!("{}", value);
+                            }
+                        }
+                        "println" => {
+                            for a in args {
+                                let _value = self.execute_node(a)?;
+                                let value = match _value {
+                                    Value::String(v) => v,
+                                    _ => format!("{}", _value),
+                                };
+                                println!("{}", value);
+                            }
+                        }
+                        "read_file" => {
+                            if args.len() != 1 {
+                                return Err("read_file expects exactly one argument".into());
+                            }
+                            let file_name = match self.execute_node(&args[0])? {
+                                Value::String(v) => v,
+                                _ => {
+                                    return Err("read_file expects a string as the file name".into())
+                                }
+                            };
+                            let mut file = File::open(file_name).unwrap();
+                            let mut contents = String::new();
+                            file.read_to_string(&mut contents).unwrap();
+                            return Ok(Value::String(contents));
+                        }
+                        "write_file" => {
+                            if args.len() != 2 {
+                                return Err("write_file expects exactly two arguments".into());
+                            }
+                            let file_name = match self.execute_node(&args[0])? {
+                                Value::String(v) => v,
+                                _ => {
+                                    return Err(
+                                        "write_file expects a string as the file name".into()
+                                    )
+                                }
+                            };
+                            let content = match self.execute_node(&args[1])? {
+                                Value::String(v) => v,
+                                _ => {
+                                    return Err("write_file expects a string as the content".into())
+                                }
+                            };
+                            let mut file = File::create(file_name).unwrap();
+                            file.write_all(content.as_bytes()).unwrap();
+                        }
+
+                        "cmd" => {
+                            if args.len() < 1 {
+                                return Err("execute_command expects at least one argument".into());
+                            }
+                            let command = match self.execute_node(&args[0])? {
+                                Value::String(v) => v,
+                                _ => {
+                                    return Err(
+                                        "execute_command expects a string as the command".into()
+                                    )
+                                }
+                            };
+                            let command_args: Vec<String> = args[1..]
+                                .iter()
+                                .map(|arg| match self.execute_node(arg) {
+                                    Ok(Value::String(v)) => Ok(v),
+                                    Ok(v) => Ok(format!("{}", v)),
+                                    Err(e) => Err(e),
+                                })
+                                .collect::<Result<Vec<String>, _>>()?;
+                            let output = Command::new(command)
+                                .args(&command_args)
+                                .output()
+                                .expect("外部コマンドの実行に失敗しました");
+                            let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+                            let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+                            return Ok(Value::Array(vec![
+                                Value::String(stdout),
+                                Value::String(stderr),
+                            ]));
+                        }
+
+                        "set_env" => {
+                            if args.len() != 2 {
+                                return Err("set_env expects exactly two arguments".into());
+                            }
+                            let var_name = match self.execute_node(&args[0])? {
+                                Value::String(v) => v,
+                                _ => {
+                                    return Err(
+                                        "set_env expects a string as the variable name".into()
+                                    )
+                                }
+                            };
+                            let var_value = match self.execute_node(&args[1])? {
+                                Value::String(v) => v,
+                                _ => {
+                                    return Err(
+                                        "set_env expects a string as the variable value".into()
+                                    )
+                                }
+                            };
+                            std::env::set_var(var_name, var_value);
+                        }
+                        "current_dir" => {
+                            let path = std::env::current_dir()
+                                .expect("カレントディレクトリの取得に失敗しました");
+                            return Ok(Value::String(path.to_string_lossy().to_string()));
+                        }
+                        "change_dir" => {
+                            if args.len() != 1 {
+                                return Err("change_dir expects exactly one argument".into());
+                            }
+                            let path = match self.execute_node(&args[0])? {
+                                Value::String(v) => v,
+                                _ => return Err("change_dir expects a string as the path".into()),
+                            };
+                            std::env::set_current_dir(path)
+                                .expect("カレントディレクトリの変更に失敗しました");
+                        }
+                        _ => return Err(format!("Unknown function: {}", name)),
+                    }
+                }
+
+
+ /*
+                        NodeValue::Call(name, args, is_system) => {
+
+                            let func_name = name; // すでに String 型なのでそのまま使う
+
+                            // 関数が定義されているかチェック
+                            // クローンの代わりに、global_contextから取得した関数を直接使う
+                            let func = {
+                                let global_context = &self.context.global_context;
+                                global_context
+                                    .get(func_name.as_str())
+                                    .cloned()
+                                    .ok_or_else(|| {
+                                        custom_compile_error!(
+                                            "error",
+                                            node.line() - 1,
+                                            node.column(),
+                                            &self.current_node.clone().unwrap().0,
+                                            &self
+                                                .file_contents
+                                                .get(&self.current_node.clone().unwrap().0)
+                                                .unwrap(),
+                                            "Function '{}' is not defined",
+                                            func_name
+                                        )
+                                    })?
+                            };
+
+                            let mut arg_addresses = Vec::new();
+
+                            // 引数をシリアライズしてヒープに格納
+                            for arg in args.iter() {
+                                let serialized_value = serde_json::to_vec(arg).map_err(|e| e.to_string())?;
+
+                                // 可変参照の競合を避けるため、この時点ではselfに対する不変参照は存在しない
+                                let index = self.allocate_and_copy_to_heap(serialized_value)?;
+                                arg_addresses.push(index);
+                            }
+
+                            // 関数情報を取得
+                            let (func_info_index, func_info_size) = {
+                                let func_value = &func.value;
+                                match func_value {
+                                    Value::Number(n) => (n.as_u64().unwrap() as usize, func.size),
+                                    _ => return Err("Invalid function index".into()),
+                                }
+                            };
+
+                            let func_info_bytes = self.read_from_heap(func_info_index, func_info_size)?;
+                            let func_info: serde_json::Value =
+                                serde_json::from_slice(&func_info_bytes).map_err(|e| e.to_string())?;
+
+                            // 関数の引数と本体を取得
+                            let func_args = func_info["args"].as_array().unwrap();
+                            let func_body: Node =
+                                serde_json::from_value(func_info["body"].clone()).map_err(|e| e.to_string())?;
+                            let return_value = &func_info["return_value"];
+
+                            // 引数をローカルコンテキストに設定
+                            for (i, arg_address) in arg_addresses.iter().enumerate() {
+                                let arg_name = &func_args[i]["name"];
+                                self.context.local_context.insert(
+                                    arg_name.as_str().unwrap().to_string(),
+                                    Variable {
+                                        value: Value::Number(serde_json::Number::from(*arg_address)),
+                                        data_type: Value::String("Argument".into()),
+                                        address: *arg_address,
+                                        is_mutable: false,
+                                        size: 0, // 引数のサイズはここでは不要
+                                    },
+                                );
+                            }
+
+                            // 関数本体を実行
+                            self.execute_node(&func_body)?;
+
+                            // Ok(Value::Null)
+                            Ok(return_value.clone())
+                        }
+            */
+

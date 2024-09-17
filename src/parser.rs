@@ -302,11 +302,26 @@ impl<'a> Parser<'a> {
         let name = self.current_token().token_value().clone();
         self.next_token(); // 関数名をスキップ
         self.next_token(); // '(' をスキップ
-        let mut args = Vec::new();
+        let mut args: Vec<(Box<Node>, String)> = Vec::new();
         let mut return_type = self.new_empty();
         while self.current_token().token_type() != TokenType::RightParen {
             let arg = self.expr()?;
-            args.push(*arg);
+            let mut data_type = self.new_empty();
+            if self.current_token().token_type() == TokenType::Colon {
+                self.next_token(); // ':' をスキップ
+                data_type = self.expr()?;
+                data_type = Box::new(Node::new(
+                    NodeValue::DataType(data_type),
+                    None,
+                    self.current_token().line(),
+                    self.current_token().column(),
+                ));
+            }
+            let arg_name = match arg.node_value() {
+                NodeValue::Variable(ref name) => name.clone(),
+                _ => return Err("Invalid argument name".to_string()),
+            };
+            args.push((data_type, arg_name));
             if self.current_token().token_type() == TokenType::Conma {
                 self.next_token(); // ',' をスキップ
             }
@@ -328,12 +343,7 @@ impl<'a> Parser<'a> {
         Ok(Box::new(Node::new(
             NodeValue::Function(
                 name,
-                args.iter()
-                    .map(|arg| match arg.node_value() {
-                        NodeValue::Variable(ref name) => name.clone(),
-                        _ => "".to_string(),
-                    })
-                    .collect(),
+                args,
                 Box::new(*body),
                 ret_value,
                 return_type,
@@ -344,6 +354,7 @@ impl<'a> Parser<'a> {
             self.current_token().column(),
         )))
     }
+
     fn parse_condition(&mut self) -> R<Box<Node>, String> {
         let mut node = self.expr()?; // 基本の式を解析
 

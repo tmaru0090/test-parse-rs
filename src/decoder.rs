@@ -36,6 +36,7 @@ impl Add for Variable {
             value: result,
             address: 0,
             is_mutable: false,
+            size: 0,
         }
     }
 }
@@ -55,6 +56,7 @@ impl Sub for Variable {
             value: result,
             address: 0,
             is_mutable: false,
+            size: 0,
         }
     }
 }
@@ -74,6 +76,8 @@ impl Mul for Variable {
             value: result,
             address: 0,
             is_mutable: false,
+
+            size: 0,
         }
     }
 }
@@ -93,6 +97,7 @@ impl Div for Variable {
             value: result,
             address: 0,
             is_mutable: false,
+            size: 0,
         }
     }
 }
@@ -102,7 +107,8 @@ pub struct Variable {
     data_type: Value,
     value: Value,
     address: usize,
-    is_mutable: bool, // 可変性を示すフィールドを追加
+    is_mutable: bool,
+    size: usize,
 }
 
 #[derive(Debug, Clone, Property)]
@@ -168,7 +174,7 @@ pub struct Decoder {
     #[property(get)]
     first_file: (String, String),
 }
-
+const MAX_INCLUDE_DEPTH: usize = 10; // 最大インクルード深さ
 impl Decoder {
     pub fn new(file_path: String, content: String) -> Self {
         Self {
@@ -200,6 +206,7 @@ impl Decoder {
     fn deallocate(&mut self, index: usize) {
         self.memory_mgr.free_list.push(index);
     }
+    /*
     fn include_file(&mut self, filename: &str) -> R<Vec<Box<Node>>, String> {
         if self.file_cache.processed_files.contains(filename) {
             return Ok(vec![]); // 既に処理済みの場合は空のノードを返す
@@ -229,7 +236,6 @@ impl Decoder {
     pub fn decode(&mut self, nodes: &mut Vec<Box<Node>>) -> R<Value, String> {
         let mut result = Value::Null;
         let original_node = self.current_node.clone();
-
         // std.scriptを読み込む
         self.add_include("./std.script", nodes)?;
         // 他のファイルを読み込む
@@ -260,6 +266,79 @@ impl Decoder {
         self.current_node = original_node;
         Ok(result)
     }
+    */
+
+    fn include_file(&mut self, filename: &str, depth: usize) -> R<Vec<Box<Node>>, String> {
+        if depth > MAX_INCLUDE_DEPTH {
+            return Err("Maximum include depth exceeded".to_string());
+        }
+        if self.file_cache.processed_files.contains(filename) {
+            return Ok(vec![]); // 既に処理済みの場合は空のノードを返す
+        }
+        if let Some(cached_nodes) = self.file_cache.cache.get(filename) {
+            return Ok(cached_nodes.clone());
+        }
+        let content = std::fs::read_to_string(filename).map_err(|e| e.to_string())?;
+        let mut lexer = Lexer::new_with_value(filename.to_string(), content.clone());
+        let tokens = lexer.tokenize()?;
+        let mut parser = Parser::new(&tokens, filename.to_string(), content.clone());
+        let nodes = parser.parse()?;
+        self.file_cache
+            .cache
+            .insert(filename.to_string(), nodes.clone());
+        self.file_cache.processed_files.insert(filename.to_string()); // 処理済みファイルとしてマーク
+        self.file_contents.insert(filename.to_string(), content); // ファイル内容を保存
+        Ok(nodes)
+    }
+
+    pub fn add_include(
+        &mut self,
+        filename: &str,
+        nodes: &mut Vec<Box<Node>>,
+        depth: usize,
+    ) -> R<(), String> {
+        let included_nodes = self.include_file(filename, depth + 1)?;
+        nodes.splice(0..0, included_nodes.clone());
+        self.nodes_map.insert(filename.to_string(), included_nodes);
+        Ok(())
+    }
+
+    pub fn decode(&mut self, nodes: &mut Vec<Box<Node>>, depth: usize) -> R<Value, String> {
+        info!("depth: {}", depth);
+        let mut result = Value::Null;
+        let original_node = self.current_node.clone();
+        // std.scriptを読み込む
+        self.add_include("./std.script", nodes, depth)?;
+        // 他のファイルを読み込む
+        self.add_include(&self.first_file.0.clone(), nodes, depth)?;
+
+        for (filename, included_nodes) in self.nodes_map.clone() {
+            self.current_node = Some((filename.clone(), Box::new(Node::default())));
+            for node in included_nodes {
+                self.current_node = Some((filename.clone(), node.clone()));
+                match node.node_value() {
+                    NodeValue::Include(filename) => {
+                        if !self.nodes_map.contains_key(&filename) {
+                            self.add_include(&filename, nodes, depth + 1)?;
+                        }
+                        let mut included_nodes = self
+                            .nodes_map
+                            .get(&filename)
+                            .ok_or("File not found")?
+                            .clone();
+                        result = self.decode(&mut included_nodes, depth + 1)?;
+                    }
+                    _ => {
+                        result = self.execute_node(&node)?;
+                    }
+                }
+            }
+        }
+
+        self.current_node = original_node;
+        Ok(result)
+    }
+
     fn get_value_size(&self, v_type: &str, v_value: &Value) -> usize {
         match v_type {
             "i32" => std::mem::size_of::<i32>(),
@@ -634,6 +713,7 @@ impl Decoder {
                             value: elem.clone(),
                             address: 0, // アドレスは後で設定
                             is_mutable: false,
+                            size: 0,
                         };
                         let value_name = match value.node_value() {
                             NodeValue::Variable(v) => v,
@@ -778,7 +858,6 @@ impl Decoder {
                 for b in block {
                     r = self.execute_node(b)?;
                 }
-
                 self.context.local_context = initial_local_context; // ブロックの処理が終わったらローカルコンテキストを元に戻す
                 Ok(r)
             }
@@ -840,9 +919,6 @@ impl Decoder {
                 }
             }
             NodeValue::Call(name, args, is_system) => {
-                // 一時的にすぐ呼べる形にしているが安全性皆無
-                // 本来はインタプリタの関数として登録してから呼び出す必要あり
-
                 if *is_system {
                     match name.as_str() {
                         "get_file_metadata" => {
@@ -873,9 +949,9 @@ impl Decoder {
                                 .unwrap()
                                 .as_secs();
                             let result = format!(
-        "Size: {} bytes, Created: {} seconds since UNIX epoch, Modified: {} seconds since UNIX epoch",
-        file_size, created, modified
-    );
+                "Size: {} bytes, Created: {} seconds since UNIX epoch, Modified: {} seconds since UNIX epoch",
+                file_size, created, modified
+            );
                             return Ok(Value::String(result));
                         }
                         "get_hostname" => {
@@ -1069,8 +1145,100 @@ impl Decoder {
                         _ => return Err(format!("Unknown function: {}", name)),
                     }
                 }
-                Ok(Value::Null)
+
+                let func_name = name; // すでに String 型なのでそのまま使う
+
+                // 関数が定義されているかチェック
+                let func = {
+                    let global_context = &self.context.global_context;
+                    global_context
+                        .get(func_name.as_str())
+                        .cloned()
+                        .ok_or_else(|| {
+                            custom_compile_error!(
+                                "error",
+                                node.line() - 1,
+                                node.column(),
+                                &self.current_node.clone().unwrap().0,
+                                &self
+                                    .file_contents
+                                    .get(&self.current_node.clone().unwrap().0)
+                                    .unwrap(),
+                                "Function '{}' is not defined",
+                                func_name
+                            )
+                        })?
+                };
+
+                let mut arg_addresses = Vec::new();
+
+                // 引数をシリアライズしてヒープに格納
+                for arg in args.iter() {
+                    let serialized_value = serde_json::to_vec(arg).map_err(|e| e.to_string())?;
+                    let index = self.allocate_and_copy_to_heap(serialized_value)?;
+                    arg_addresses.push(index);
+                }
+
+                // 関数情報を取得
+                let (func_info_index, func_info_size) = {
+                    let func_value = &func.value;
+                    match func_value {
+                        Value::Number(n) => (n.as_u64().unwrap() as usize, func.size),
+                        _ => return Err("Invalid function index".into()),
+                    }
+                };
+
+                let func_info_bytes = self.read_from_heap(func_info_index, func_info_size)?;
+                let func_info: serde_json::Value =
+                    serde_json::from_slice(&func_info_bytes).map_err(|e| e.to_string())?;
+
+                // 関数の引数と本体を取得
+                let func_args = func_info["args"].as_array().unwrap();
+                let func_body: Node =
+                    serde_json::from_value(func_info["body"].clone()).map_err(|e| e.to_string())?;
+                let return_value = &func_info["return_value"];
+
+                // 引数をローカルコンテキストに設定
+                for (i, arg_address) in arg_addresses.iter().enumerate() {
+                    let arg_name = &func_args[i]["name"];
+                    let arg_type_node: Node = serde_json::from_value(func_args[i]["type"].clone())
+                        .map_err(|e| e.to_string())?;
+
+                    // 型名を取得
+                    let arg_type = match arg_type_node.node_value() {
+                        NodeValue::Variable(ref type_name) => type_name.clone(),
+
+                        NodeValue::DataType(ref data_type_node) => {
+                            match data_type_node.node_value() {
+                                NodeValue::Variable(ref type_name) => type_name.clone(),
+                                _ => return Err("Invalid data type".into()),
+                            }
+                        }
+                        _ => return Err("Invalid data type node".into()),
+                    };
+
+                    // 引数の型に応じてデシリアライズ
+                    let bytes = self.read_from_heap(*arg_address, 4)?; // 適切なサイズを指定
+                    let value = self.deserialize_value(&arg_type, &bytes)?;
+
+                    self.context.local_context.insert(
+                        arg_name.as_str().unwrap().to_string(),
+                        Variable {
+                            value,
+                            data_type: Value::String("Argument".into()),
+                            address: *arg_address,
+                            is_mutable: false,
+                            size: 0, // 引数のサイズはここでは不要
+                        },
+                    );
+                }
+
+                // 関数本体を実行
+                self.execute_node(&func_body)?;
+
+                Ok(return_value.clone())
             }
+
             NodeValue::Function(name, args, body, return_value, return_type, is_system) => {
                 let func_name = name; // すでに String 型なのでそのまま使う
 
@@ -1092,14 +1260,12 @@ impl Decoder {
 
                 // 関数の引数を連続したアドレスに設定
                 let mut arg_addresses = Vec::new();
-                for (i, arg) in args.iter().enumerate() {
-                    let arg_name = arg; // すでに String 型なのでそのまま使う
-
+                for (i, (data_type, arg_name)) in args.iter().enumerate() {
                     let serialized_value =
                         serde_json::to_vec(&Value::Number(serde_json::Number::from(i)))
                             .map_err(|e| e.to_string())?;
                     let index = self.allocate_and_copy_to_heap(serialized_value)?;
-                    arg_addresses.push((arg_name.clone(), index));
+                    arg_addresses.push(serde_json::json!({"name": arg_name.clone(), "address": index, "type": data_type}));
                 }
 
                 // 関数の情報をシリアライズしてヒープに格納
@@ -1107,11 +1273,13 @@ impl Decoder {
                     "args": arg_addresses,
                     "body": body,
                     "return_type": return_type,
+                    "return_value": return_value,
                 });
                 let serialized_func_info =
                     serde_json::to_vec(&func_info).map_err(|e| e.to_string())?;
-                let func_index = self.allocate_and_copy_to_heap(serialized_func_info)?;
+                let func_info_size = serialized_func_info.len(); // シリアライズされたデータのサイズを記録
 
+                let func_index = self.allocate_and_copy_to_heap(serialized_func_info)?;
                 // 関数の情報をグローバルコンテキストに保存
                 self.context.global_context.insert(
                     func_name.clone(),
@@ -1120,12 +1288,14 @@ impl Decoder {
                         data_type: Value::String("Function".into()),
                         address: func_index,
                         is_mutable: false,
+                        size: func_info_size,
                     },
                 );
 
                 info!("FunctionDeclaration: name = {:?}, args = {:?}, body = {:?}, return_type = {:?}", func_name, arg_addresses, body, return_type);
                 Ok(Value::Null)
             }
+
             NodeValue::VariableDeclaration(
                 var_name,
                 data_type,
@@ -1253,6 +1423,7 @@ impl Decoder {
                             data_type: v_type.clone(),
                             address,
                             is_mutable: *is_mutable,
+                            size: 0,
                         },
                     );
                 } else {
@@ -1273,6 +1444,7 @@ impl Decoder {
                             data_type: v_type.clone(),
                             address,
                             is_mutable: *is_mutable,
+                            size: 0,
                         },
                     );
                 }
