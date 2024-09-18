@@ -335,11 +335,11 @@
         "VariableDeclaration": [
           {
             "node_value": {
-              "Variable": "a"
+              "Variable": "path"
             },
             "node_next": null,
             "line": 3,
-            "column": 11,
+            "column": 56,
             "is_statement": false
           },
           {
@@ -351,11 +351,11 @@
           },
           {
             "node_value": {
-              "Int": 1000
+              "String": "../../../../Downloads/pokemon-bw-y-sentou.wa"
             },
             "node_next": null,
             "line": 3,
-            "column": 11,
+            "column": 56,
             "is_statement": false
           },
           false,
@@ -365,7 +365,7 @@
       },
       "node_next": null,
       "line": 3,
-      "column": 11,
+      "column": 56,
       "is_statement": true
     },
     {
@@ -377,17 +377,70 @@
     },
     {
       "node_value": {
-        "SingleComment": [
-          "md(\"mpv\",\"../../../../Downloads/pokemon-bw-syouri-mokuzen.wav\");",
-          [
-            4,
-            1
-          ]
+        "VariableDeclaration": [
+          {
+            "node_value": {
+              "Variable": "out"
+            },
+            "node_next": null,
+            "line": 4,
+            "column": 25,
+            "is_statement": false
+          },
+          {
+            "node_value": "Empty",
+            "node_next": null,
+            "line": 4,
+            "column": 3,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "Call": [
+                "cmd",
+                [
+                  {
+                    "node_value": {
+                      "String": "mpv"
+                    },
+                    "node_next": null,
+                    "line": 4,
+                    "column": 19,
+                    "is_statement": false
+                  },
+                  {
+                    "node_value": {
+                      "Variable": "path"
+                    },
+                    "node_next": null,
+                    "line": 4,
+                    "column": 24,
+                    "is_statement": false
+                  }
+                ],
+                true
+              ]
+            },
+            "node_next": null,
+            "line": 4,
+            "column": 25,
+            "is_statement": false
+          },
+          false,
+          false,
+          false
         ]
       },
       "node_next": null,
       "line": 4,
-      "column": 1,
+      "column": 25,
+      "is_statement": true
+    },
+    {
+      "node_value": "Empty",
+      "node_next": null,
+      "line": 0,
+      "column": 0,
       "is_statement": false
     }
   ]

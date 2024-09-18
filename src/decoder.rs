@@ -9,6 +9,7 @@ use hostname::get;
 use indexmap::IndexMap;
 use log::info;
 use property_rs::Property;
+use serde_json::to_string_pretty;
 use serde_json::{Number, Value};
 use std::collections::HashSet;
 use std::fs::File;
@@ -20,88 +21,7 @@ use std::time::Duration;
 use std::time::UNIX_EPOCH;
 use whoami;
 
-impl Add for Variable {
-    type Output = Self;
-
-    fn add(self, other: Self) -> Self {
-        let result = match (self.value, other.value) {
-            (Value::Number(a), Value::Number(b)) => {
-                Value::Number((a.as_i64().unwrap() + b.as_i64().unwrap()).into()).into()
-            }
-            (Value::String(a), Value::String(b)) => Value::String(a + &b).into(),
-            _ => panic!("Unsupported types for addition"),
-        };
-        Variable {
-            data_type: self.data_type,
-            value: result,
-            address: 0,
-            is_mutable: false,
-            size: 0,
-        }
-    }
-}
-
-impl Sub for Variable {
-    type Output = Self;
-
-    fn sub(self, other: Self) -> Self {
-        let result = match (self.value, other.value) {
-            (Value::Number(a), Value::Number(b)) => {
-                Value::Number((a.as_i64().unwrap() - b.as_i64().unwrap()).into()).into()
-            }
-            _ => panic!("Unsupported types for subtraction"),
-        };
-        Variable {
-            data_type: self.data_type,
-            value: result,
-            address: 0,
-            is_mutable: false,
-            size: 0,
-        }
-    }
-}
-
-impl Mul for Variable {
-    type Output = Self;
-
-    fn mul(self, other: Self) -> Self {
-        let result = match (self.value, other.value) {
-            (Value::Number(a), Value::Number(b)) => {
-                Value::Number((a.as_i64().unwrap() * b.as_i64().unwrap()).into()).into()
-            }
-            _ => panic!("Unsupported types for multiplication"),
-        };
-        Variable {
-            data_type: self.data_type,
-            value: result,
-            address: 0,
-            is_mutable: false,
-
-            size: 0,
-        }
-    }
-}
-
-impl Div for Variable {
-    type Output = Self;
-
-    fn div(self, other: Self) -> Self {
-        let result = match (self.value, other.value) {
-            (Value::Number(a), Value::Number(b)) => {
-                Value::Number((a.as_i64().unwrap() / b.as_i64().unwrap()).into()).into()
-            }
-            _ => panic!("Unsupported types for division"),
-        };
-        Variable {
-            data_type: self.data_type,
-            value: result,
-            address: 0,
-            is_mutable: false,
-            size: 0,
-        }
-    }
-}
-
+use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone)]
 pub struct Variable {
     data_type: Value,
@@ -168,11 +88,19 @@ pub struct Decoder {
     #[property(get)]
     file_contents: IndexMap<String, String>,
     #[property(get)]
-    first_file: (String, String),
-    #[property(get)]
     current_node: Option<(String, Box<Node>)>,
+    generated_ast_file: bool,
+    generated_error_log_file: bool,
 }
 impl Decoder {
+    pub fn generate_ast_file(&mut self, flag: bool) -> &mut Self {
+        self.generated_ast_file = flag;
+        self
+    }
+    pub fn generate_error_log_file(&mut self, flag: bool) -> &mut Self {
+        self.generated_error_log_file = flag;
+        self
+    }
 
     pub fn load_script(file_name: &str) -> R<Self, String> {
         let mut ast_map: IndexMap<String, Vec<Box<Node>>> = IndexMap::new();
@@ -190,8 +118,9 @@ impl Decoder {
             memory_mgr: MemoryManager::new(1024 * 1024),
             file_contents: IndexMap::new(),
             current_node: None,
-            first_file: (String::from(file_name), file_content.clone()),
             context: Context::new(),
+            generated_ast_file: true,
+            generated_error_log_file: true,
         })
     }
     pub fn new() -> Self {
@@ -200,8 +129,9 @@ impl Decoder {
             memory_mgr: MemoryManager::new(1024 * 1024),
             file_contents: IndexMap::new(),
             current_node: None,
-            first_file: (String::new(), String::new()),
             context: Context::new(),
+            generated_ast_file: true,
+            generated_error_log_file: true,
         }
     }
     fn allocate(&mut self, size: usize) -> R<usize, String> {
@@ -587,6 +517,16 @@ impl Decoder {
             }
         }
         self.current_node = original_node;
+        if self.generated_ast_file {
+            // ディレクトリが存在しない場合は作成
+            std::fs::create_dir_all("./script-analysis").map_err(|e| e.to_string())?;
+            // IndexMapをHashMapに変換
+            let ast_map: std::collections::HashMap<_, _> =
+                self.ast_map.clone().into_iter().collect();
+            let ast_json = to_string_pretty(&ast_map).map_err(|e| e.to_string())?;
+            std::fs::write("./script-analysis/ast.json", ast_json).map_err(|e| e.to_string())?;
+        }
+
         Ok(value)
     }
 
@@ -1477,8 +1417,11 @@ impl Decoder {
                         "error",
                         node.line(),
                         node.column(),
-                        &self.first_file.0,
-                        &self.first_file.1,
+                        &self.current_node.clone().unwrap().0,
+                        &self
+                            .file_contents
+                            .get(&self.current_node.clone().unwrap().0)
+                            .unwrap(),
                         "Subtraction operation failed: {:?} - {:?}",
                         left.clone(),
                         right.clone()
