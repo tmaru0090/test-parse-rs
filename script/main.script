@@ -1,7 +1,0 @@
-// main.script
-@include "./std.script"
-fn main(){
-	l out = @cmd("../../voicebox-notification-rs/target/debug/voicebox-notification-rs.exe");
-}
-
-main();

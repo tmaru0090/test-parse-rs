@@ -1,157 +1,130 @@
-﻿0:ChangeWindowMode実行 
-0:ウインドウモードフラグが立てられました
-4:ＤＸライブラリの初期化処理開始
-7:	システムの情報を出力します
-7:		ＤＸライブラリ Ver3.24d
-9:		論理プロセッサの数 : 4
-9:		ＯＳ  Windows10 ( Build 19045  )
-110:		現時点のＣＰＵ動作速度：大体2.50GHz
-110:		ＭＭＸ命令を使用します
-111:		ＳＳＥ命令が使用可能です
-111:		ＳＳＥ２命令が使用可能です
-112:		ＣＰＵベンダ：GenuineIntel
-115:		ＣＰＵ名：       Intel(R) Core(TM) i5-2450M CPU @ 2.50GHz
-115:	ＣＯＭの初期化... 成功
-119:	非同期読み込み処理の初期化...成功
-120:	ファイルアクセス処理の初期化...成功
-123:	メモリ総量:8079.30MB  空きメモリ領域:3779.96MB 
-124:	タイマーの精度を検査します
-124:	精度結果 更新回数 マルチメディアタイマー：0  パフォーマンスカウンター：60
-125:	 パフォーマンスカウンターを使用します タイマー精度 : 10000.000000 KHz 
-126:	 
-127:	ソフトの二重起動検査... 二重起動はされていませんでした
-127:	ウインドウクラスを登録します... 登録に成功しました
-128:	ウインドウモード起動用のウインドウを作成します
-128:	ディスプレイ情報のセットアップ開始
-129:		モニターの数：1  ディスプレイデバイスの数：2
-131:		No.0  モニター名：\\.\DISPLAY1　1600x900　32bit　60Hz  96x96dpi
-147:	ディスプレイ情報のセットアップ完了
-147:	ウインドウ矩形 ( 144, -1 )-( 1440, 838 )
-150:	ウインドウの作成に成功しました
-151:	ウインドウを表示します
-181:	ＩＭＥを無効にしました
-183:	ウインドウスタイルをウインドウモード用に変更します... 完了
-225:	XInput DLL の読み込み中... 成功
-227:	DirectInput関係初期化処理
-228:		DirectInput8 の取得を試みます...成功
-248:			引き続き初期化処理... 初期化成功
-252:		ジョイパッドの初期化... 
-252:			XInput 対応コントローラーのチェックを開始します
-253:				XInput 対応コントローラー No.0 をチェック
-254:				XInput 対応コントローラー No.0 の接続は確認できませんでした
-256:				XInput 対応コントローラー No.1 をチェック
-257:				XInput 対応コントローラー No.1 の接続は確認できませんでした
-258:				XInput 対応コントローラー No.2 をチェック
-259:				XInput 対応コントローラー No.2 の接続は確認できませんでした
-260:				XInput 対応コントローラー No.3 をチェック
-261:				XInput 対応コントローラー No.3 の接続は確認できませんでした
-261:			XInput 対応コントローラーのチェック完了
-262:			DirectInput 対応ジョイパッドの列挙を開始します
-303:			DirectInput 対応ジョイパッドの列挙終了
-303:		ジョイパッドの初期化は正常に終了しました
-304:		マウスデバイスの初期化... 初期化成功
-304:		キーボードデバイスの初期化... 初期化成功
-310:	DirectInput 関連の初期化は正常に終了しました
-315:	WASAPI の初期化を行います
-334:		デバイス名 : スピーカー (2- High Definition Audio Device)
-338:		デフォルト遅延時間 : 10.000 ms
-339:		最小遅延時間       : 2.667 ms
-339:		遅延時間           : 10.000 ms
-342:		チャンネル数  　   : 2 ch
-342:		量子化ビット深度   : 32 bit
-343:		有効ビット深度　   : 32 bit
-344:		サンプリングレート : 48000 Hz
-344:		データ形式         : 浮動小数点型
-367:		動作モード         : 共有モード
-367:	WASAPI の初期化は正常に終了しました
-374:	d3d11.dll の読み込み.... 成功
-376:	dxgi.dll の読み込み.... 成功
-377:	API CreateDXGIFactory2 のアドレスを取得します.... 成功
-378:	IDXGIFactory2 を作成します.... 成功
-382:	API CreateDXGIFactory6 のアドレスを取得します.... 成功
-383:	IDXGIAdapter を列挙
-384:		Adapter No.0 Desc:Intel(R) HD Graphics 3000  VRAM:32MB
-385:			Output Device No.0 Name:\\.\DISPLAY1 ( 0, 0 )-( 1600, 900 )
-385:		Adapter No.1 Desc:Microsoft Basic Render Driver  VRAM:0MB
-386:	API D3D11CreateDevice のアドレスを取得します.... 成功
-387:	IDXGIAdapter を取得します.... 成功
-389:	IDXGIAdapter1 を取得します.... 成功
-389:	IDXGIAdapter2 を取得します.... 成功
-392:	IDXGIAdapter3 を取得します.... 成功
-393:	IDXGIAdapter4 を取得します.... 成功
-395:	Direct3D 11 FeatureLevel 11_0 以上を対象とします
-395:	ID3D11Device オブジェクトを取得します.... 失敗
-399:	d3d11.dll の解放 1
-400:	dxgi.dll の解放 1
-401:	Direct3D11 のオブジェクト数を出力
-401:	Direct3D11 のオブジェクト合計数 : 0
-404:	DirectDraw オブジェクトの取得を行います....  成功
-407:	引き続き初期化処理... 初期化に成功しました
-420:	IDirect3D9Ex オブジェクトを取得します.... 成功
-423:	IDirect3DDevice9Ex オブジェクトを取得します.... ハードウエア頂点演算を使用します
-677:	成功
-679:	Driver:igdumd64.dll  Description:Intel(R) HD Graphics 3000
-680:	画面のフォーマットは D3DFMT_X8R8G8B8 です
-681:	16bit Zバッファフォーマットは D3DFMT_D16 です
-683:	24bit Zバッファフォーマットは D3DFMT_D24X8 です
-684:	32bit Zバッファフォーマットは D3DFMT_D24X8 です
-685:	16bit カラーフォーマットは D3DFMT_R5G6B5 です
-687:	32bit カラーフォーマットは D3DFMT_X8R8G8B8 です
-688:	アルファ付き 16bit カラーフォーマットは D3DFMT_A4R4G4B4 です
-689:	アルファ付き 32bit カラーフォーマットは D3DFMT_A8R8G8B8 です
-690:	アルファテスト用 16bit カラーフォーマットは D3DFMT_A1R5G5B5 です
-691:	アルファテスト用 32bit カラーフォーマットは D3DFMT_A8R8G8B8 です
-692:	ＤＸＴ１テクスチャフォーマットはD3DFMT_DXT1 です
-693:	ＤＸＴ２テクスチャフォーマットはD3DFMT_DXT2 です
-694:	ＤＸＴ３テクスチャフォーマットはD3DFMT_DXT3 です
-695:	ＤＸＴ４テクスチャフォーマットはD3DFMT_DXT4 です
-696:	ＤＸＴ５テクスチャフォーマットはD3DFMT_DXT5 です
-697:	ABGR 整数 16 ビット型カラーフォーマットは D3DFMT_A16B16G16R16 です
-699:	ABGR 浮動小数点 16 ビット型カラーフォーマットは D3DFMT_A16B16G16R16F です
-700:	ABGR 浮動小数点 32 ビット型カラーフォーマットは D3DFMT_A32B32G32R32F です
-701:	１チャンネル整数 8 ビット型カラーフォーマットは D3DFMT_A8R8G8B8 です
-703:	１チャンネル整数 16 ビット型カラーフォーマットは D3DFMT_G16R16 です
-704:	１チャンネル浮動小数点 16 ビット型カラーフォーマットは D3DFMT_R16F です
-705:	１チャンネル浮動小数点 32 ビット型カラーフォーマットは D3DFMT_R32F です
-706:	２チャンネル整数 8 ビット型カラーフォーマットは D3DFMT_A8B8G8R8 です
-708:	２チャンネル整数 16 ビット型カラーフォーマットは D3DFMT_G16R16 です
-709:	２チャンネル浮動小数点 16 ビット型カラーフォーマットは D3DFMT_G16R16F です
-710:	２チャンネル浮動小数点 32 ビット型カラーフォーマットは D3DFMT_G32R32F です
-712:	描画用 16bit カラーフォーマットは D3DFMT_R5G6B5 です
-713:	描画用 32bit カラーフォーマットは D3DFMT_X8R8G8B8 です
-714:	描画用アルファ付き 32bit カラーフォーマットは D3DFMT_A8R8G8B8 です
-716:	描画用 ABGR 整数 16 ビット型カラーフォーマットは D3DFMT_A16B16G16R16 です
-717:	描画用 ABGR 浮動小数点 16 ビット型カラーフォーマットは D3DFMT_A16B16G16R16F です
-718:	描画用 ABGR 浮動小数点 32 ビット型カラーフォーマットは D3DFMT_A32B32G32R32F です
-720:	描画用１チャンネル整数 8 ビット型カラーフォーマットは D3DFMT_A8R8G8B8 です
-721:	描画用１チャンネル整数 16 ビット型カラーフォーマットは D3DFMT_G16R16 です
-723:	描画用１チャンネル浮動小数点 16 ビット型カラーフォーマットは D3DFMT_R16F です
-724:	描画用１チャンネル浮動小数点 32 ビット型カラーフォーマットは D3DFMT_R32F です
-725:	描画用２チャンネル整数 8 ビット型カラーフォーマットは D3DFMT_A8B8G8R8 です
-727:	描画用２チャンネル整数 16 ビット型カラーフォーマットは D3DFMT_G16R16 です
-728:	描画用２チャンネル浮動小数点 16 ビット型カラーフォーマットは D3DFMT_G16R16F です
-730:	描画用２チャンネル浮動小数点 32 ビット型カラーフォーマットは D3DFMT_G32R32F です
-731:	A8R8G8B8 カラーフォーマットは頂点テクスチャフェッチに使用できます
-732:	X8R8G8B8 カラーフォーマットは頂点テクスチャフェッチに使用できます
-734:	R5G6B5 カラーフォーマットは頂点テクスチャフェッチに使用できます
-735:	A1R5G5B5 カラーフォーマットは頂点テクスチャフェッチに使用できます
-737:	X1R5G5B5 カラーフォーマットは頂点テクスチャフェッチに使用できません
-738:	一度に描画できるプリミティブの最大数:1048575
-739:	対応している最大頂点インデックス:16777215
-741:	同時にレンダリングできるバッファの数:4
-742:	最大テクスチャサイズ　幅:8192 高さ:8192
-743:	テクスチャステージテンポラリレジスタ：使用可
-745:	減算合成のハードウェア対応：ネイティブ
-747:	ハードウェア頂点シェーダーバージョンコード：300
-748:	エミュレーション頂点シェーダーバージョンコード：エミュレーション無し
-749:	ピクセルシェーダーバージョンコード：300
-862:	バックバッファロック転送の時間:31332600nsec  一時的な描画可能バッファを使用した転送の時間:1696000nsec
-862:	バックバッファロックを使用しません
-864:	Ｚバッファを作成します.... 成功
-894:	プログラマブルシェーダーを使用します
+1:�V�X�e���̏����o�͂��܂�
+3:	�c�w���C�u���� Ver2.24c
+6:	�n�r  WindowsVista ( Build 9200  )
+110:	�b�o�t���쑬�x�F���2.52GHz
+116:	�l�l�w���߂��g�p���܂�
+120:	�b�o�t�x���_�FGenuineIntel
+131:	�b�o�t���F       Intel(R) Core(TM) i5-2450M CPU @ 2.50GHz
+133:�b�n�l�̏�����... �������܂���
+149:����������:2048.00MB  �󂫃������̈�:2048.00MB 
+151:�^�C�}�[�̐��x���������܂�
+154:���x���� �X�V�� �}���`���f�B�A�^�C�}�[�F0  �p�t�H�[�}���X�J�E���^�[�F60
+155: �p�t�H�[�}���X�J�E���^�[���g�p���܂� �^�C�}�[����\ : 10000.000000 KHz 
+159: �\�t�g�̓�d�N������... ��d�N���͂���Ă��܂���ł���
+165:�E�C���h�E�N���X��o�^���܂�... �o�^�ɐ������܂���
+170:�E�C���h�E���[�h�N���p�̃E�C���h�E���쐬���܂�
+268:�h�l�d�𖳌��ɂ��܂���
+472:�E�C���h�E�X�^�C�����E�C���h�E���[�h�p�ɕύX���܂�... ����
+486:DirectInput�֌W����������
+488:	DirectInput7 �̎擾��... ����
+585:		������������������... ����������
+592:	�W���C�p�b�h�̏�����... 
+659:	�W���C�p�b�h�̏������͐���ɏI�����܂���
+666:	�}�E�X�f�o�C�X�̏�����... ����������
+674:	�L�[�{�[�h�f�o�C�X�̏�����... ����������
+680:DirectInput �֘A�̏������͐���ɏI�����܂���
+683:DirectSound �̏��������s���܂�
+686:DirectSound �C���^�[�t�F�[�X�̎擾���s���܂�....  ����
+704:���������C���^�[�t�F�[�X�̏���������...  ����
+1141:	DirectSound �f�o�C�X��񋓂��܂�
+1150:		���W���[����:                 �h���C�o�L�q:�v���C�}�� �T�E���h �h���C�o�[ 
+1152:		���W���[����:{0.0.0.00000000}.{8cd6d348-536f-45ac-9749-3947d30531a7}  �h���C�o�L�q:�X�s�[�J�[ (2- High Definition Audio Device) 
+1154:		���W���[����:{0.0.0.00000000}.{0ad450a8-073e-4952-946d-c9064e29e90e}  �h���C�o�L�q:�X�s�[�J�[ (Steam Streaming Speakers) 
+1158:		���W���[����:{0.0.0.00000000}.{a92ff99e-cc68-40e4-8731-b322b8856bf9}  �h���C�o�L�q:�X�s�[�J�[ (Steam Streaming Microphone) 
+1160:	�ő�T���v�����O���[�g:200.00KHz �ŏ��T���v�����O���[�g:0.10KHz 
+1161:	���T�E���h�������̈�:0.00KB �󂫃T�E���h�������̈�:0.00KB 
 
-963:	フォントの初期化を行います
-968:	フォントの初期化は正常に終了しました
-1062:	文字コードバッファの初期化を行います... 完了しました
-1084:ＤＸライブラリの初期化処理終了
-1097:画像ファイル C:\Users\tanukimaru\program\rs\test-parse-rs\script\res\zoom-kisida.bmp がありません
+1164:	���p�\�T���v�����O���x
+1166:	 �v���C�}�� �P�Ubit = OK  �Wbit = OK 
+1170:	 �Z�J���_�� �P�Ubit = OK  �Wbit = OK 
+
+1171:	���p�\�`�����l��
+1174:	 �v���C�}�� MONO = OK  STEREO = OK 
+1176:	 �Z�J���_�� MONO = OK  STEREO = OK 
+
+1179:DirectSound �̏������͐���ɏI�����܂���
+1180:DirectDraw �֘A�̏��������s���܂�
+1183:	DirectDraw �I�u�W�F�N�g�̎擾���s���܂�....  ����
+1201:	������������������... �������ɐ������܂���
+1242:	�r�f�I�J�[�h�̏��
+1246:		��ʃ��[�h�ύX�������J�n���܂�
+1307:			��ʃ��[�h�̕ύX�������J�n���܂� 640 x 480  16 bit 
+1314:				�E�C���h�E���[�h�ɂ��܂�
+1316:			��ʃ��[�h�̕ύX�͐���ɏI�����܂��� 
+1319:			�J���[���
+1322:				A:00000000  B:00ff0000  G:0000ff00  B:000000ff
+1323:			�E�C���h�E�X�^�C�����E�C���h�E���[�h�p�ɕύX���܂�... ����
+1328:			�o�͉�ʗp�� DirectDrawSurface ���쐬���܂�
+1346:				�e�X�N���[���������̔z�u�ʒu
+1350:					PrimaryBuffer : VIDEOMEMORY  
+1352:					BaskBuffer : VIDEOMEMORY  
+1355:			�o�͉�ʗp�� DirectDrawSurface �̍쐬�͐���ɏI�����܂���
+1358:			Direct3D �֘A�̏��������s���܂�
+1361:			�c�����������R�c�I�u�W�F�N�g���擾���܂�
+1365:			�c�����������R�c�I�u�W�F�N�g���擾���܂���
+1369:			�R�c�f�o�C�X���쐬���܂�... �R�c�f�o�C�X�̍쐬�ɐ������܂���
+1378:				�e�N�X�`���ő啝:8192 �ŏ���:1 
+1382:				�`�搧��: D_D3DPTEXTURECAPS_POW2 = 0  D_D3DPTEXTURECAPS_SQUAREONLY = 0 
+1383:				�e�N�X�`���s�N�Z���t�H�[�}�b�g
+1387:					�ʏ�O���t�B�b�N�p
+1389:						 BIT:16  RED:5  GREEN:6  BLUE:5 
+1391:						 RED:00f800 GREEN:0007e0 BLUE:00001f 
+
+1393:						 BIT:32  RED:8  GREEN:8  BLUE:8 
+1396:						 RED:ff0000 GREEN:00ff00 BLUE:0000ff 
+
+1399:					�A���t�@�`�����l���t���O���t�B�b�N�p
+1401:						 BIT:16  ALPHA:4  RED:4  GREEN:4  BLUE:4 
+1404:						 ALPHA:0000f000 RED:00000f00 GREEN:000000f0 BLUE:0000000f 
+
+1407:						 BIT:32  ALPHA:8  RED:8  GREEN:8  BLUE:8 
+1409:						 ALPHA:ff000000 RED:00ff0000 GREEN:0000ff00 BLUE:000000ff 
+
+1411:			Direct3D �֘A�̏������͐���ɏI�����܂���
+1414:			�O���t�B�b�N�Ǘ��n�̏��������s���܂�
+1417:				�R�c�O���t�B�b�N�`��@�\���g�p���܂�
+1448:				�t�H���g�̏��������s���܂�
+1478:				�t�H���g�̏������͐���ɏI�����܂���
+1509:			�O���t�B�b�N�Ǘ��n�̏������͐���ɏI�����܂���
+1700:			�T�[�t�F�X�ԓ]���ɂ� BltFast ���g�p���܂�
+1708:			BitBlt:153416��s   BltFast:33774��s
+1710:			�X�L�������C���̐�:900
+
+1830:			�P�t���[��������̎��Ԃ� 17 msec�ł�
+1836:				Tri00:17 msec
+1839:				Tri01:17 msec
+1844:				Tri02:16 msec
+1847:				Tri03:17 msec
+1850:		��ʃ��[�h�ύX�����͐���ɏI�����܂���
+1896:	DirectDraw �֘A�̏������͐���ɏI�����܂���
+1903:	�����R�[�h�o�b�t�@�̏��������s���܂�... �������܂���
+2273:	�O���t�B�b�N�t�@�C�� C:\Users\tanukimaru\Downloads\irisu203\irisu203\data\img\album01_on.png ������܂���
+2321:	�O���t�B�b�N�t�@�C�� C:\Users\tanukimaru\Downloads\irisu203\irisu203\data\img\album02_on.png ������܂���
+2377:	�O���t�B�b�N�t�@�C�� C:\Users\tanukimaru\Downloads\irisu203\irisu203\data\img\album03_on.png ������܂���
+2429:	�O���t�B�b�N�t�@�C�� C:\Users\tanukimaru\Downloads\irisu203\irisu203\data\img\album04_on.png ������܂���
+2472:	�O���t�B�b�N�t�@�C�� C:\Users\tanukimaru\Downloads\irisu203\irisu203\data\img\album05_on.png ������܂���
+2479:	�O���t�B�b�N�t�@�C�� C:\Users\tanukimaru\Downloads\irisu203\irisu203\data\img\kirehasi1_on.png ������܂���
+2489:	�O���t�B�b�N�t�@�C�� C:\Users\tanukimaru\Downloads\irisu203\irisu203\data\img\kirehasi2_on.png ������܂���
+2494:	�O���t�B�b�N�t�@�C�� C:\Users\tanukimaru\Downloads\irisu203\irisu203\data\img\kirehasi3_on.png ������܂���
+2499:	�O���t�B�b�N�t�@�C�� C:\Users\tanukimaru\Downloads\irisu203\irisu203\data\img\kirehasi4_on.png ������܂���
+2504:	�O���t�B�b�N�t�@�C�� C:\Users\tanukimaru\Downloads\irisu203\irisu203\data\img\kirehasi5_on.png ������܂���
+2509:	�O���t�B�b�N�t�@�C�� C:\Users\tanukimaru\Downloads\irisu203\irisu203\data\img\kirehasi6_on.png ������܂���
+6862:	DirectDraw �֘A�̏I�������������Ȃ��܂�
+6878:		�t�H���g�̏��������s���܂�
+6886:		�t�H���g�̏������͐���ɏI�����܂���
+6892:		�O���t�B�b�N�Ǘ��n�̏I�������͐���ɏI�����܂���
+6897:		Direct3D �֘A�̏I���������s���܂�
+6902:		�R�c�f�o�C�X�̍폜�͐���ɏI�����܂���
+6907:		Direct3D �֘A�̏I�������͐���ɏI�����܂���
+6912:		���C���T�[�t�F�X��j�������܂�... �������܂���
+6918:		�c�����������c�������I�u�W�F�N�g��������܂�
+6934:		�c�����������c�������I�u�W�F�N�g��������܂���
+6949:	DirectDraw �֘A�̏I�������͐���ɏI�����܂���
+6954:	DirectInput �֘A�̏I������... ����
+6982:	DirectSound �̏I�������͐���ɏI�����܂���
+6988:	�E�C���h�E����悤�Ƃ��Ă��܂�
+7005:	�E�C���h�E���j������悤�Ƃ��Ă��܂�
+7027:	�\�t�g���I�����鏀���������܂���
+7868:	
+7877:	Alloc memory dump	Total size:0(0.000kb)  Alloc num:0
+7886:	
