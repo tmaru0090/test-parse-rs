@@ -1,3 +1,3 @@
 // main.script
-@include "test.script"
-
+@include "./std.script"
+@cmd("mpv","../../../../Downloads/pokemon-bw-syouri-mokuzen.wav");

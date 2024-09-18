@@ -1,209 +1,16 @@
-use crate::custom_compile_error;
-use crate::lexer::{Lexer, Token};
-use crate::parser::Node;
-use crate::parser::Parser;
-use crate::types::NodeValue;
-use anyhow::Result as R;
-use chrono::{DateTime, Local, Utc};
-use hostname::get;
-use indexmap::IndexMap;
-use log::info;
-use property_rs::Property;
-use serde_json::{Number, Value};
-use std::collections::HashSet;
-use std::fs::File;
-use std::io::{Read, Write};
-use std::ops::{Add, Div, Mul, Sub};
-use std::process::{Command, Output};
-use std::thread::sleep;
-use std::time::Duration;
-use std::time::UNIX_EPOCH;
-use whoami;
-
-impl Add for Variable {
-    type Output = Self;
-
-    fn add(self, other: Self) -> Self {
-        let result = match (self.value, other.value) {
-            (Value::Number(a), Value::Number(b)) => {
-                Value::Number((a.as_i64().unwrap() + b.as_i64().unwrap()).into()).into()
-            }
-            (Value::String(a), Value::String(b)) => Value::String(a + &b).into(),
-            _ => panic!("Unsupported types for addition"),
-        };
-        Variable {
-            data_type: self.data_type,
-            value: result,
-            address: 0,
-            is_mutable: false,
-            size: 0,
-        }
-    }
-}
-
-impl Sub for Variable {
-    type Output = Self;
-
-    fn sub(self, other: Self) -> Self {
-        let result = match (self.value, other.value) {
-            (Value::Number(a), Value::Number(b)) => {
-                Value::Number((a.as_i64().unwrap() - b.as_i64().unwrap()).into()).into()
-            }
-            _ => panic!("Unsupported types for subtraction"),
-        };
-        Variable {
-            data_type: self.data_type,
-            value: result,
-            address: 0,
-            is_mutable: false,
-            size: 0,
-        }
-    }
-}
-
-impl Mul for Variable {
-    type Output = Self;
-
-    fn mul(self, other: Self) -> Self {
-        let result = match (self.value, other.value) {
-            (Value::Number(a), Value::Number(b)) => {
-                Value::Number((a.as_i64().unwrap() * b.as_i64().unwrap()).into()).into()
-            }
-            _ => panic!("Unsupported types for multiplication"),
-        };
-        Variable {
-            data_type: self.data_type,
-            value: result,
-            address: 0,
-            is_mutable: false,
-
-            size: 0,
-        }
-    }
-}
-
-impl Div for Variable {
-    type Output = Self;
-
-    fn div(self, other: Self) -> Self {
-        let result = match (self.value, other.value) {
-            (Value::Number(a), Value::Number(b)) => {
-                Value::Number((a.as_i64().unwrap() / b.as_i64().unwrap()).into()).into()
-            }
-            _ => panic!("Unsupported types for division"),
-        };
-        Variable {
-            data_type: self.data_type,
-            value: result,
-            address: 0,
-            is_mutable: false,
-            size: 0,
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Variable {
-    data_type: Value,
-    value: Value,
-    address: usize,
-    is_mutable: bool,
-    size: usize,
-}
-
-#[derive(Debug, Clone, Property)]
-pub struct Context {
-    pub local_context: IndexMap<String, Variable>,
-    pub global_context: IndexMap<String, Variable>,
-    pub type_context: IndexMap<String, String>,
-    pub comment_lists: IndexMap<(usize, usize), Vec<String>>,
-}
-impl Context {
-    fn new() -> Self {
-        Context {
-            local_context: IndexMap::new(),
-            global_context: IndexMap::new(),
-            type_context: IndexMap::new(),
-            comment_lists: IndexMap::new(),
-        }
-    }
-}
-#[derive(Debug, Clone)]
-pub struct FileCache {
-    pub cache: IndexMap<String, Vec<Box<Node>>>,
-    pub processed_files: HashSet<String>,
-}
-impl FileCache {
-    fn new() -> Self {
-        FileCache {
-            processed_files: HashSet::new(),
-            cache: IndexMap::new(),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-struct MemoryManager {
-    pub heap: Vec<u8>,
-    pub free_list: Vec<usize>,
-}
-
-impl MemoryManager {
-    fn new(heap_size: usize) -> Self {
-        MemoryManager {
-            heap: vec![0; heap_size],
-            free_list: Vec::new(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Property)]
-pub struct Decoder {
-    #[property(get)]
-    ast_map: IndexMap<String, Vec<Box<Node>>>,
-    #[property(get)]
-    memory_mgr: MemoryManager,
-    #[property(get)]
-    context: Context,
-    #[property(get)]
-    file_contents: IndexMap<String, String>,
-    #[property(get)]
-    first_file: (String, String),
-    #[property(get)]
-    current_node: Option<(String, Box<Node>)>,
-}
-impl Decoder {
-
-    pub fn load_script(file_name: &str) -> R<Self, String> {
-        let mut ast_map: IndexMap<String, Vec<Box<Node>>> = IndexMap::new();
-        let file_content = std::fs::read_to_string(file_name)
-            .map_err(|e| e.to_string())
-            .expect("スクリプトの読み込みに失敗しました");
-        // レキサーとパーサーそれぞれ引数やnew系複雑になってるから修正して
-        let tokens = Lexer::new_with_value(file_name, file_content.clone()).tokenize()?;
-
-        let nodes = Parser::new(&tokens, file_name, file_content.clone()).parse()?;
-
-        ast_map.insert(file_name.to_string(), nodes.clone());
-        Ok(Decoder {
-            ast_map,
-            memory_mgr: MemoryManager::new(1024 * 1024),
-            file_contents: IndexMap::new(),
-            current_node: None,
-            first_file: (String::from(file_name), file_content.clone()),
-            context: Context::new(),
-        })
-    }
-    pub fn new() -> Self {
+ /*
+    pub fn new(file_path: String, content: String) -> Self {
         Self {
-            ast_map: IndexMap::new(),
             memory_mgr: MemoryManager::new(1024 * 1024),
+            nodes_map: IndexMap::new(),
             file_contents: IndexMap::new(),
             current_node: None,
-            first_file: (String::new(), String::new()),
+            first_file: (file_path, content),
             context: Context::new(),
+            file_cache: FileCache::new(),
         }
     }
+
     fn allocate(&mut self, size: usize) -> R<usize, String> {
         if let Some(index) = self.memory_mgr.free_list.pop() {
             Ok(index)
@@ -221,6 +28,75 @@ impl Decoder {
 
     fn deallocate(&mut self, index: usize) {
         self.memory_mgr.free_list.push(index);
+    }
+
+    fn include_file(&mut self, filename: &str, depth: usize) -> R<Vec<Box<Node>>, String> {
+        if depth > MAX_INCLUDE_DEPTH {
+            return Err("Maximum include depth exceeded".to_string());
+        }
+        if self.file_cache.processed_files.contains(filename) {
+            return Ok(vec![]); // 既に処理済みの場合は空のノードを返す
+        }
+        if let Some(cached_nodes) = self.file_cache.cache.get(filename) {
+            return Ok(cached_nodes.clone());
+        }
+        let content = std::fs::read_to_string(filename).map_err(|e| e.to_string())?;
+        let mut lexer = Lexer::new_with_value(filename.to_string(), content.clone());
+        let tokens = lexer.tokenize()?;
+        let mut parser = Parser::new(&tokens, filename.to_string(), content.clone());
+        let nodes = parser.parse()?;
+        self.file_cache
+            .cache
+            .insert(filename.to_string(), nodes.clone());
+        self.file_cache.processed_files.insert(filename.to_string()); // 処理済みファイルとしてマーク
+        self.file_contents.insert(filename.to_string(), content); // ファイル内容を保存
+        Ok(nodes)
+    }
+
+    pub fn add_include(
+        &mut self,
+        filename: &str,
+        nodes: &mut Vec<Box<Node>>,
+        depth: usize,
+    ) -> R<(), String> {
+       let included_nodes = self.include_file(filename, depth + 1)?;
+        nodes.splice(0..0, included_nodes.clone());
+        self.nodes_map.insert(filename.to_string(), included_nodes);
+        Ok(())
+    }
+    pub fn decode(&mut self, nodes: &mut Vec<Box<Node>>, depth: usize) -> R<Value, String> {
+        info!("depth: {}", depth);
+        let mut result = Value::Null;
+        let original_node = self.current_node.clone();
+        // std.scriptを読み込む
+        self.add_include("./std.script", nodes, depth)?;
+        // 他のファイルを読み込む
+        self.add_include(&self.first_file.0.clone(), nodes, depth)?;
+        for (filename, included_nodes) in self.nodes_map.clone() {
+            self.current_node = Some((filename.clone(), Box::new(Node::default())));
+            for node in included_nodes {
+                self.current_node = Some((filename.clone(), node.clone()));
+                match node.node_value() {
+                    NodeValue::Include(filename) => {
+                        if !self.nodes_map.contains_key(&filename) {
+                            self.add_include(&filename, nodes, depth + 1)?;
+                       }
+                        let mut included_nodes = self
+                            .nodes_map
+                            .get(&filename)
+                            .ok_or("File not found")?
+                            .clone();
+                        result = self.decode(&mut included_nodes, depth + 1)?;
+                    }
+                    _ => {
+                        result = self.execute_node(&node)?;
+                    }
+                }
+            }
+        }
+
+        self.current_node = original_node;
+        Ok(result)
     }
 
     fn get_value_size(&self, v_type: &str, v_value: &Value) -> usize {
@@ -573,41 +449,11 @@ impl Decoder {
             _ => Ok(value.clone()),
         }
     }
-
-    pub fn decode(&mut self) -> R<Value, String> {
-        let mut value = Value::Null;
-        let original_node = self.current_node.clone();
-        for (file_name, nodes) in self.ast_map() {
-            self.current_node = Some((file_name.clone(), Box::new(Node::default())));
-            let content = std::fs::read_to_string(file_name.clone()).map_err(|e| e.to_string())?;
-            self.file_contents.insert(file_name.clone(), content);
-            for node in nodes {
-                self.current_node = Some((file_name.clone(), node.clone()));
-                value = self.execute_node(&node)?;
-            }
-        }
-        self.current_node = original_node;
-        Ok(value)
-    }
-
     fn execute_node(&mut self, node: &Node) -> R<Value, String> {
         let mut result = Value::Null;
         //info!("global_contexts: {:?}", self.context.global_context.clone());
         //info!("local_contexts: {:?}", self.context.local_context.clone());
         match &node.node_value() {
-            NodeValue::Include(file_name) => {
-                let included_content =
-                    std::fs::read_to_string(file_name).map_err(|e| e.to_string())?;
-                let tokens =
-                    Lexer::new_with_value(file_name, included_content.clone()).tokenize()?;
-                let nodes = Parser::new(&tokens, file_name, included_content.clone()).parse()?;
-                self.ast_map.insert(file_name.clone(), nodes.clone());
-                for node in nodes {
-                    self.execute_node(&node)?;
-                }
-                Ok(Value::Null)
-            }
-
             NodeValue::If(condition, body) => {
                 // 条件を評価
                 let cond_value = self.execute_node(&condition)?;
@@ -679,6 +525,41 @@ impl Decoder {
                     ))
                 }
             }
+            /*
+                NodeValue::Array(data_type, values) => {
+                    // 型を評価
+                    let v_type = match data_type.node_value() {
+                        NodeValue::DataType(d) => self.execute_node(&d)?,
+                        _ => Value::Null,
+                    };
+                    // 各値を評価し、型チェックを行う
+                    let mut evaluated_values = Vec::new();
+                    for value in values {
+                        let v_value = self.execute_node(&*value)?;
+                        let temp_string = String::new();
+                        /*
+                        info!("type: {:?}",data_type.clone());
+                        let v_type = match v_type {
+                            Value::String(ref v) => v,
+                            _ => &temp_string,
+                        };
+                        self.check_type(&v_value, &v_type)?;
+                        */
+                        evaluated_values.push(v_value);
+                    }
+                    // 配列をシリアライズしてヒープにコピー
+                    let serialized_array =
+                        self.serialize_value("array", &Value::Array(evaluated_values.clone()));
+                    let index = self.allocate_and_copy_to_heap(serialized_array.clone())?;
+                    info!(
+                        "serialized_array: {:?} index: {:?}",
+                        serialized_array.clone(),
+                        index
+                    );
+                    // 結果を返す
+                    Ok(Value::Array(evaluated_values))
+                }
+            */
             NodeValue::Array(data_type, values) => {
                 // 型を評価
                 let v_type = match data_type.node_value() {
@@ -1592,4 +1473,5 @@ impl Decoder {
             )),
         }
     }
+    */
 }

@@ -79,7 +79,7 @@ fn remove_ansi_sequences(input: &str) -> String {
         .replace("\u{1b}[38;2;100;100;200m", "")
         .replace("\u{1b}[0m", "")
 }
-
+/*
 fn decode(file_path: &str, content: String, nodes: &mut Vec<Box<Node>>) -> R<Value, String> {
     let mut value = Value::Null;
     #[cfg(feature = "decode")]
@@ -172,5 +172,23 @@ fn main() -> R<(), String> {
 
     info!("{:?}", d);
     asm(&nodes, input_content.clone(), "main.asm").unwrap();
+    Ok(())
+}
+*/
+fn main() -> R<(), String> {
+    env_logger::init();
+    let default_script_dir = std::path::Path::new("./script");
+    std::env::set_current_dir(&default_script_dir)
+        .expect("カレントディレクトリの設定に失敗しました");
+    let file_name = "main.script";
+
+    let mut decoder = Decoder::load_script(file_name)?;
+    match decoder.decode() {
+        Ok(v) => {
+            info!("ret: {}", v);
+            info!("ast_maps: {:?}", decoder.ast_map())
+        }
+        Err(e) => log::error!("{}", e),
+    }
     Ok(())
 }

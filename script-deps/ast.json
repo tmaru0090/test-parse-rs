@@ -16,7 +16,7 @@
   },
   {
     "node_value": {
-      "Include": "test.script"
+      "Include": "./test.script"
     },
     "node_next": null,
     "line": 2,
@@ -25,11 +25,56 @@
   },
   {
     "node_value": {
-      "String": "test.script"
+      "String": "./test.script"
     },
     "node_next": null,
-    "line": 2,
+    "line": 3,
+    "column": 1,
+    "is_statement": false
+  },
+  {
+    "node_value": {
+      "VariableDeclaration": [
+        {
+          "node_value": {
+            "Variable": "a"
+          },
+          "node_next": null,
+          "line": 3,
+          "column": 10,
+          "is_statement": false
+        },
+        {
+          "node_value": "Empty",
+          "node_next": null,
+          "line": 3,
+          "column": 5,
+          "is_statement": false
+        },
+        {
+          "node_value": {
+            "Int": 0
+          },
+          "node_next": null,
+          "line": 3,
+          "column": 10,
+          "is_statement": false
+        },
+        false,
+        false,
+        false
+      ]
+    },
+    "node_next": null,
+    "line": 3,
     "column": 10,
+    "is_statement": true
+  },
+  {
+    "node_value": "Empty",
+    "node_next": null,
+    "line": 0,
+    "column": 0,
     "is_statement": false
   }
 ]

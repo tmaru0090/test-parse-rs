@@ -56,11 +56,11 @@ pub struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(tokens: &'a Vec<Token>, input_path: String, input_content: String) -> Self {
+    pub fn new(tokens: &'a Vec<Token>, input_path: &str, input_content: String) -> Self {
         Parser {
             tokens,
             i: 0,
-            input_path,
+            input_path: input_path.to_string(),
             input_content,
         }
     }

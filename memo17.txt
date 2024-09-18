@@ -1,0 +1,63 @@
+/*
+    fn include_file(&mut self, filename: &str) -> R<Vec<Box<Node>>, String> {
+        if self.file_cache.processed_files.contains(filename) {
+            return Ok(vec![]); // 既に処理済みの場合は空のノードを返す
+        }
+        if let Some(cached_nodes) = self.file_cache.cache.get(filename) {
+            return Ok(cached_nodes.clone());
+        }
+        let content = std::fs::read_to_string(filename).map_err(|e| e.to_string())?;
+        let mut lexer = Lexer::new_with_value(filename.to_string(), content.clone());
+        let tokens = lexer.tokenize()?;
+        let mut parser = Parser::new(&tokens, filename.to_string(), content.clone());
+        let nodes = parser.parse()?;
+        self.file_cache
+            .cache
+            .insert(filename.to_string(), nodes.clone());
+        self.file_cache.processed_files.insert(filename.to_string()); // 処理済みファイルとしてマーク
+        self.file_contents.insert(filename.to_string(), content); // ファイル内容を保存
+        Ok(nodes)
+    }
+    pub fn add_include(&mut self, filename: &str, nodes: &mut Vec<Box<Node>>) -> R<(), String> {
+        let included_nodes = self.include_file(filename)?;
+        nodes.splice(0..0, included_nodes.clone());
+        self.nodes_map.insert(filename.to_string(), included_nodes);
+        Ok(())
+    }
+
+    pub fn decode(&mut self, nodes: &mut Vec<Box<Node>>) -> R<Value, String> {
+        let mut result = Value::Null;
+        let original_node = self.current_node.clone();
+        // std.scriptを読み込む
+        self.add_include("./std.script", nodes)?;
+        // 他のファイルを読み込む
+        self.add_include(&self.first_file.0.clone(), nodes)?;
+        for (filename, included_nodes) in self.nodes_map.clone() {
+            self.current_node = Some((filename.clone(), Box::new(Node::default())));
+            for node in included_nodes {
+                self.current_node = Some((filename.clone(), node.clone()));
+                match node.node_value() {
+                    NodeValue::Include(filename) => {
+                        if !self.nodes_map.contains_key(&filename) {
+                            self.add_include(&filename, nodes)?;
+                        }
+                        let mut included_nodes = self
+                            .nodes_map
+                            .get(&filename)
+                            .ok_or("File not found")?
+                            .clone();
+                        result = self.decode(&mut included_nodes)?;
+                    }
+                    _ => {
+                        result = self.execute_node(&node)?;
+                    }
+                }
+            }
+        }
+
+        self.current_node = original_node;
+        Ok(result)
+    }
+    */
+
+

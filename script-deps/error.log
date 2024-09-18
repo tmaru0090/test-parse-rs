@@ -1,1 +1,4 @@
-Maximum include depth exceeded
+error: type 'i32' is already defined at line 1, column 17
+   --> ./std.script:1:17
+1 | // std.script
+Column value is invalid.

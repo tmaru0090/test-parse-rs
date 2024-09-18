@@ -62,9 +62,9 @@ impl Lexer {
         }
     }
 
-    pub fn new_with_value(input_path: String, input_content: String) -> Self {
+    pub fn new_with_value(input_path: &str, input_content: String) -> Self {
         Lexer {
-            input_path,
+            input_path: input_path.to_string(),
             input_content,
             input_content_vec: Vec::new(),
             line: 1,
