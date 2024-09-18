@@ -2,7 +2,6 @@
 @include "./std.sc"
 
 fn main(){
-	l a = 100;
-	l b = a;
+	//l out = @cmd("mpv","../../../../Downloads/pokemon-bw-syouri-mokuzen.wav");
 }
 main();

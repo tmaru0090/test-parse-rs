@@ -9,6 +9,7 @@ use hostname::get;
 use indexmap::IndexMap;
 use log::info;
 use property_rs::Property;
+use serde::{Deserialize, Serialize};
 use serde_json::to_string_pretty;
 use serde_json::{Number, Value};
 use std::collections::HashSet;
@@ -18,10 +19,9 @@ use std::ops::{Add, Div, Mul, Sub};
 use std::process::{Command, Output};
 use std::thread::sleep;
 use std::time::Duration;
+use std::time::Instant;
 use std::time::UNIX_EPOCH;
 use whoami;
-
-use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone)]
 pub struct Variable {
     data_type: Value,
@@ -76,10 +76,24 @@ pub struct Decoder {
     file_contents: IndexMap<String, String>,
     #[property(get)]
     current_node: Option<(String, Box<Node>)>,
+    
+    #[property(get)]
     generated_ast_file: bool,
+    
+    #[property(get)]
     generated_error_log_file: bool,
+    
+    #[property(get)]
+    measure_decode_time: bool,
+
+    #[property(get)]
+    decode_time: f32,
 }
 impl Decoder {
+    pub fn measured_decode_time(&mut self, flag: bool) -> &mut Self {
+        self.measure_decode_time = flag;
+        self
+    }
     pub fn generate_ast_file(&mut self, flag: bool) -> &mut Self {
         self.generated_ast_file = flag;
         self
@@ -113,6 +127,8 @@ impl Decoder {
             context: Context::new(),
             generated_ast_file: true,
             generated_error_log_file: true,
+            measure_decode_time: true,
+            decode_time: 0.0,
         })
     }
     pub fn new() -> Self {
@@ -124,6 +140,9 @@ impl Decoder {
             context: Context::new(),
             generated_ast_file: true,
             generated_error_log_file: true,
+            measure_decode_time: true,
+
+            decode_time: 0.0,
         }
     }
     fn allocate(&mut self, size: usize) -> R<usize, String> {
@@ -497,6 +516,11 @@ impl Decoder {
     }
 
     pub fn decode(&mut self) -> R<Value, String> {
+        let start_time = if self.measure_decode_time {
+            Some(Instant::now())
+        } else {
+            None
+        };
         let mut value = Value::Null;
         let original_node = self.current_node.clone();
         for (file_name, nodes) in self.ast_map() {
@@ -509,6 +533,7 @@ impl Decoder {
             }
         }
         self.current_node = original_node;
+        
         if self.generated_ast_file {
             // ディレクトリが存在しない場合は作成
             std::fs::create_dir_all("./script-analysis").map_err(|e| e.to_string())?;
@@ -518,7 +543,13 @@ impl Decoder {
             let ast_json = to_string_pretty(&ast_map).map_err(|e| e.to_string())?;
             std::fs::write("./script-analysis/ast.json", ast_json).map_err(|e| e.to_string())?;
         }
-
+        if let Some(start) = start_time {
+            let duration = start.elapsed();
+            // 秒とナノ秒を取得
+            let secs = duration.as_secs() as f32;
+            let nanos = duration.subsec_nanos() as f32;
+            self.decode_time = secs + (nanos / 1_000_000_000.0);
+        }
         Ok(value)
     }
 

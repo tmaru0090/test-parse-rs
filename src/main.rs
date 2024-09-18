@@ -35,24 +35,22 @@ fn main() -> R<(), String> {
     let default_script_dir = std::path::Path::new("./script");
     std::env::set_current_dir(&default_script_dir)
         .expect("カレントディレクトリの設定に失敗しました");
-     // コマンドライン引数を取得
+    // コマンドライン引数を取得
     let args: Vec<String> = env::args().collect();
-    let file_name = if args.len() > 1 {
-        &args[1]
-    } else {
-        "main.sc"
-    };
+    let file_name = if args.len() > 1 { &args[1] } else { "main.sc" };
     let mut decoder = match Decoder::load_script(file_name) {
         Ok(v) => v,
         Err(e) => {
             log::error!("{}", e);
-        Decoder::new()
+            Decoder::new()
         }
     };
+
     match decoder.decode() {
         Ok(v) => {
             info!("ret: {}", v);
-            info!("ast_maps: {:?}", decoder.ast_map())
+            info!("ast_maps: {:?}", decoder.ast_map());
+            info!("decode total-time: {:?}", decoder.decode_time())
         }
         Err(e) => log::error!("{}", e),
     }
