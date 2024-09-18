@@ -1,4 +1,155 @@
 {
+  "main.script": [
+    {
+      "node_value": {
+        "SingleComment": [
+          " main.script",
+          [
+            1,
+            1
+          ]
+        ]
+      },
+      "node_next": null,
+      "line": 2,
+      "column": 1,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "Include": "./std.script"
+      },
+      "node_next": null,
+      "line": 2,
+      "column": 10,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "String": "./std.script"
+      },
+      "node_next": null,
+      "line": 3,
+      "column": 1,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "Function": [
+          "main",
+          [],
+          {
+            "node_value": {
+              "Block": [
+                {
+                  "node_value": {
+                    "VariableDeclaration": [
+                      {
+                        "node_value": {
+                          "Variable": "out"
+                        },
+                        "node_next": null,
+                        "line": 4,
+                        "column": 90,
+                        "is_statement": false
+                      },
+                      {
+                        "node_value": "Empty",
+                        "node_next": null,
+                        "line": 4,
+                        "column": 4,
+                        "is_statement": false
+                      },
+                      {
+                        "node_value": {
+                          "Call": [
+                            "cmd",
+                            [
+                              {
+                                "node_value": {
+                                  "String": "../../voicebox-notification-rs/target/debug/voicebox-notification-rs.exe"
+                                },
+                                "node_next": null,
+                                "line": 4,
+                                "column": 89,
+                                "is_statement": false
+                              }
+                            ],
+                            true
+                          ]
+                        },
+                        "node_next": null,
+                        "line": 4,
+                        "column": 90,
+                        "is_statement": false
+                      },
+                      true,
+                      false,
+                      false
+                    ]
+                  },
+                  "node_next": null,
+                  "line": 4,
+                  "column": 90,
+                  "is_statement": true
+                },
+                {
+                  "node_value": "Empty",
+                  "node_next": null,
+                  "line": 0,
+                  "column": 0,
+                  "is_statement": false
+                }
+              ]
+            },
+            "node_next": null,
+            "line": 7,
+            "column": 1,
+            "is_statement": false
+          },
+          {
+            "node_value": "Empty",
+            "node_next": null,
+            "line": 7,
+            "column": 1,
+            "is_statement": false
+          },
+          {
+            "node_value": "Empty",
+            "node_next": null,
+            "line": 3,
+            "column": 9,
+            "is_statement": false
+          },
+          false
+        ]
+      },
+      "node_next": null,
+      "line": 7,
+      "column": 1,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "Call": [
+          "main",
+          [],
+          false
+        ]
+      },
+      "node_next": null,
+      "line": 7,
+      "column": 7,
+      "is_statement": false
+    },
+    {
+      "node_value": "Empty",
+      "node_next": null,
+      "line": 0,
+      "column": 0,
+      "is_statement": false
+    }
+  ],
   "./std.script": [
     {
       "node_value": {
@@ -293,209 +444,6 @@
       "node_next": null,
       "line": 0,
       "column": 0,
-      "is_statement": false
-    }
-  ],
-  "main.script": [
-    {
-      "node_value": {
-        "SingleComment": [
-          " main.script",
-          [
-            1,
-            1
-          ]
-        ]
-      },
-      "node_next": null,
-      "line": 2,
-      "column": 1,
-      "is_statement": false
-    },
-    {
-      "node_value": {
-        "Include": "./std.script"
-      },
-      "node_next": null,
-      "line": 2,
-      "column": 10,
-      "is_statement": false
-    },
-    {
-      "node_value": {
-        "String": "./std.script"
-      },
-      "node_next": null,
-      "line": 3,
-      "column": 1,
-      "is_statement": false
-    },
-    {
-      "node_value": {
-        "VariableDeclaration": [
-          {
-            "node_value": {
-              "Variable": "path"
-            },
-            "node_next": null,
-            "line": 3,
-            "column": 12,
-            "is_statement": false
-          },
-          {
-            "node_value": "Empty",
-            "node_next": null,
-            "line": 3,
-            "column": 3,
-            "is_statement": false
-          },
-          {
-            "node_value": {
-              "String": ""
-            },
-            "node_next": null,
-            "line": 3,
-            "column": 12,
-            "is_statement": false
-          },
-          false,
-          false,
-          false
-        ]
-      },
-      "node_next": null,
-      "line": 3,
-      "column": 12,
-      "is_statement": true
-    },
-    {
-      "node_value": "Empty",
-      "node_next": null,
-      "line": 0,
-      "column": 0,
-      "is_statement": false
-    },
-    {
-      "node_value": {
-        "Block": [
-          {
-            "node_value": {
-              "VariableDeclaration": [
-                {
-                  "node_value": {
-                    "Variable": "path"
-                  },
-                  "node_next": null,
-                  "line": 5,
-                  "column": 60,
-                  "is_statement": false
-                },
-                {
-                  "node_value": "Empty",
-                  "node_next": null,
-                  "line": 5,
-                  "column": 7,
-                  "is_statement": false
-                },
-                {
-                  "node_value": {
-                    "String": "../../../../Downloads/pokemon-bw-y-sentou.wa"
-                  },
-                  "node_next": null,
-                  "line": 5,
-                  "column": 60,
-                  "is_statement": false
-                },
-                true,
-                true,
-                false
-              ]
-            },
-            "node_next": null,
-            "line": 5,
-            "column": 60,
-            "is_statement": true
-          },
-          {
-            "node_value": "Empty",
-            "node_next": null,
-            "line": 0,
-            "column": 0,
-            "is_statement": false
-          },
-          {
-            "node_value": {
-              "VariableDeclaration": [
-                {
-                  "node_value": {
-                    "Variable": "out"
-                  },
-                  "node_next": null,
-                  "line": 6,
-                  "column": 25,
-                  "is_statement": false
-                },
-                {
-                  "node_value": "Empty",
-                  "node_next": null,
-                  "line": 6,
-                  "column": 3,
-                  "is_statement": false
-                },
-                {
-                  "node_value": {
-                    "Call": [
-                      "cmd",
-                      [
-                        {
-                          "node_value": {
-                            "String": "mpv"
-                          },
-                          "node_next": null,
-                          "line": 6,
-                          "column": 19,
-                          "is_statement": false
-                        },
-                        {
-                          "node_value": {
-                            "Variable": "path"
-                          },
-                          "node_next": null,
-                          "line": 6,
-                          "column": 24,
-                          "is_statement": false
-                        }
-                      ],
-                      true
-                    ]
-                  },
-                  "node_next": null,
-                  "line": 6,
-                  "column": 25,
-                  "is_statement": false
-                },
-                true,
-                false,
-                false
-              ]
-            },
-            "node_next": null,
-            "line": 6,
-            "column": 25,
-            "is_statement": true
-          },
-          {
-            "node_value": "Empty",
-            "node_next": null,
-            "line": 0,
-            "column": 0,
-            "is_statement": false
-          }
-        ]
-      },
-      "node_next": null,
-      "line": 7,
-      "column": 1,
       "is_statement": false
     }
   ]

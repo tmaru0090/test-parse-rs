@@ -48,19 +48,6 @@ impl Context {
         }
     }
 }
-#[derive(Debug, Clone)]
-pub struct FileCache {
-    pub cache: IndexMap<String, Vec<Box<Node>>>,
-    pub processed_files: HashSet<String>,
-}
-impl FileCache {
-    fn new() -> Self {
-        FileCache {
-            processed_files: HashSet::new(),
-            cache: IndexMap::new(),
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 struct MemoryManager {

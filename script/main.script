@@ -1,6 +1,7 @@
 // main.script
 @include "./std.script"
+fn main(){
+	l out = @cmd("../../voicebox-notification-rs/target/debug/voicebox-notification-rs.exe");
+}
 
-l mut path = "../../../../Downloads/pokemon-bw-y-sentou.wav";
-l out = @cmd("mpv",path);
-
+main();
