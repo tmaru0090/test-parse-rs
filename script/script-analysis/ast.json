@@ -1,0 +1,394 @@
+{
+  "./std.script": [
+    {
+      "node_value": {
+        "SingleComment": [
+          " std.script\r",
+          [
+            1,
+            1
+          ]
+        ]
+      },
+      "node_next": null,
+      "line": 2,
+      "column": 1,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "TypeDeclaration": [
+          {
+            "node_value": {
+              "Variable": "i32"
+            },
+            "node_next": null,
+            "line": 2,
+            "column": 17,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "String": "i32"
+            },
+            "node_next": null,
+            "line": 2,
+            "column": 17,
+            "is_statement": false
+          }
+        ]
+      },
+      "node_next": null,
+      "line": 2,
+      "column": 17,
+      "is_statement": false
+    },
+    {
+      "node_value": "Empty",
+      "node_next": null,
+      "line": 0,
+      "column": 0,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "TypeDeclaration": [
+          {
+            "node_value": {
+              "Variable": "f32"
+            },
+            "node_next": null,
+            "line": 3,
+            "column": 17,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "String": "f32"
+            },
+            "node_next": null,
+            "line": 3,
+            "column": 17,
+            "is_statement": false
+          }
+        ]
+      },
+      "node_next": null,
+      "line": 3,
+      "column": 17,
+      "is_statement": false
+    },
+    {
+      "node_value": "Empty",
+      "node_next": null,
+      "line": 0,
+      "column": 0,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "TypeDeclaration": [
+          {
+            "node_value": {
+              "Variable": "i64"
+            },
+            "node_next": null,
+            "line": 4,
+            "column": 17,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "String": "i64"
+            },
+            "node_next": null,
+            "line": 4,
+            "column": 17,
+            "is_statement": false
+          }
+        ]
+      },
+      "node_next": null,
+      "line": 4,
+      "column": 17,
+      "is_statement": false
+    },
+    {
+      "node_value": "Empty",
+      "node_next": null,
+      "line": 0,
+      "column": 0,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "TypeDeclaration": [
+          {
+            "node_value": {
+              "Variable": "f64"
+            },
+            "node_next": null,
+            "line": 5,
+            "column": 17,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "String": "f64"
+            },
+            "node_next": null,
+            "line": 5,
+            "column": 17,
+            "is_statement": false
+          }
+        ]
+      },
+      "node_next": null,
+      "line": 5,
+      "column": 17,
+      "is_statement": false
+    },
+    {
+      "node_value": "Empty",
+      "node_next": null,
+      "line": 0,
+      "column": 0,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "TypeDeclaration": [
+          {
+            "node_value": {
+              "Variable": "string"
+            },
+            "node_next": null,
+            "line": 6,
+            "column": 23,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "String": "string"
+            },
+            "node_next": null,
+            "line": 6,
+            "column": 23,
+            "is_statement": false
+          }
+        ]
+      },
+      "node_next": null,
+      "line": 6,
+      "column": 23,
+      "is_statement": false
+    },
+    {
+      "node_value": "Empty",
+      "node_next": null,
+      "line": 0,
+      "column": 0,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "TypeDeclaration": [
+          {
+            "node_value": {
+              "Variable": "void"
+            },
+            "node_next": null,
+            "line": 7,
+            "column": 19,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "String": "unit"
+            },
+            "node_next": null,
+            "line": 7,
+            "column": 19,
+            "is_statement": false
+          }
+        ]
+      },
+      "node_next": null,
+      "line": 7,
+      "column": 19,
+      "is_statement": false
+    },
+    {
+      "node_value": "Empty",
+      "node_next": null,
+      "line": 0,
+      "column": 0,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "TypeDeclaration": [
+          {
+            "node_value": {
+              "Variable": "array"
+            },
+            "node_next": null,
+            "line": 8,
+            "column": 21,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "String": "array"
+            },
+            "node_next": null,
+            "line": 8,
+            "column": 21,
+            "is_statement": false
+          }
+        ]
+      },
+      "node_next": null,
+      "line": 8,
+      "column": 21,
+      "is_statement": false
+    },
+    {
+      "node_value": "Empty",
+      "node_next": null,
+      "line": 0,
+      "column": 0,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "TypeDeclaration": [
+          {
+            "node_value": {
+              "Variable": "bool"
+            },
+            "node_next": null,
+            "line": 9,
+            "column": 19,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "String": "bool"
+            },
+            "node_next": null,
+            "line": 9,
+            "column": 19,
+            "is_statement": false
+          }
+        ]
+      },
+      "node_next": null,
+      "line": 9,
+      "column": 19,
+      "is_statement": false
+    },
+    {
+      "node_value": "Empty",
+      "node_next": null,
+      "line": 0,
+      "column": 0,
+      "is_statement": false
+    }
+  ],
+  "main.script": [
+    {
+      "node_value": {
+        "SingleComment": [
+          " main.script",
+          [
+            1,
+            1
+          ]
+        ]
+      },
+      "node_next": null,
+      "line": 2,
+      "column": 1,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "Include": "./std.script"
+      },
+      "node_next": null,
+      "line": 2,
+      "column": 10,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "String": "./std.script"
+      },
+      "node_next": null,
+      "line": 3,
+      "column": 1,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "VariableDeclaration": [
+          {
+            "node_value": {
+              "Variable": "a"
+            },
+            "node_next": null,
+            "line": 3,
+            "column": 11,
+            "is_statement": false
+          },
+          {
+            "node_value": "Empty",
+            "node_next": null,
+            "line": 3,
+            "column": 3,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "Int": 1000
+            },
+            "node_next": null,
+            "line": 3,
+            "column": 11,
+            "is_statement": false
+          },
+          false,
+          false,
+          false
+        ]
+      },
+      "node_next": null,
+      "line": 3,
+      "column": 11,
+      "is_statement": true
+    },
+    {
+      "node_value": "Empty",
+      "node_next": null,
+      "line": 0,
+      "column": 0,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "SingleComment": [
+          "md(\"mpv\",\"../../../../Downloads/pokemon-bw-syouri-mokuzen.wav\");",
+          [
+            4,
+            1
+          ]
+        ]
+      },
+      "node_next": null,
+      "line": 4,
+      "column": 1,
+      "is_statement": false
+    }
+  ]
+}

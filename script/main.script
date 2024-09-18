@@ -1,3 +1,4 @@
 // main.script
 @include "./std.script"
-@cmd("mpv","../../../../Downloads/pokemon-bw-syouri-mokuzen.wav");
+l a = 1000;
+//md("mpv","../../../../Downloads/pokemon-bw-syouri-mokuzen.wav");
