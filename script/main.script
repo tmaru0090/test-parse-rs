@@ -1,5 +1,6 @@
 // main.script
 @include "./std.script"
-l path = "../../../../Downloads/pokemon-bw-y-sentou.wa";
+
+l mut path = "../../../../Downloads/pokemon-bw-y-sentou.wav";
 l out = @cmd("mpv",path);
-@println(out)
+

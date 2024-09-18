@@ -101,7 +101,13 @@ impl Decoder {
         self.generated_error_log_file = flag;
         self
     }
-
+    pub fn add_ast_from_file(&mut self, file_name: &str) -> R<&mut Self, String> {
+        let content = std::fs::read_to_string(file_name).map_err(|e| e.to_string())?;
+        let tokens = Lexer::new_with_value(file_name, content.clone()).tokenize()?;
+        let nodes = Parser::new(&tokens, file_name, content.clone()).parse()?;
+        self.ast_map.insert(file_name.to_string(), nodes.clone());
+        Ok(self)
+    }
     pub fn load_script(file_name: &str) -> R<Self, String> {
         let mut ast_map: IndexMap<String, Vec<Box<Node>>> = IndexMap::new();
         let file_content = std::fs::read_to_string(file_name)
@@ -111,7 +117,6 @@ impl Decoder {
         let tokens = Lexer::new_with_value(file_name, file_content.clone()).tokenize()?;
 
         let nodes = Parser::new(&tokens, file_name, file_content.clone()).parse()?;
-
         ast_map.insert(file_name.to_string(), nodes.clone());
         Ok(Decoder {
             ast_map,
@@ -536,12 +541,9 @@ impl Decoder {
         //info!("local_contexts: {:?}", self.context.local_context.clone());
         match &node.node_value() {
             NodeValue::Include(file_name) => {
-                let included_content =
-                    std::fs::read_to_string(file_name).map_err(|e| e.to_string())?;
-                let tokens =
-                    Lexer::new_with_value(file_name, included_content.clone()).tokenize()?;
-                let nodes = Parser::new(&tokens, file_name, included_content.clone()).parse()?;
-                self.ast_map.insert(file_name.clone(), nodes.clone());
+                self.add_ast_from_file(file_name)?;
+                let ast_map = self.ast_map();
+                let nodes = ast_map.get(file_name).unwrap();
                 for node in nodes {
                     self.execute_node(&node)?;
                 }
@@ -680,7 +682,6 @@ impl Decoder {
                 self.context.local_context = initial_local_context; // ブロックの処理が終わったらローカルコンテキストを元に戻す
                 Ok(r)
             }
-
             NodeValue::Assign(var_name, value) => {
                 let name = match var_name.node_value() {
                     NodeValue::Variable(v) => v,
@@ -688,7 +689,12 @@ impl Decoder {
                 };
 
                 // 変数のデータを一時変数にコピー
-                let variable_data = self.context.global_context.get(&name).cloned();
+                let variable_data = self
+                    .context
+                    .local_context
+                    .get(&name)
+                    .cloned()
+                    .or_else(|| self.context.global_context.get(&name).cloned());
 
                 if let Some(mut variable) = variable_data {
                     // 可変性のチェックを追加
@@ -704,7 +710,11 @@ impl Decoder {
 
                         // 変数の値を更新
                         variable.value = new_value.clone();
-                        self.context.global_context.insert(name.clone(), variable);
+                        if self.context.local_context.contains_key(&name) {
+                            self.context.local_context.insert(name.clone(), variable);
+                        } else {
+                            self.context.global_context.insert(name.clone(), variable);
+                        }
                         info!("Assign: name = {:?}, new_value = {:?}", name, new_value);
                         result = new_value.clone();
                         Ok(new_value)
@@ -737,6 +747,7 @@ impl Decoder {
                     ))
                 }
             }
+
             NodeValue::Call(name, args, is_system) => {
                 if *is_system {
                     match name.as_str() {

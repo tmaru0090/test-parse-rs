@@ -339,7 +339,7 @@
             },
             "node_next": null,
             "line": 3,
-            "column": 56,
+            "column": 12,
             "is_statement": false
           },
           {
@@ -351,11 +351,11 @@
           },
           {
             "node_value": {
-              "String": "../../../../Downloads/pokemon-bw-y-sentou.wa"
+              "String": ""
             },
             "node_next": null,
             "line": 3,
-            "column": 56,
+            "column": 12,
             "is_statement": false
           },
           false,
@@ -365,7 +365,7 @@
       },
       "node_next": null,
       "line": 3,
-      "column": 56,
+      "column": 12,
       "is_statement": true
     },
     {
@@ -377,70 +377,125 @@
     },
     {
       "node_value": {
-        "VariableDeclaration": [
+        "Block": [
           {
             "node_value": {
-              "Variable": "out"
+              "VariableDeclaration": [
+                {
+                  "node_value": {
+                    "Variable": "path"
+                  },
+                  "node_next": null,
+                  "line": 5,
+                  "column": 60,
+                  "is_statement": false
+                },
+                {
+                  "node_value": "Empty",
+                  "node_next": null,
+                  "line": 5,
+                  "column": 7,
+                  "is_statement": false
+                },
+                {
+                  "node_value": {
+                    "String": "../../../../Downloads/pokemon-bw-y-sentou.wa"
+                  },
+                  "node_next": null,
+                  "line": 5,
+                  "column": 60,
+                  "is_statement": false
+                },
+                true,
+                true,
+                false
+              ]
             },
             "node_next": null,
-            "line": 4,
-            "column": 25,
-            "is_statement": false
+            "line": 5,
+            "column": 60,
+            "is_statement": true
           },
           {
             "node_value": "Empty",
             "node_next": null,
-            "line": 4,
-            "column": 3,
+            "line": 0,
+            "column": 0,
             "is_statement": false
           },
           {
             "node_value": {
-              "Call": [
-                "cmd",
-                [
-                  {
-                    "node_value": {
-                      "String": "mpv"
-                    },
-                    "node_next": null,
-                    "line": 4,
-                    "column": 19,
-                    "is_statement": false
+              "VariableDeclaration": [
+                {
+                  "node_value": {
+                    "Variable": "out"
                   },
-                  {
-                    "node_value": {
-                      "Variable": "path"
-                    },
-                    "node_next": null,
-                    "line": 4,
-                    "column": 24,
-                    "is_statement": false
-                  }
-                ],
-                true
+                  "node_next": null,
+                  "line": 6,
+                  "column": 25,
+                  "is_statement": false
+                },
+                {
+                  "node_value": "Empty",
+                  "node_next": null,
+                  "line": 6,
+                  "column": 3,
+                  "is_statement": false
+                },
+                {
+                  "node_value": {
+                    "Call": [
+                      "cmd",
+                      [
+                        {
+                          "node_value": {
+                            "String": "mpv"
+                          },
+                          "node_next": null,
+                          "line": 6,
+                          "column": 19,
+                          "is_statement": false
+                        },
+                        {
+                          "node_value": {
+                            "Variable": "path"
+                          },
+                          "node_next": null,
+                          "line": 6,
+                          "column": 24,
+                          "is_statement": false
+                        }
+                      ],
+                      true
+                    ]
+                  },
+                  "node_next": null,
+                  "line": 6,
+                  "column": 25,
+                  "is_statement": false
+                },
+                true,
+                false,
+                false
               ]
             },
             "node_next": null,
-            "line": 4,
+            "line": 6,
             "column": 25,
-            "is_statement": false
+            "is_statement": true
           },
-          false,
-          false,
-          false
+          {
+            "node_value": "Empty",
+            "node_next": null,
+            "line": 0,
+            "column": 0,
+            "is_statement": false
+          }
         ]
       },
       "node_next": null,
-      "line": 4,
-      "column": 25,
-      "is_statement": true
-    },
-    {
-      "node_value": "Empty",
-      "node_next": null,
-      "line": 0,
-      "column": 0,
+      "line": 7,
+      "column": 1,
       "is_statement": false
     }
   ]
