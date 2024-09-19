@@ -4,8 +4,7 @@
 fn main(){
 	l a = 1000;
 	l mut b = &a;
-	b = 1;
-	b = a;
+        b = 1;
 }
 // 関数実行
 main();

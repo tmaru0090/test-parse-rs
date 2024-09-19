@@ -1,4 +1,4 @@
-use crate::custom_compile_error;
+use crate::compile_error;
 use crate::error::CompilerError;
 use crate::types::TokenType;
 use anyhow::{anyhow, Context, Result as R};
@@ -153,7 +153,7 @@ impl Lexer {
                                 self.column += 1;
                             }
                             if !closed {
-                                return Err(custom_compile_error!(
+                                return Err(compile_error!(
                                     "error",
                                     start_line,
                                     start_column,
@@ -183,7 +183,7 @@ impl Lexer {
                                 self.column += 1;
                             }
                             if !closed {
-                                return Err(custom_compile_error!(
+                                return Err(compile_error!(
                                     "error",
                                     start_line,
                                     start_column,
@@ -222,7 +222,7 @@ impl Lexer {
                     self.column += 1;
                 }
                 if !closed {
-                    return Err(custom_compile_error!(
+                    return Err(compile_error!(
                         "error",
                         start_line,
                         start_column,
@@ -259,7 +259,7 @@ impl Lexer {
                     self.column += 1;
                 }
                 if !closed {
-                    return Err(custom_compile_error!(
+                    return Err(compile_error!(
                         "error",
                         start_line,
                         start_column,
@@ -337,7 +337,7 @@ impl Lexer {
                             }
                         }
                         if !closed {
-                            return Err(custom_compile_error!(
+                            return Err(compile_error!(
                                 "error",
                                 start_line,
                                 start_column,
@@ -604,7 +604,7 @@ impl Lexer {
                     ';' => TokenType::Semi,
                     ':' => TokenType::Colon,
                     _ => {
-                        return Err(custom_compile_error!(
+                        return Err(compile_error!(
                             "error",
                             start_line,
                             start_column,
@@ -623,7 +623,7 @@ impl Lexer {
                 chars.next();
                 self.column += 1;
             } else {
-                return Err(custom_compile_error!(
+                return Err(compile_error!(
                     "error",
                     start_line,
                     start_column,

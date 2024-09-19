@@ -1,4 +1,4 @@
-use crate::custom_compile_error;
+use crate::compile_error;
 use crate::lexer::{Lexer, Token};
 use crate::parser::Node;
 use crate::parser::Parser;
@@ -76,13 +76,13 @@ pub struct Decoder {
     file_contents: IndexMap<String, String>,
     #[property(get)]
     current_node: Option<(String, Box<Node>)>,
-    
+
     #[property(get)]
     generated_ast_file: bool,
-    
+
     #[property(get)]
     generated_error_log_file: bool,
-    
+
     #[property(get)]
     measure_decode_time: bool,
 
@@ -188,7 +188,7 @@ impl Decoder {
         };
         let index = self.allocate(serialized_value.len())?;
         if index + serialized_value.len() > self.memory_mgr.heap.len() {
-            return Err(custom_compile_error!(
+            return Err(compile_error!(
                 "error",
                 node.clone().line(),
                 node.clone().column(),
@@ -213,7 +213,7 @@ impl Decoder {
         };
 
         if address + serialized_value.len() > self.memory_mgr.heap.len() {
-            return Err(custom_compile_error!(
+            return Err(compile_error!(
                 "error",
                 node.clone().line(),
                 node.clone().column(),
@@ -370,7 +370,7 @@ impl Decoder {
 
             Ok(v_value)
         } else {
-            Err(custom_compile_error!(
+            Err(compile_error!(
                 "error",
                 node.clone().line(),
                 node.clone().column(),
@@ -421,7 +421,7 @@ impl Decoder {
 
         // 型定義が存在するか確認
         if !self.context.type_context.contains_key(expected_type) {
-            return Err(custom_compile_error!(
+            return Err(compile_error!(
                 "error",
                 node.clone().line(),
                 node.clone().column(),
@@ -438,7 +438,7 @@ impl Decoder {
                 if let Some(num) = value.as_i64() {
                     match i32::try_from(num) {
                         Ok(num_i32) => Ok(Value::Number(serde_json::Number::from(num_i32))),
-                        Err(_) => Err(custom_compile_error!(
+                        Err(_) => Err(compile_error!(
                             "error",
                             node.clone().line(),
                             node.clone().column(),
@@ -449,7 +449,7 @@ impl Decoder {
                         )),
                     }
                 } else {
-                    Err(custom_compile_error!(
+                    Err(compile_error!(
                         "error",
                         node.clone().line(),
                         node.clone().column(),
@@ -464,7 +464,7 @@ impl Decoder {
                 if let Some(num) = value.as_i64() {
                     Ok(Value::Number(serde_json::Number::from(num)))
                 } else {
-                    Err(custom_compile_error!(
+                    Err(compile_error!(
                         "error",
                         node.clone().line(),
                         node.clone().column(),
@@ -482,7 +482,7 @@ impl Decoder {
                             .unwrap_or_else(|| serde_json::Number::from(0)),
                     ))
                 } else {
-                    Err(custom_compile_error!(
+                    Err(compile_error!(
                         "error",
                         node.clone().line(),
                         node.clone().column(),
@@ -500,7 +500,7 @@ impl Decoder {
                             .unwrap_or_else(|| serde_json::Number::from(0)),
                     ))
                 } else {
-                    Err(custom_compile_error!(
+                    Err(compile_error!(
                         "error",
                         node.clone().line(),
                         node.clone().column(),
@@ -533,7 +533,7 @@ impl Decoder {
             }
         }
         self.current_node = original_node;
-        
+
         if self.generated_ast_file {
             // ディレクトリが存在しない場合は作成
             std::fs::create_dir_all("./script-analysis").map_err(|e| e.to_string())?;
@@ -592,7 +592,7 @@ impl Decoder {
                         let value_name = match value.node_value() {
                             NodeValue::Variable(v) => v,
                             _ => {
-                                return Err(custom_compile_error!(
+                                return Err(compile_error!(
                                     "error",
                                     node.line(),
                                     node.column(),
@@ -626,7 +626,7 @@ impl Decoder {
                     }
                     Ok(Value::Null)
                 } else {
-                    Err(custom_compile_error!(
+                    Err(compile_error!(
                         "error",
                         node.line(),
                         node.column(),
@@ -701,6 +701,21 @@ impl Decoder {
                 Ok(r)
             }
             NodeValue::Assign(var_name, value) => {
+                // ステートメントフラグのチェック
+                if !node.is_statement() {
+                    return Err(compile_error!(
+                        "error",
+                        node.line(),
+                        node.column(),
+                        &self.current_node.clone().unwrap().0,
+                        &self
+                            .file_contents
+                            .get(&self.current_node.clone().unwrap().0)
+                            .unwrap(),
+                        "Variable Assign must be a statement"
+                    ));
+                }
+
                 let name = match var_name.node_value() {
                     NodeValue::Variable(v) => v,
                     _ => String::new(),
@@ -737,7 +752,7 @@ impl Decoder {
                         result = new_value.clone();
                         Ok(new_value)
                     } else {
-                        Err(custom_compile_error!(
+                        Err(compile_error!(
                             "error",
                             node.line(),
                             node.column(),
@@ -751,7 +766,7 @@ impl Decoder {
                         ))
                     }
                 } else {
-                    Err(custom_compile_error!(
+                    Err(compile_error!(
                         "error",
                         node.line(),
                         node.column(),
@@ -1003,7 +1018,7 @@ impl Decoder {
                         .get(func_name.as_str())
                         .cloned()
                         .ok_or_else(|| {
-                            custom_compile_error!(
+                            compile_error!(
                                 "error",
                                 node.line(),
                                 node.column(),
@@ -1092,7 +1107,7 @@ impl Decoder {
 
                 // 関数がすでに定義されているかチェック
                 if self.context.global_context.contains_key(func_name.as_str()) {
-                    return Err(custom_compile_error!(
+                    return Err(compile_error!(
                         "error",
                         node.line(),
                         node.column(),
@@ -1154,7 +1169,7 @@ impl Decoder {
             ) => {
                 // ステートメントフラグのチェック
                 if !node.is_statement() {
-                    return Err(custom_compile_error!(
+                    return Err(compile_error!(
                         "error",
                         node.line(),
                         node.column(),
@@ -1185,7 +1200,7 @@ impl Decoder {
                     };
 
                     if context.contains_key(&name) {
-                        return Err(custom_compile_error!(
+                        return Err(compile_error!(
                             "error",
                             node.line(),
                             node.column(),
@@ -1235,7 +1250,7 @@ impl Decoder {
                                 if let Some(variable) = context.get(&v) {
                                     variable.address
                                 } else {
-                                    return Err(custom_compile_error!(
+                                    return Err(compile_error!(
                                         "error",
                                         node.line(),
                                         node.column(),
@@ -1309,7 +1324,7 @@ impl Decoder {
                     _ => String::new(),
                 };
                 if self.context.type_context.contains_key(&name) {
-                    return Err(custom_compile_error!(
+                    return Err(compile_error!(
                         "error",
                         node.line(),
                         node.column(),
@@ -1407,7 +1422,7 @@ impl Decoder {
                         Ok(Value::String(result))
                     }
 
-                    _ => Err(custom_compile_error!(
+                    _ => Err(compile_error!(
                         "error",
                         node.line(),
                         node.column(),
@@ -1442,7 +1457,7 @@ impl Decoder {
                             ))
                         }
                     }
-                    _ => Err(custom_compile_error!(
+                    _ => Err(compile_error!(
                         "error",
                         node.line(),
                         node.column(),
@@ -1477,7 +1492,7 @@ impl Decoder {
                             ))
                         }
                     }
-                    _ => Err(custom_compile_error!(
+                    _ => Err(compile_error!(
                         "error",
                         node.line(),
                         node.column(),
@@ -1498,7 +1513,7 @@ impl Decoder {
                 let right = self.execute_node(&rhs)?;
                 if let Value::Number(ref r) = right.clone() {
                     if r.as_f64().unwrap() == 0.0 {
-                        return Err(custom_compile_error!(
+                        return Err(compile_error!(
                             "error",
                             node.line(),
                             node.column(),
@@ -1529,7 +1544,7 @@ impl Decoder {
                             ))
                         }
                     }
-                    _ => Err(custom_compile_error!(
+                    _ => Err(compile_error!(
                         "error",
                         node.line(),
                         node.column(),
@@ -1550,7 +1565,7 @@ impl Decoder {
                 info!("Return: {:?}", ret);
                 Ok(ret)
             }
-            _ => Err(custom_compile_error!(
+            _ => Err(compile_error!(
                 "error",
                 node.line(),
                 node.column(),

@@ -1,4 +1,4 @@
-use crate::custom_compile_error;
+use crate::compile_error;
 use crate::error::*;
 use crate::lexer::Token;
 use crate::types::{NodeValue, TokenType};
@@ -218,7 +218,7 @@ impl<'a> Parser<'a> {
                     TokenType::DivAssign => NodeValue::DivAssign(node, rhs),
                     _ => panic!(
                         "{}",
-                        custom_compile_error!(
+                        compile_error!(
                             "error",
                             op.line(),
                             op.column(),
@@ -254,7 +254,7 @@ impl<'a> Parser<'a> {
                     TokenType::SubAssign => NodeValue::SubAssign(node, rhs),
                     _ => panic!(
                         "{}",
-                        custom_compile_error!(
+                        compile_error!(
                             "error",
                             op.line(),
                             op.column(),
@@ -386,7 +386,7 @@ impl<'a> Parser<'a> {
 
                     _ => panic!(
                         "{}",
-                        custom_compile_error!(
+                        compile_error!(
                             "error",
                             op.line(),
                             op.column(),
@@ -514,7 +514,7 @@ impl<'a> Parser<'a> {
                         self.current_token().column(),
                     )))
                 } else {
-                    return Err(custom_compile_error!(
+                    return Err(compile_error!(
                         "error",
                         self.current_token().line(),
                         self.current_token().column(),
@@ -575,7 +575,7 @@ impl<'a> Parser<'a> {
                 self.next_token();
                 let expr = self.expr()?;
                 if self.current_token().token_type() != TokenType::RightParen {
-                    return Err(custom_compile_error!(
+                    return Err(compile_error!(
                         "error",
                         self.current_token().line(),
                         self.current_token().column(),
@@ -591,7 +591,7 @@ impl<'a> Parser<'a> {
             }
             TokenType::LeftCurlyBrace => self.parse_block(),
 
-            _ => Err(custom_compile_error!(
+            _ => Err(compile_error!(
                 "error",
                 self.current_token().line(),
                 self.current_token().column(),
@@ -610,7 +610,7 @@ impl<'a> Parser<'a> {
         let mut nodes = Vec::new();
         while self.current_token().token_type() != TokenType::RightCurlyBrace {
             if self.current_token().token_type() == TokenType::Eof {
-                return Err(custom_compile_error!(
+                return Err(compile_error!(
                     "error",
                     self.current_token().line(),
                     self.current_token().column(),
@@ -626,7 +626,7 @@ impl<'a> Parser<'a> {
         }
 
         if self.current_token().token_type() != TokenType::RightCurlyBrace {
-            return Err(custom_compile_error!(
+            return Err(compile_error!(
                 "error",
                 self.current_token().line(),
                 self.current_token().column(),
