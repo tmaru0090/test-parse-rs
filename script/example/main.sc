@@ -9,6 +9,6 @@ fn main()->i32{
         return a;
 }
 // 関数実行
-l ret = main();
+l ret:i32 = main();
 
 

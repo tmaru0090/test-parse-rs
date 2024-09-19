@@ -272,17 +272,29 @@
             "is_statement": false
           },
           {
-            "node_value": "Empty",
+            "node_value": {
+              "Variable": "a"
+            },
             "node_next": null,
-            "line": 11,
-            "column": 1,
+            "line": 9,
+            "column": 17,
             "is_statement": false
           },
           {
-            "node_value": "Empty",
+            "node_value": {
+              "ReturnType": {
+                "node_value": {
+                  "Variable": "i32"
+                },
+                "node_next": null,
+                "line": 4,
+                "column": 15,
+                "is_statement": false
+              }
+            },
             "node_next": null,
             "line": 4,
-            "column": 9,
+            "column": 15,
             "is_statement": false
           },
           false
@@ -310,16 +322,45 @@
     },
     {
       "node_value": {
-        "Call": [
-          "main",
-          [],
+        "VariableDeclaration": [
+          {
+            "node_value": {
+              "Variable": "ret"
+            },
+            "node_next": null,
+            "line": 12,
+            "column": 15,
+            "is_statement": false
+          },
+          {
+            "node_value": "Empty",
+            "node_next": null,
+            "line": 12,
+            "column": 3,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "Call": [
+                "main",
+                [],
+                false
+              ]
+            },
+            "node_next": null,
+            "line": 12,
+            "column": 15,
+            "is_statement": false
+          },
+          false,
+          false,
           false
         ]
       },
       "node_next": null,
       "line": 12,
-      "column": 7,
-      "is_statement": false
+      "column": 15,
+      "is_statement": true
     },
     {
       "node_value": "Empty",

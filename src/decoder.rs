@@ -40,7 +40,7 @@ pub struct Context {
     pub global_context: IndexMap<String, Variable>,
     pub type_context: IndexMap<String, String>,
     pub comment_lists: IndexMap<(usize, usize), Vec<String>>,
-    pub used_context: IndexMap<String, (usize,usize,bool)>,
+    pub used_context: IndexMap<String, (usize, usize, bool)>,
 }
 impl Context {
     fn new() -> Self {
@@ -563,7 +563,7 @@ impl Decoder {
         let mut result = Value::Null;
         //info!("global_contexts: {:?}", self.context.global_context.clone());
         //info!("local_contexts: {:?}", self.context.local_context.clone());
-        info!("used_context: {:?}",self.context.used_context.clone());
+        info!("used_context: {:?}", self.context.used_context.clone());
         /*
         for (key, (line,column,value)) in self.context.used_context.clone() {
             if !value {
@@ -1088,8 +1088,6 @@ impl Decoder {
                 let func_args = func_info["args"].as_array().unwrap();
                 let func_body: Node =
                     serde_json::from_value(func_info["body"].clone()).map_err(|e| e.to_string())?;
-                let return_value = &func_info["return_value"];
-
                 // 引数をローカルコンテキストに設定
                 for (i, arg_address) in arg_addresses.iter().enumerate() {
                     let arg_name = &func_args[i]["name"];
@@ -1124,6 +1122,9 @@ impl Decoder {
                         },
                     );
                 }
+                let _return_value: Node =
+                    serde_json::from_value(func_info["return_value"].clone()).unwrap();
+                let return_value = self.execute_node(&_return_value)?;
 
                 // 関数本体を実行
                 self.execute_node(&func_body)?;
@@ -1133,7 +1134,7 @@ impl Decoder {
 
             NodeValue::Function(name, args, body, return_value, return_type, is_system) => {
                 let func_name = name; // すでに String 型なのでそのまま使う
-                // 関数がすでに定義されているかチェック
+                                      // 関数がすでに定義されているかチェック
                 if self.context.global_context.contains_key(func_name.as_str()) {
                     return Err(compile_error!(
                         "error",
@@ -1342,9 +1343,11 @@ impl Decoder {
 
                 info!("VariableDeclaration: name = {:?}, data_type = {:?}, value = {:?}, address = {:?}", name, v_type, v_value, address);
                 result = v_value.clone();
-                let line = self.current_node.clone().unwrap().1.line(); 
-                let column = self.current_node.clone().unwrap().1.column(); 
-                self.context.used_context.insert(name.clone(), (line,column,false));
+                let line = self.current_node.clone().unwrap().1.line();
+                let column = self.current_node.clone().unwrap().1.column();
+                self.context
+                    .used_context
+                    .insert(name.clone(), (line, column, false));
                 Ok(v_value)
             }
 
@@ -1394,9 +1397,11 @@ impl Decoder {
             NodeValue::Bool(b) => Ok(Value::Bool(*b)),
 
             NodeValue::Variable(name) => {
-                 let line = self.current_node.clone().unwrap().1.line(); 
-                let column = self.current_node.clone().unwrap().1.column(); 
-                self.context.used_context.insert(name.clone(), (line,column,true));
+                let line = self.current_node.clone().unwrap().1.line();
+                let column = self.current_node.clone().unwrap().1.column();
+                self.context
+                    .used_context
+                    .insert(name.clone(), (line, column, true));
 
                 if let Some(var) = self.context.local_context.get(name) {
                     // ローカルスコープで変数を見つけた場合

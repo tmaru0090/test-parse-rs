@@ -43,7 +43,7 @@ fn main() -> R<(), String> {
     let mut decoder = match Decoder::load_script(file_name) {
         Ok(v) => v,
         Err(e) => {
-            log::error!("{}", e);
+            eprintln!("{}", e);
             Decoder::new()
         }
     };
@@ -54,7 +54,7 @@ fn main() -> R<(), String> {
             info!("ast_maps: {:?}", decoder.ast_map());
             info!("decode total-time: {:?}", decoder.decode_time())
         }
-        Err(e) => log::error!("{}", e),
+        Err(e) => eprintln!("{}", e),
     }
 
     Ok(())

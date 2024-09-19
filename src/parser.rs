@@ -333,13 +333,26 @@ impl<'a> Parser<'a> {
         let body = self.parse_block()?; // ブロックの解析
 
         let mut ret_value = self.new_empty(); // 戻り値の初期値を指定
+                                              /*
+                                              if let NodeValue::Block(ref nodes) = body.node_value() {
+                                                  if let Some(last_node) = nodes.last() {
+                                                      if let NodeValue::Return(ref value) = last_node.node_value() {
+                                                          ret_value = value.clone();
+                                                      }
+                                                  }
+                                              }
+                                              */
+
         if let NodeValue::Block(ref nodes) = body.node_value() {
-            if let Some(last_node) = nodes.last() {
-                if let NodeValue::Return(ref value) = last_node.node_value() {
+            if nodes.len() > 1 {
+                // 要素が2つ以上あるか確認
+                let second_last_node = &nodes[nodes.len() - 2]; // 最後から2番目の要素を取得
+                if let NodeValue::Return(ref value) = second_last_node.node_value() {
                     ret_value = value.clone();
                 }
             }
         }
+
         Ok(Box::new(Node::new(
             NodeValue::Function(
                 name,
@@ -620,11 +633,9 @@ impl<'a> Parser<'a> {
                     self.current_token(),
                 ));
             }
-
             let statements = self.parse_statement()?;
             nodes.extend(statements);
         }
-
         if self.current_token().token_type() != TokenType::RightCurlyBrace {
             return Err(compile_error!(
                 "error",
