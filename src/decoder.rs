@@ -1,4 +1,7 @@
 use crate::compile_error;
+use crate::compile_group_error;
+
+use crate::error::CompilerError;
 use crate::lexer::{Lexer, Token};
 use crate::parser::Node;
 use crate::parser::Parser;
@@ -37,6 +40,7 @@ pub struct Context {
     pub global_context: IndexMap<String, Variable>,
     pub type_context: IndexMap<String, String>,
     pub comment_lists: IndexMap<(usize, usize), Vec<String>>,
+    pub used_context: IndexMap<String, (usize,usize,bool)>,
 }
 impl Context {
     fn new() -> Self {
@@ -45,6 +49,7 @@ impl Context {
             global_context: IndexMap::new(),
             type_context: IndexMap::new(),
             comment_lists: IndexMap::new(),
+            used_context: IndexMap::new(),
         }
     }
 }
@@ -516,6 +521,7 @@ impl Decoder {
     }
 
     pub fn decode(&mut self) -> R<Value, String> {
+        // 実行にかかった時間を計測
         let start_time = if self.measure_decode_time {
             Some(Instant::now())
         } else {
@@ -523,6 +529,7 @@ impl Decoder {
         };
         let mut value = Value::Null;
         let original_node = self.current_node.clone();
+        // ASTを評価して実行
         for (file_name, nodes) in self.ast_map() {
             self.current_node = Some((file_name.clone(), Box::new(Node::default())));
             let content = std::fs::read_to_string(file_name.clone()).map_err(|e| e.to_string())?;
@@ -533,7 +540,6 @@ impl Decoder {
             }
         }
         self.current_node = original_node;
-
         if self.generated_ast_file {
             // ディレクトリが存在しない場合は作成
             std::fs::create_dir_all("./script-analysis").map_err(|e| e.to_string())?;
@@ -557,6 +563,29 @@ impl Decoder {
         let mut result = Value::Null;
         //info!("global_contexts: {:?}", self.context.global_context.clone());
         //info!("local_contexts: {:?}", self.context.local_context.clone());
+        info!("used_context: {:?}",self.context.used_context.clone());
+        /*
+        for (key, (line,column,value)) in self.context.used_context.clone() {
+            if !value {
+                let message = format!("変数 '{}' は未使用です。", key);
+                // エラーログを追加
+                let error_string = compile_error!(
+                    "warning",
+                    node.line(),
+                    node.column(),
+                    &self.current_node.clone().unwrap().0,
+                    &self
+                        .file_contents
+                        .get(&self.current_node.clone().unwrap().0)
+                        .unwrap(),
+                    "{}",&message
+                );
+
+                // エラー文字列を標準出力に表示（またはファイルに書き込むなどの処理を追加）
+                println!("{}", error_string);
+            }
+        }
+        */
         match &node.node_value() {
             NodeValue::Include(file_name) => {
                 self.add_ast_from_file(file_name)?;
@@ -1104,7 +1133,6 @@ impl Decoder {
 
             NodeValue::Function(name, args, body, return_value, return_type, is_system) => {
                 let func_name = name; // すでに String 型なのでそのまま使う
-
                 // 関数がすでに定義されているかチェック
                 if self.context.global_context.contains_key(func_name.as_str()) {
                     return Err(compile_error!(
@@ -1314,7 +1342,9 @@ impl Decoder {
 
                 info!("VariableDeclaration: name = {:?}, data_type = {:?}, value = {:?}, address = {:?}", name, v_type, v_value, address);
                 result = v_value.clone();
-
+                let line = self.current_node.clone().unwrap().1.line(); 
+                let column = self.current_node.clone().unwrap().1.column(); 
+                self.context.used_context.insert(name.clone(), (line,column,false));
                 Ok(v_value)
             }
 
@@ -1364,6 +1394,10 @@ impl Decoder {
             NodeValue::Bool(b) => Ok(Value::Bool(*b)),
 
             NodeValue::Variable(name) => {
+                 let line = self.current_node.clone().unwrap().1.line(); 
+                let column = self.current_node.clone().unwrap().1.column(); 
+                self.context.used_context.insert(name.clone(), (line,column,true));
+
                 if let Some(var) = self.context.local_context.get(name) {
                     // ローカルスコープで変数を見つけた場合
                     let index = var.address; // アドレスを取得
@@ -1565,6 +1599,7 @@ impl Decoder {
                 info!("Return: {:?}", ret);
                 Ok(ret)
             }
+
             _ => Err(compile_error!(
                 "error",
                 node.line(),

@@ -769,13 +769,18 @@ impl<'a> Parser<'a> {
             && self.peek_next_token(2).token_type() == TokenType::Equals
             && self.current_token().token_value() == "type"
         {
+            let mut is_statement = false;
             self.next_token();
             let _type_name = self.current_token().token_value().clone();
             self.next_token(); // =
             self.next_token(); // value
             let value_node = self.expr()?;
-            node = Node::new(
-                NodeValue::TypeDeclaration(
+            if self.current_token().token_type() == TokenType::Semi {
+                is_statement = true;
+            }
+
+            node = Node {
+                node_value: NodeValue::TypeDeclaration(
                     Box::new(Node::new(
                         NodeValue::Variable(_type_name),
                         None,
@@ -784,19 +789,24 @@ impl<'a> Parser<'a> {
                     )),
                     value_node,
                 ),
-                None,
-                self.current_token().line(),
-                self.current_token().column(),
-            );
+                node_next: None,
+                line: self.current_token().line(),
+                column: self.current_token().column(),
+                is_statement,
+            };
         } else if self.current_token().token_type() == TokenType::Ident
             && self.peek_next_token(1).token_type() == TokenType::Equals
         {
+            let mut is_statement = false;
             let var = self.current_token().token_value().clone();
             self.next_token();
             self.next_token();
             let value_node = self.expr()?;
-            node = Node::new(
-                NodeValue::Assign(
+            if self.current_token().token_type() == TokenType::Semi {
+                is_statement = true;
+            }
+            node = Node {
+                node_value: NodeValue::Assign(
                     Box::new(Node::new(
                         NodeValue::Variable(var),
                         None,
@@ -805,10 +815,11 @@ impl<'a> Parser<'a> {
                     )),
                     value_node,
                 ),
-                None,
-                self.current_token().line(),
-                self.current_token().column(),
-            );
+                node_next: None,
+                line: self.current_token().line(),
+                column: self.current_token().column(),
+                is_statement,
+            };
         } else if self.current_token().token_type() == TokenType::Ident
             && matches!(
                 self.peek_next_token(1).token_type(),

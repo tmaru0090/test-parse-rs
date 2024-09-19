@@ -1,1 +1,629 @@
-{}
+{
+  "example/main.sc": [
+    {
+      "node_value": {
+        "Include": "std.sc"
+      },
+      "node_next": null,
+      "line": 1,
+      "column": 10,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "String": "std.sc"
+      },
+      "node_next": null,
+      "line": 3,
+      "column": 1,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "SingleComment": [
+          " main関数\r",
+          [
+            3,
+            1
+          ]
+        ]
+      },
+      "node_next": null,
+      "line": 4,
+      "column": 1,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "Function": [
+          "main",
+          [],
+          {
+            "node_value": {
+              "Block": [
+                {
+                  "node_value": {
+                    "VariableDeclaration": [
+                      {
+                        "node_value": {
+                          "Variable": "a"
+                        },
+                        "node_next": null,
+                        "line": 5,
+                        "column": 14,
+                        "is_statement": false
+                      },
+                      {
+                        "node_value": "Empty",
+                        "node_next": null,
+                        "line": 5,
+                        "column": 4,
+                        "is_statement": false
+                      },
+                      {
+                        "node_value": {
+                          "Mul": [
+                            {
+                              "node_value": {
+                                "Int": 1000
+                              },
+                              "node_next": null,
+                              "line": 5,
+                              "column": 12,
+                              "is_statement": false
+                            },
+                            {
+                              "node_value": {
+                                "Int": 3
+                              },
+                              "node_next": null,
+                              "line": 5,
+                              "column": 14,
+                              "is_statement": false
+                            }
+                          ]
+                        },
+                        "node_next": null,
+                        "line": 5,
+                        "column": 14,
+                        "is_statement": false
+                      },
+                      true,
+                      false,
+                      false
+                    ]
+                  },
+                  "node_next": null,
+                  "line": 5,
+                  "column": 14,
+                  "is_statement": true
+                },
+                {
+                  "node_value": "Empty",
+                  "node_next": null,
+                  "line": 0,
+                  "column": 0,
+                  "is_statement": false
+                },
+                {
+                  "node_value": {
+                    "VariableDeclaration": [
+                      {
+                        "node_value": {
+                          "Variable": "b"
+                        },
+                        "node_next": null,
+                        "line": 6,
+                        "column": 16,
+                        "is_statement": false
+                      },
+                      {
+                        "node_value": "Empty",
+                        "node_next": null,
+                        "line": 6,
+                        "column": 11,
+                        "is_statement": false
+                      },
+                      {
+                        "node_value": {
+                          "Variable": "a"
+                        },
+                        "node_next": null,
+                        "line": 6,
+                        "column": 16,
+                        "is_statement": false
+                      },
+                      true,
+                      false,
+                      false
+                    ]
+                  },
+                  "node_next": null,
+                  "line": 6,
+                  "column": 16,
+                  "is_statement": true
+                },
+                {
+                  "node_value": "Empty",
+                  "node_next": null,
+                  "line": 0,
+                  "column": 0,
+                  "is_statement": false
+                },
+                {
+                  "node_value": {
+                    "VariableDeclaration": [
+                      {
+                        "node_value": {
+                          "Variable": "c"
+                        },
+                        "node_next": null,
+                        "line": 7,
+                        "column": 16,
+                        "is_statement": false
+                      },
+                      {
+                        "node_value": "Empty",
+                        "node_next": null,
+                        "line": 7,
+                        "column": 11,
+                        "is_statement": false
+                      },
+                      {
+                        "node_value": {
+                          "Variable": "b"
+                        },
+                        "node_next": null,
+                        "line": 7,
+                        "column": 16,
+                        "is_statement": false
+                      },
+                      true,
+                      false,
+                      false
+                    ]
+                  },
+                  "node_next": null,
+                  "line": 7,
+                  "column": 16,
+                  "is_statement": true
+                },
+                {
+                  "node_value": "Empty",
+                  "node_next": null,
+                  "line": 0,
+                  "column": 0,
+                  "is_statement": false
+                },
+                {
+                  "node_value": {
+                    "VariableDeclaration": [
+                      {
+                        "node_value": {
+                          "Variable": "d"
+                        },
+                        "node_next": null,
+                        "line": 8,
+                        "column": 16,
+                        "is_statement": false
+                      },
+                      {
+                        "node_value": "Empty",
+                        "node_next": null,
+                        "line": 8,
+                        "column": 11,
+                        "is_statement": false
+                      },
+                      {
+                        "node_value": {
+                          "Variable": "c"
+                        },
+                        "node_next": null,
+                        "line": 8,
+                        "column": 16,
+                        "is_statement": false
+                      },
+                      true,
+                      false,
+                      false
+                    ]
+                  },
+                  "node_next": null,
+                  "line": 8,
+                  "column": 16,
+                  "is_statement": true
+                },
+                {
+                  "node_value": "Empty",
+                  "node_next": null,
+                  "line": 0,
+                  "column": 0,
+                  "is_statement": false
+                },
+                {
+                  "node_value": {
+                    "Return": {
+                      "node_value": {
+                        "Variable": "a"
+                      },
+                      "node_next": null,
+                      "line": 9,
+                      "column": 17,
+                      "is_statement": false
+                    }
+                  },
+                  "node_next": null,
+                  "line": 9,
+                  "column": 17,
+                  "is_statement": false
+                },
+                {
+                  "node_value": "Empty",
+                  "node_next": null,
+                  "line": 0,
+                  "column": 0,
+                  "is_statement": false
+                }
+              ]
+            },
+            "node_next": null,
+            "line": 11,
+            "column": 1,
+            "is_statement": false
+          },
+          {
+            "node_value": "Empty",
+            "node_next": null,
+            "line": 11,
+            "column": 1,
+            "is_statement": false
+          },
+          {
+            "node_value": "Empty",
+            "node_next": null,
+            "line": 4,
+            "column": 9,
+            "is_statement": false
+          },
+          false
+        ]
+      },
+      "node_next": null,
+      "line": 11,
+      "column": 1,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "SingleComment": [
+          " 関数実行\r",
+          [
+            11,
+            1
+          ]
+        ]
+      },
+      "node_next": null,
+      "line": 12,
+      "column": 1,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "Call": [
+          "main",
+          [],
+          false
+        ]
+      },
+      "node_next": null,
+      "line": 12,
+      "column": 7,
+      "is_statement": false
+    },
+    {
+      "node_value": "Empty",
+      "node_next": null,
+      "line": 0,
+      "column": 0,
+      "is_statement": false
+    }
+  ],
+  "std.sc": [
+    {
+      "node_value": {
+        "SingleComment": [
+          " std.script\r",
+          [
+            1,
+            1
+          ]
+        ]
+      },
+      "node_next": null,
+      "line": 2,
+      "column": 1,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "TypeDeclaration": [
+          {
+            "node_value": {
+              "Variable": "i32"
+            },
+            "node_next": null,
+            "line": 2,
+            "column": 17,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "String": "i32"
+            },
+            "node_next": null,
+            "line": 2,
+            "column": 17,
+            "is_statement": false
+          }
+        ]
+      },
+      "node_next": null,
+      "line": 2,
+      "column": 17,
+      "is_statement": true
+    },
+    {
+      "node_value": "Empty",
+      "node_next": null,
+      "line": 0,
+      "column": 0,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "TypeDeclaration": [
+          {
+            "node_value": {
+              "Variable": "f32"
+            },
+            "node_next": null,
+            "line": 3,
+            "column": 17,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "String": "f32"
+            },
+            "node_next": null,
+            "line": 3,
+            "column": 17,
+            "is_statement": false
+          }
+        ]
+      },
+      "node_next": null,
+      "line": 3,
+      "column": 17,
+      "is_statement": true
+    },
+    {
+      "node_value": "Empty",
+      "node_next": null,
+      "line": 0,
+      "column": 0,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "TypeDeclaration": [
+          {
+            "node_value": {
+              "Variable": "i64"
+            },
+            "node_next": null,
+            "line": 4,
+            "column": 17,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "String": "i64"
+            },
+            "node_next": null,
+            "line": 4,
+            "column": 17,
+            "is_statement": false
+          }
+        ]
+      },
+      "node_next": null,
+      "line": 4,
+      "column": 17,
+      "is_statement": true
+    },
+    {
+      "node_value": "Empty",
+      "node_next": null,
+      "line": 0,
+      "column": 0,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "TypeDeclaration": [
+          {
+            "node_value": {
+              "Variable": "f64"
+            },
+            "node_next": null,
+            "line": 5,
+            "column": 17,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "String": "f64"
+            },
+            "node_next": null,
+            "line": 5,
+            "column": 17,
+            "is_statement": false
+          }
+        ]
+      },
+      "node_next": null,
+      "line": 5,
+      "column": 17,
+      "is_statement": true
+    },
+    {
+      "node_value": "Empty",
+      "node_next": null,
+      "line": 0,
+      "column": 0,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "TypeDeclaration": [
+          {
+            "node_value": {
+              "Variable": "string"
+            },
+            "node_next": null,
+            "line": 6,
+            "column": 23,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "String": "string"
+            },
+            "node_next": null,
+            "line": 6,
+            "column": 23,
+            "is_statement": false
+          }
+        ]
+      },
+      "node_next": null,
+      "line": 6,
+      "column": 23,
+      "is_statement": true
+    },
+    {
+      "node_value": "Empty",
+      "node_next": null,
+      "line": 0,
+      "column": 0,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "TypeDeclaration": [
+          {
+            "node_value": {
+              "Variable": "void"
+            },
+            "node_next": null,
+            "line": 7,
+            "column": 19,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "String": "unit"
+            },
+            "node_next": null,
+            "line": 7,
+            "column": 19,
+            "is_statement": false
+          }
+        ]
+      },
+      "node_next": null,
+      "line": 7,
+      "column": 19,
+      "is_statement": true
+    },
+    {
+      "node_value": "Empty",
+      "node_next": null,
+      "line": 0,
+      "column": 0,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "TypeDeclaration": [
+          {
+            "node_value": {
+              "Variable": "array"
+            },
+            "node_next": null,
+            "line": 8,
+            "column": 21,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "String": "array"
+            },
+            "node_next": null,
+            "line": 8,
+            "column": 21,
+            "is_statement": false
+          }
+        ]
+      },
+      "node_next": null,
+      "line": 8,
+      "column": 21,
+      "is_statement": true
+    },
+    {
+      "node_value": "Empty",
+      "node_next": null,
+      "line": 0,
+      "column": 0,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "TypeDeclaration": [
+          {
+            "node_value": {
+              "Variable": "bool"
+            },
+            "node_next": null,
+            "line": 9,
+            "column": 19,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "String": "bool"
+            },
+            "node_next": null,
+            "line": 9,
+            "column": 19,
+            "is_statement": false
+          }
+        ]
+      },
+      "node_next": null,
+      "line": 9,
+      "column": 19,
+      "is_statement": true
+    },
+    {
+      "node_value": "Empty",
+      "node_next": null,
+      "line": 0,
+      "column": 0,
+      "is_statement": false
+    }
+  ]
+}
