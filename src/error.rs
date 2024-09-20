@@ -65,18 +65,25 @@ impl CompilerError {
                 _ => "info".normal(),
             };
             result.push_str(&format!(
-                "{}: {}\n  --> {}:{}:{}\n",
-                color, msg.message, file, msg.lines[0].0, msg.lines[0].1
+                "{}: {}\n  {} {}:{}:{}\n",
+                color,
+                msg.message,
+                "-->".blue().bold(),
+                file,
+                msg.lines[0].0,
+                msg.lines[0].1
             ));
             for &(line, column) in &msg.lines {
                 if let Some(source_line) = source_code.lines().nth(line - 1) {
                     result.push_str(&format!(
-                        "{} |   {}  \n",
+                        "{}  {}   {}  \n",
                         line.to_string().blue().bold(),
+                        "|".blue().bold(),
                         source_line
                     ));
                     result.push_str(&format!(
-                        "   | {}  {}  \n",
+                        "   {} {}  {}  \n",
+                        "|".blue().bold(),
                         " ".repeat(column - 1),
                         "^".repeat(1).red().bold()
                     ));

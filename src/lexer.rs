@@ -40,6 +40,10 @@ pub struct Lexer {
     line: usize,
     #[property(get)]
     column: usize,
+    #[property(get)]
+    eof_line: usize,
+    #[property(get)]
+    eof_column: usize,
 }
 
 impl Lexer {
@@ -50,6 +54,8 @@ impl Lexer {
             input_content_vec: Vec::new(),
             line: 1,
             column: 1,
+            eof_line: 1,
+            eof_column: 1,
         }
     }
     pub fn new_with_value_vec(input_content_vec: Vec<String>) -> Self {
@@ -59,6 +65,8 @@ impl Lexer {
             input_content_vec,
             line: 1,
             column: 1,
+            eof_line: 1,
+            eof_column: 1,
         }
     }
 
@@ -69,6 +77,8 @@ impl Lexer {
             input_content_vec: Vec::new(),
             line: 1,
             column: 1,
+            eof_line: 1,
+            eof_column: 1,
         }
     }
 
@@ -632,37 +642,35 @@ impl Lexer {
                     "Unable to process input_content"
                 ));
             }
+            self.eof_line = start_line;
+            self.eof_column = start_column;
         }
 
         Ok(tokens)
     }
+    pub fn from_tokenize(input_path: &str, input_content: String) -> R<Vec<Token>, String> {
+        let mut lexer = Lexer::new();
+        lexer.set_input_path(input_path.to_string());
+        lexer.set_input_content(input_content);
+        lexer.tokenize()
+    }
     pub fn tokenize(&mut self) -> R<Vec<Token>, String> {
         let mut all_tokens: Vec<Token> = Vec::new();
 
-        // If input_content_vec is empty, tokenize the input_content string
         if self.input_content_vec.is_empty() {
             all_tokens.extend(self.tokenize_string(&self.input_content.clone())?);
         } else {
-            // Tokenize each string in input_content_vec
             for input_content in &self.input_content_vec.clone() {
                 all_tokens.extend(self.tokenize_string(input_content)?);
             }
         }
-
-        // Get the position of the last token
-        let (last_line, last_column) = if let Some(last_token) = all_tokens.last() {
-            (last_token.line, last_token.column)
-        } else {
-            (self.line(), self.column())
-        };
-
-        // Push EOF token with the position of the last token
         all_tokens.push(Token::new(
             String::from(""),
             TokenType::Eof,
-            last_line,
-            last_column,
+            self.eof_line(),
+            self.eof_column(),
         ));
+
         Ok(all_tokens)
     }
 }

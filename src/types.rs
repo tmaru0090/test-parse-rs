@@ -89,7 +89,6 @@ pub enum NodeValue {
 
     DivAssign(Box<Node>, Box<Node>), // 除算代入(左辺,右辺)
 
-    //VariableDeclaration(Box<Node>, Box<Node>, Box<Node>, bool, bool), //変数定義(変数,型,右辺値,スコープフラグ,可変フラグ)
     VariableDeclaration(Box<Node>, Box<Node>, Box<Node>, bool, bool, bool), //変数定義(変数,型,右辺値,スコープフラグ,可変フラグ,参照フラグ)
 
     Assign(Box<Node>, Box<Node>), // 代入(変数,右辺値)
@@ -101,15 +100,7 @@ pub enum NodeValue {
     Bool(bool),       // 真偽値(ブーリアン値)
     Unit(()),         // Unit値(Void型)
 
-    //Function(String, Vec<String>, Box<Node>, Box<Node>, Box<Node>, bool), // 関数定義(関数名,(引数の型,引数名リスト),ボディ,戻り値,戻り値の型,システム関数フラグ)
-    Function(
-        String,
-        Vec<(Box<Node>, String)>,
-        Box<Node>,
-        Box<Node>,
-        Box<Node>,
-        bool,
-    ), // 関数定義(関数名,(引数の型,引数名リスト),ボディ,戻り値,戻り値の型,システム関数フラグ)
+    Function(String, Vec<(Box<Node>, String)>, Box<Node>, Box<Node>, bool), // 関数定義(関数名,(引数の型,引数名リスト),ボディ,戻り値,戻り値の型,システム関数フラグ)
 
     ReturnType(Box<Node>),                     // 関数の戻り値の型(戻り値の型)
     DataType(Box<Node>),                       // 変数の型

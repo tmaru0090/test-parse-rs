@@ -109,8 +109,8 @@ impl Decoder {
     }
     pub fn add_ast_from_file(&mut self, file_name: &str) -> R<&mut Self, String> {
         let content = std::fs::read_to_string(file_name).map_err(|e| e.to_string())?;
-        let tokens = Lexer::new_with_value(file_name, content.clone()).tokenize()?;
-        let nodes = Parser::new(&tokens, file_name, content.clone()).parse()?;
+        let tokens = Lexer::from_tokenize(file_name, content.clone())?;
+        let nodes = Parser::from_parse(&tokens, file_name, content.clone())?;
         self.ast_map.insert(file_name.to_string(), nodes.clone());
         Ok(self)
     }
@@ -118,11 +118,13 @@ impl Decoder {
         let mut ast_map: IndexMap<String, Vec<Box<Node>>> = IndexMap::new();
         let file_content = std::fs::read_to_string(file_name)
             .map_err(|e| e.to_string())
-            .expect("スクリプトの読み込みに失敗しました");
-        // レキサーとパーサーそれぞれ引数やnew系複雑になってるから修正して
-        let tokens = Lexer::new_with_value(file_name, file_content.clone()).tokenize()?;
+            .expect("Failed to script file");
 
-        let nodes = Parser::new(&tokens, file_name, file_content.clone()).parse()?;
+        let tokens = Lexer::from_tokenize(file_name, file_content.clone())?;
+
+        let nodes = Parser::from_parse(&tokens, file_name, file_content.clone())?;
+
+        //info!("tokens: {:?}", tokens.clone());
         ast_map.insert(file_name.to_string(), nodes.clone());
         Ok(Decoder {
             ast_map,
@@ -563,29 +565,9 @@ impl Decoder {
         let mut result = Value::Null;
         //info!("global_contexts: {:?}", self.context.global_context.clone());
         //info!("local_contexts: {:?}", self.context.local_context.clone());
-        info!("used_context: {:?}", self.context.used_context.clone());
-        /*
-        for (key, (line,column,value)) in self.context.used_context.clone() {
-            if !value {
-                let message = format!("変数 '{}' は未使用です。", key);
-                // エラーログを追加
-                let error_string = compile_error!(
-                    "warning",
-                    node.line(),
-                    node.column(),
-                    &self.current_node.clone().unwrap().0,
-                    &self
-                        .file_contents
-                        .get(&self.current_node.clone().unwrap().0)
-                        .unwrap(),
-                    "{}",&message
-                );
+        //info!("used_context: {:?}", self.context.used_context.clone());
+        //info!("current_node: {:?}", self.current_node.clone());
 
-                // エラー文字列を標準出力に表示（またはファイルに書き込むなどの処理を追加）
-                println!("{}", error_string);
-            }
-        }
-        */
         match &node.node_value() {
             NodeValue::Include(file_name) => {
                 self.add_ast_from_file(file_name)?;
@@ -722,9 +704,9 @@ impl Decoder {
             NodeValue::Block(block) => {
                 let mut r = Value::Null;
                 let initial_local_context = self.context.local_context.clone(); // 現在のローカルコンテキストを保存
-
                 for b in block {
                     r = self.execute_node(b)?;
+                    info!("block: {:?}", b.clone());
                 }
                 self.context.local_context = initial_local_context; // ブロックの処理が終わったらローカルコンテキストを元に戻す
                 Ok(r)
@@ -1122,17 +1104,21 @@ impl Decoder {
                         },
                     );
                 }
-                let _return_value: Node =
-                    serde_json::from_value(func_info["return_value"].clone()).unwrap();
-                let return_value = self.execute_node(&_return_value)?;
-
-                // 関数本体を実行
-                self.execute_node(&func_body)?;
-
-                Ok(return_value.clone())
+                let func_result = self.execute_node(&func_body)?;
+                let _func_return_type: Node =
+                    serde_json::from_value(func_info["return_type"].clone()).unwrap();
+                let func_return_type = match _func_return_type.node_value() {
+                    NodeValue::ReturnType(v) => match v.node_value() {
+                        NodeValue::Variable(v) => v,
+                        _ => String::new(),
+                    },
+                    _ => String::new(),
+                };
+                self.check_type(&func_result, &func_return_type)?;
+                Ok(func_result.clone())
             }
 
-            NodeValue::Function(name, args, body, return_value, return_type, is_system) => {
+            NodeValue::Function(name, args, body, return_type, is_system) => {
                 let func_name = name; // すでに String 型なのでそのまま使う
                                       // 関数がすでに定義されているかチェック
                 if self.context.global_context.contains_key(func_name.as_str()) {
@@ -1165,7 +1151,6 @@ impl Decoder {
                     "args": arg_addresses,
                     "body": body,
                     "return_type": return_type,
-                    "return_value": return_value,
                 });
                 let serialized_func_info =
                     serde_json::to_vec(&func_info).map_err(|e| e.to_string())?;
