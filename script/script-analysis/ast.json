@@ -29,124 +29,7 @@
         "String": "./std.sc"
       },
       "node_next": null,
-      "line": 3,
-      "column": 1,
-      "is_statement": false
-    },
-    {
-      "node_value": {
-        "VariableDeclaration": [
-          {
-            "node_value": {
-              "Variable": "b"
-            },
-            "node_next": null,
-            "line": 4,
-            "column": 1,
-            "is_statement": false
-          },
-          {
-            "node_value": "Empty",
-            "node_next": null,
-            "line": 3,
-            "column": 3,
-            "is_statement": false
-          },
-          {
-            "node_value": {
-              "Int": 1000
-            },
-            "node_next": null,
-            "line": 3,
-            "column": 11,
-            "is_statement": false
-          },
-          false,
-          false,
-          false
-        ]
-      },
-      "node_next": null,
       "line": 4,
-      "column": 1,
-      "is_statement": true
-    },
-    {
-      "node_value": {
-        "Function": [
-          "test",
-          [
-            [
-              {
-                "node_value": "Empty",
-                "node_next": null,
-                "line": 4,
-                "column": 14,
-                "is_statement": false
-              },
-              "array"
-            ]
-          ],
-          {
-            "node_value": {
-              "Block": [
-                {
-                  "node_value": {
-                    "VariableDeclaration": [
-                      {
-                        "node_value": {
-                          "Variable": "a"
-                        },
-                        "node_next": null,
-                        "line": 6,
-                        "column": 1,
-                        "is_statement": false
-                      },
-                      {
-                        "node_value": "Empty",
-                        "node_next": null,
-                        "line": 5,
-                        "column": 5,
-                        "is_statement": false
-                      },
-                      {
-                        "node_value": {
-                          "Variable": "array"
-                        },
-                        "node_next": null,
-                        "line": 5,
-                        "column": 14,
-                        "is_statement": false
-                      },
-                      true,
-                      false,
-                      false
-                    ]
-                  },
-                  "node_next": null,
-                  "line": 6,
-                  "column": 1,
-                  "is_statement": true
-                }
-              ]
-            },
-            "node_next": null,
-            "line": 7,
-            "column": 1,
-            "is_statement": false
-          },
-          {
-            "node_value": "Empty",
-            "node_next": null,
-            "line": 4,
-            "column": 9,
-            "is_statement": false
-          },
-          false
-        ]
-      },
-      "node_next": null,
-      "line": 7,
       "column": 1,
       "is_statement": false
     },
@@ -160,75 +43,51 @@
               "Block": [
                 {
                   "node_value": {
-                    "Call": [
-                      "test",
-                      [
-                        {
-                          "node_value": {
-                            "Array": [
-                              {
-                                "node_value": "Empty",
-                                "node_next": null,
-                                "line": 0,
-                                "column": 0,
-                                "is_statement": false
-                              },
-                              [
-                                {
-                                  "node_value": {
-                                    "Int": 100
-                                  },
-                                  "node_next": null,
-                                  "line": 8,
-                                  "column": 14,
-                                  "is_statement": false
-                                },
-                                {
-                                  "node_value": {
-                                    "Int": 1212
-                                  },
-                                  "node_next": null,
-                                  "line": 8,
-                                  "column": 19,
-                                  "is_statement": false
-                                },
-                                {
-                                  "node_value": {
-                                    "Int": 1212
-                                  },
-                                  "node_next": null,
-                                  "line": 8,
-                                  "column": 24,
-                                  "is_statement": false
-                                }
-                              ]
-                            ]
+                    "Return": {
+                      "node_value": {
+                        "Array": [
+                          {
+                            "node_value": "Empty",
+                            "node_next": null,
+                            "line": 0,
+                            "column": 0,
+                            "is_statement": false
                           },
-                          "node_next": null,
-                          "line": 8,
-                          "column": 25,
-                          "is_statement": false
-                        }
-                      ],
-                      false
-                    ]
+                          [
+                            {
+                              "node_value": {
+                                "String": ""
+                              },
+                              "node_next": null,
+                              "line": 5,
+                              "column": 13,
+                              "is_statement": false
+                            }
+                          ]
+                        ]
+                      },
+                      "node_next": null,
+                      "line": 5,
+                      "column": 14,
+                      "is_statement": false
+                    }
                   },
                   "node_next": null,
-                  "line": 9,
+                  "line": 6,
                   "column": 1,
-                  "is_statement": false
+                  "is_statement": true
                 }
               ]
             },
             "node_next": null,
-            "line": 9,
+            "line": 6,
             "column": 1,
             "is_statement": false
           },
           {
             "node_value": "Empty",
             "node_next": null,
-            "line": 7,
+            "line": 4,
             "column": 9,
             "is_statement": false
           },
@@ -236,7 +95,7 @@
         ]
       },
       "node_next": null,
-      "line": 9,
+      "line": 6,
       "column": 1,
       "is_statement": false
     }
