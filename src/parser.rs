@@ -790,6 +790,7 @@ impl<'a> Parser<'a> {
             } else {
                 value_node = self.expr()?;
             }
+
             //  if self.peek_next_token(1).token_type() != TokenType::Eof{
             //  if self.current_token().token_type() == TokenType::Semi
             /*
