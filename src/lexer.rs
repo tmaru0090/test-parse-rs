@@ -94,6 +94,10 @@ impl Lexer {
 
         while let Some(&c) = chars.peek() {
             if c.is_whitespace() {
+                if c == '\r' {
+                    chars.next();
+                    continue;
+                }
                 if c == '\n' {
                     self.line += 1;
                     self.column = 1;
@@ -103,6 +107,7 @@ impl Lexer {
                 chars.next();
                 continue;
             }
+
             let start_line = self.line();
             let start_column = self.column();
 
@@ -303,6 +308,10 @@ impl Lexer {
                         self.column += 1;
                         let mut comment = String::new();
                         while let Some(&c) = chars.peek() {
+                            if c == '\r' {
+                                chars.next();
+                                continue;
+                            }
                             if c == '\n' {
                                 break;
                             }

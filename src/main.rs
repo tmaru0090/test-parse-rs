@@ -47,11 +47,10 @@ fn main() -> R<(), String> {
             Decoder::new()
         }
     };
-
     match decoder.decode() {
         Ok(v) => {
             info!("ret: {}", v);
-            //          info!("ast_maps: {:?}", decoder.ast_map());
+            // info!("ast_maps: {:?}", decoder.ast_map());
             info!("decode total-time: {:?}", decoder.decode_time())
         }
         Err(e) => eprintln!("{}", e),

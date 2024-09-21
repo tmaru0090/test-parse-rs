@@ -279,16 +279,24 @@ impl<'a> Parser<'a> {
         self.next_token(); // '(' をスキップ
         let mut args = Vec::new();
         let mut is_statement = false;
+        let data_type = Box::new(Node::default());
         while self.current_token().token_type() != TokenType::RightParen {
-            let arg = self.expr()?;
-            args.push(*arg);
+            if self.peek_next_token(1).token_type() == TokenType::LeftSquareBrace
+                || self.current_token().token_type() == TokenType::LeftSquareBrace
+            {
+                let arg = self.parse_array(&data_type)?;
+                args.push(*arg);
+            } else {
+                let arg = self.expr()?;
+                args.push(*arg);
+            }
             if self.current_token().token_type() == TokenType::Conma {
                 self.next_token(); // ',' をスキップ
             }
         }
         self.next_token(); // ')' をスキップ
         if self.current_token().token_type() == TokenType::Semi {
-            is_statement = true;
+            // is_statement = true;
             self.next_token();
         }
 
@@ -301,6 +309,58 @@ impl<'a> Parser<'a> {
         }))
     }
 
+    fn parse_callback_function_definition(&mut self) -> R<Box<Node>, String> {
+        self.next_token(); // 'callback' をスキップ
+        if self.current_token().token_value() == "fn" {
+            self.next_token(); // 'fn' をスキップ
+            let mut is_system = false;
+            if self.current_token().token_type() == TokenType::AtSign {
+                self.next_token(); // '@' をスキップ
+                is_system = true;
+            }
+
+            let name = self.current_token().token_value().clone();
+            self.next_token(); // 関数名をスキップ
+            self.next_token(); // '(' をスキップ
+            let mut args: Vec<(Box<Node>, String)> = Vec::new();
+            let mut return_type = self.new_empty();
+            while self.current_token().token_type() != TokenType::RightParen {
+                let arg = self.expr()?;
+                let mut data_type = self.new_empty();
+                if self.current_token().token_type() == TokenType::Colon {
+                    self.next_token(); // ':' をスキップ
+                    data_type = self.expr()?;
+                    data_type = Box::new(Node::new(
+                        NodeValue::DataType(data_type),
+                        None,
+                        self.current_token().line(),
+                        self.current_token().column(),
+                    ));
+                }
+                let arg_name = match arg.node_value() {
+                    NodeValue::Variable(ref name) => name.clone(),
+                    _ => return Err("Invalid argument name".to_string()),
+                };
+                args.push((data_type, arg_name));
+                if self.current_token().token_type() == TokenType::Conma {
+                    self.next_token(); // ',' をスキップ
+                }
+            }
+            self.next_token(); // ')' をスキップ
+            if self.current_token().token_type() == TokenType::RightArrow {
+                return_type = self.parse_return_type()?;
+            }
+            let body = self.parse_block()?; // ブロックの解析
+
+            return Ok(Box::new(Node::new(
+                NodeValue::CallBackFunction(name, args, Box::new(*body), return_type, is_system),
+                None,
+                self.current_token().line(),
+                self.current_token().column(),
+            )));
+        }
+        Ok(Box::new(Node::default()))
+    }
     fn parse_function_definition(&mut self) -> R<Box<Node>, String> {
         self.next_token(); // 'fn' をスキップ
         let mut is_system = false;
@@ -472,6 +532,7 @@ impl<'a> Parser<'a> {
     fn factor(&mut self) -> R<Box<Node>, String> {
         let mut token = self.current_token().clone();
         let mut is_system = false;
+
         if token.token_type() == TokenType::AtSign {
             self.next_token();
             token = self.current_token().clone();
@@ -525,6 +586,8 @@ impl<'a> Parser<'a> {
                     self.parse_if_statement()
                 } else if token.token_value() == "while" {
                     self.parse_while_statement()
+                } else if token.token_value() == "callback" {
+                    self.parse_callback_function_definition()
                 } else if token.token_value() == "fn" {
                     self.parse_function_definition()
                 } else if let Ok(bool_value) = token.token_value().parse::<bool>() {
@@ -603,6 +666,8 @@ impl<'a> Parser<'a> {
         }
         let mut nodes = Vec::new();
         while self.current_token().token_type() != TokenType::RightCurlyBrace {
+            //info!("{:?}",self.current_token());
+
             if self.current_token().token_type() == TokenType::Eof {
                 return Err(compile_error!(
                     "error",
@@ -610,7 +675,7 @@ impl<'a> Parser<'a> {
                     self.current_token().column(),
                     &self.input_path(),
                     &self.input_content(),
-                    "Unexpected end of input_content, no closing curly brace found: {:?}",
+                    "Unexpected end of input, no closing curly brace found: {:?}",
                     self.current_token(),
                 ));
             }
@@ -677,6 +742,7 @@ impl<'a> Parser<'a> {
 
     fn parse_single_statement(&mut self) -> R<Box<Node>, String> {
         let mut node: Option<Node> = None;
+
         if self.current_token().token_type() == TokenType::Ident
             && self.current_token().token_value() == "if"
         {
@@ -708,8 +774,8 @@ impl<'a> Parser<'a> {
                 data_type = self.parse_data_type()?;
                 self.next_token();
             }
-            if self.peek_next_token(1).token_type() == TokenType::Equals {
-                self.next_token();
+            self.next_token(); // var
+            if self.current_token().token_type() == TokenType::Equals {
                 self.next_token();
             }
             let mut is_reference = false;
@@ -724,6 +790,22 @@ impl<'a> Parser<'a> {
             } else {
                 value_node = self.expr()?;
             }
+            //  if self.peek_next_token(1).token_type() != TokenType::Eof{
+            //  if self.current_token().token_type() == TokenType::Semi
+            /*
+            if self.previous_token(1).token_type() == TokenType::Semi
+            {
+                is_statement = true;
+                if self.peek_next_token(1).token_type() != TokenType::Eof{
+                    self.next_token();
+                }
+            }
+            */
+
+            if self.current_token().token_type() == TokenType::Semi {
+                is_statement = true;
+                self.next_token();
+            }
             let mut is_local = false;
             let mut brace_count = 0;
             for i in (0..self.i).rev() {
@@ -736,10 +818,6 @@ impl<'a> Parser<'a> {
                     is_local = true;
                     break;
                 }
-            }
-            if self.current_token().token_type() == TokenType::Semi {
-                is_statement = true;
-                self.next_token();
             }
             node = Some(Node {
                 node_value: NodeValue::VariableDeclaration(
@@ -794,9 +872,24 @@ impl<'a> Parser<'a> {
         {
             let mut is_statement = false;
             let var = self.current_token().token_value().clone();
+            let mut data_type = self.new_empty();
+            let mut value_node = self.new_empty();
+            if self.peek_next_token(1).token_type() == TokenType::Colon {
+                data_type = self.parse_data_type()?;
+                self.next_token();
+            }
+
             self.next_token();
             self.next_token();
-            let value_node = self.expr()?;
+
+            if self.peek_next_token(1).token_type() == TokenType::LeftSquareBrace
+                || self.current_token().token_type() == TokenType::LeftSquareBrace
+            {
+                value_node = self.parse_array(&data_type)?;
+            } else {
+                value_node = self.expr()?;
+            }
+
             if self.current_token().token_type() == TokenType::Semi {
                 is_statement = true;
                 self.next_token();
@@ -892,7 +985,16 @@ impl<'a> Parser<'a> {
             && self.current_token().token_value() == "return"
         {
             self.next_token();
-            let ret_value = self.expr()?;
+            //let ret_value = self.expr()?;
+            let mut ret_value = Box::new(Node::default());
+            let data_type = Box::new(Node::default());
+            if self.peek_next_token(1).token_type() == TokenType::LeftSquareBrace
+                || self.current_token().token_type() == TokenType::LeftSquareBrace
+            {
+                ret_value = self.parse_array(&data_type)?;
+            } else {
+                ret_value = self.expr()?;
+            }
 
             let mut is_statement = false;
             if self.current_token().token_type() == TokenType::Semi {
