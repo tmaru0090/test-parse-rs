@@ -1,11 +1,8 @@
 // main関数
 @include "./std.sc"
-@include "example/test.sc"
-let a = 1000;
-
-fn test(){
-   return [];
+fn test(array){
+  return array;
 }
 fn main(){
-  test();
+    let a =test();
 }

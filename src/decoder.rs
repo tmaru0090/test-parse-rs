@@ -1188,7 +1188,7 @@ impl Decoder {
         //info!("global_contexts: {:?}", self.context.global_context.clone());
         //info!("local_contexts: {:?}", self.context.local_context.clone());
         //info!("used_context: {:?}", self.context.used_context.clone());
-        //info!("current_node: {:?}", self.current_node.clone());
+        info!("current_node: {:?}", self.current_node.clone());
         let node_value = node.clone().node_value();
         match &node_value {
             NodeValue::Int(number) => Ok(Value::Number((*number).into())),

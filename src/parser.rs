@@ -55,6 +55,7 @@ pub struct Parser<'a> {
     input_path: String,
     tokens: &'a Vec<Token>,
     i: usize,
+    is_statement: bool,
 }
 
 impl<'a> Parser<'a> {
@@ -64,6 +65,7 @@ impl<'a> Parser<'a> {
             i: 0,
             input_path: input_path.to_string(),
             input_content,
+            is_statement: false,
         }
     }
     pub fn input_content(&self) -> String {
@@ -179,6 +181,15 @@ impl<'a> Parser<'a> {
         Box::new(node)
     }
 
+    pub fn from_parse(
+        tokens: &Vec<Token>,
+        input_path: &str,
+        input_content: String,
+    ) -> R<Vec<Box<Node>>, String> {
+        let mut parser = Parser::new(tokens, input_path, input_content);
+        parser.parse()
+    }
+
     fn current_token(&self) -> &Token {
         &self.tokens[self.i]
     }
@@ -243,7 +254,12 @@ impl<'a> Parser<'a> {
         let mut node = self.term()?;
         while matches!(
             self.current_token().token_type(),
-            TokenType::Add | TokenType::Sub
+            TokenType::Add
+                | TokenType::Sub
+                | TokenType::AddAssign
+                | TokenType::SubAssign
+                | TokenType::Increment
+                | TokenType::Decrement
         ) {
             let op = self.current_token().clone();
             self.next_token();
@@ -254,6 +270,8 @@ impl<'a> Parser<'a> {
                     TokenType::Sub => NodeValue::Sub(node, rhs),
                     TokenType::AddAssign => NodeValue::AddAssign(node, rhs),
                     TokenType::SubAssign => NodeValue::SubAssign(node, rhs),
+                    TokenType::Increment => NodeValue::Increment(node),
+                    TokenType::Decrement => NodeValue::Decrement(node),
                     _ => panic!(
                         "{}",
                         compile_error!(
@@ -281,31 +299,24 @@ impl<'a> Parser<'a> {
         let mut is_statement = false;
         let data_type = Box::new(Node::default());
         while self.current_token().token_type() != TokenType::RightParen {
-            if self.peek_next_token(1).token_type() == TokenType::LeftSquareBrace
-                || self.current_token().token_type() == TokenType::LeftSquareBrace
-            {
-                let arg = self.parse_array(&data_type)?;
-                args.push(*arg);
-            } else {
-                let arg = self.expr()?;
-                args.push(*arg);
-            }
+            let arg = self.expr()?;
+            args.push(*arg);
             if self.current_token().token_type() == TokenType::Conma {
                 self.next_token(); // ',' をスキップ
             }
         }
         self.next_token(); // ')' をスキップ
         if self.current_token().token_type() == TokenType::Semi {
-            // is_statement = true;
-            self.next_token();
+            self.is_statement = true;
+        } else {
+            self.is_statement = true;
         }
-
         Ok(Box::new(Node {
             node_value: NodeValue::Call(token.token_value().clone(), args, is_system),
             node_next: None,
             line: self.current_token().line(),
             column: self.current_token().column(),
-            is_statement,
+            is_statement: self.is_statement,
         }))
     }
 
@@ -529,10 +540,11 @@ impl<'a> Parser<'a> {
             self.current_token().column(),
         )))
     }
-    fn factor(&mut self) -> R<Box<Node>, String> {
+
+    fn factor(&mut self) -> Result<Box<Node>, String> {
         let mut token = self.current_token().clone();
         let mut is_system = false;
-
+        let mut node = Node::default();
         if token.token_type() == TokenType::AtSign {
             self.next_token();
             token = self.current_token().clone();
@@ -542,89 +554,80 @@ impl<'a> Parser<'a> {
         match self.current_token().token_type() {
             TokenType::MultiComment(content, (line, column)) => {
                 self.next_token();
-                Ok(Box::new(Node::new(
+                node = Node::new(
                     NodeValue::MultiComment(content, (line, column)),
                     None,
                     self.current_token().line(),
                     self.current_token().column(),
-                )))
+                );
             }
             TokenType::SingleComment(content, (line, column)) => {
                 self.next_token();
-                Ok(Box::new(Node::new(
+                node = Node::new(
                     NodeValue::SingleComment(content, (line, column)),
                     None,
                     self.current_token().line(),
                     self.current_token().column(),
-                )))
+                );
             }
 
             TokenType::DoubleQuote | TokenType::SingleQuote => {
                 if let Ok(string) = token.token_value().parse::<String>() {
                     self.next_token();
-                    Ok(Box::new(Node::new(
+                    node = Node::new(
                         NodeValue::String(string),
                         None,
                         self.current_token().line(),
                         self.current_token().column(),
-                    )))
+                    );
                 } else {
                     return Err(compile_error!(
-                        "error",
-                        self.current_token().line(),
-                        self.current_token().column(),
-
-                        &self.input_path(),
-                        &self.input_content(),
-                        "Unexpected end of input_content, no closing DoubleQuote or SingleQuote found: {:?}",
-                        self.current_token(),
-                    ));
+                    "error",
+                    self.current_token().line(),
+                    self.current_token().column(),
+                    &self.input_path(),
+                    &self.input_content(),
+                    "Unexpected end of input_content, no closing DoubleQuote or SingleQuote found: {:?}",
+                    self.current_token(),
+                ));
                 }
             }
             TokenType::Ident => {
-                if token.token_value() == "if" {
-                    self.parse_if_statement()
-                } else if token.token_value() == "while" {
-                    self.parse_while_statement()
-                } else if token.token_value() == "callback" {
-                    self.parse_callback_function_definition()
-                } else if token.token_value() == "fn" {
-                    self.parse_function_definition()
-                } else if let Ok(bool_value) = token.token_value().parse::<bool>() {
+                if let Ok(bool_value) = token.token_value().parse::<bool>() {
                     self.next_token();
-                    Ok(Box::new(Node::new(
+                    node = Node::new(
                         NodeValue::Bool(bool_value),
                         None,
                         self.current_token().line(),
                         self.current_token().column(),
-                    )))
+                    );
                 } else if let Ok(number) = token.token_value().parse::<i64>() {
                     self.next_token();
-                    Ok(Box::new(Node::new(
+                    node = Node::new(
                         NodeValue::Int(number),
                         None,
                         self.current_token().line(),
                         self.current_token().column(),
-                    )))
+                    );
                 } else if let Ok(number) = token.token_value().parse::<f64>() {
                     self.next_token();
-                    Ok(Box::new(Node::new(
+                    node = Node::new(
                         NodeValue::Float(number),
                         None,
                         self.current_token().line(),
                         self.current_token().column(),
-                    )))
+                    );
                 } else {
                     self.next_token();
                     if self.current_token().token_type() == TokenType::LeftParen {
-                        self.parse_function_call(token, is_system)
+                        node = *self.parse_function_call(token, is_system)?;
                     } else {
-                        Ok(Box::new(Node::new(
+                        node = Node::new(
                             NodeValue::Variable(token.token_value().clone()),
                             None,
                             self.current_token().line(),
                             self.current_token().column(),
-                        )))
+                        );
                     }
                 }
             }
@@ -643,21 +646,39 @@ impl<'a> Parser<'a> {
                     ));
                 } else {
                     self.next_token();
-                    Ok(expr)
+                    node = *self.expr()?;
                 }
+                return Ok(Box::new(node));
             }
-            TokenType::LeftCurlyBrace => self.parse_block(),
+            TokenType::LeftCurlyBrace => {
+                node = *self.parse_block()?;
+                return Ok(Box::new(node));
+            }
 
-            _ => Err(compile_error!(
-                "error",
-                self.current_token().line(),
-                self.current_token().column(),
-                &self.input_path(),
-                &self.input_content(),
-                "Unexpected token in factor: {:?}",
-                self.current_token()
-            )),
+            TokenType::LeftSquareBrace => {
+                let data_type = self.new_empty();
+                node = *self.parse_array(&data_type)?;
+                return Ok(Box::new(node));
+            }
+
+            TokenType::Semi => {
+                self.next_token();
+                self.is_statement = true;
+                return Ok(Box::new(node));
+            }
+            _ => {
+                return Err(compile_error!(
+                    "error",
+                    self.current_token().line(),
+                    self.current_token().column(),
+                    &self.input_path(),
+                    &self.input_content(),
+                    "Unexpected token in factor: {:?}",
+                    self.current_token()
+                ));
+            }
         }
+        Ok(Box::new(node))
     }
 
     fn parse_block(&mut self) -> R<Box<Node>, String> {
@@ -731,21 +752,133 @@ impl<'a> Parser<'a> {
             self.current_token().column(),
         )))
     }
-    pub fn from_parse(
-        tokens: &Vec<Token>,
-        input_path: &str,
-        input_content: String,
-    ) -> R<Vec<Box<Node>>, String> {
-        let mut parser = Parser::new(tokens, input_path, input_content);
-        parser.parse()
+    fn parse_type_declaration(&mut self) -> R<Box<Node>, String> {
+        self.next_token(); // type
+        let _type_name = self.current_token().token_value().clone();
+        self.next_token(); // =
+        self.next_token(); // value
+        let value_node = self.expr()?;
+        Ok(Box::new(Node {
+            node_value: NodeValue::TypeDeclaration(
+                Box::new(Node::new(
+                    NodeValue::Variable(_type_name),
+                    None,
+                    self.current_token().line(),
+                    self.current_token().column(),
+                )),
+                value_node,
+            ),
+            node_next: None,
+            line: self.current_token().line(),
+            column: self.current_token().column(),
+            is_statement: self.is_statement,
+        }))
+    }
+    fn parse_variable_declaration(&mut self) -> R<Box<Node>, String> {
+        self.next_token();
+        let mut is_mutable = false;
+        if self.current_token().token_value() == "mut"
+            || self.current_token().token_value() == "mutable"
+        {
+            self.next_token();
+            is_mutable = true;
+        }
+        let var = self.current_token().token_value().clone();
+        let mut data_type = self.new_empty();
+        let mut value_node = self.new_empty();
+        if self.peek_next_token(1).token_type() == TokenType::Colon {
+            data_type = self.parse_data_type()?;
+            self.next_token();
+        }
+        self.next_token(); // var
+        if self.current_token().token_type() == TokenType::Equals {
+            self.next_token();
+        }
+        let mut is_reference = false;
+        if self.current_token().token_type() == TokenType::Reference {
+            is_reference = true;
+            self.next_token();
+        } else {
+            value_node = self.expr()?;
+        }
+        if self.current_token().token_type() == TokenType::Semi {
+            self.is_statement = true;
+        } else {
+            self.is_statement = true;
+        }
+
+        let mut is_local = false;
+        let mut brace_count = 0;
+        for i in (0..self.i).rev() {
+            match self.tokens[i].token_type() {
+                TokenType::LeftCurlyBrace => brace_count += 1,
+                TokenType::RightCurlyBrace => brace_count -= 1,
+                _ => {}
+            }
+            if brace_count > 0 {
+                is_local = true;
+                break;
+            }
+        }
+        Ok(Box::new(Node {
+            node_value: NodeValue::VariableDeclaration(
+                Box::new(Node::new(
+                    NodeValue::Variable(var),
+                    None,
+                    self.current_token().line(),
+                    self.current_token().column(),
+                )),
+                data_type,
+                value_node,
+                is_local,
+                is_mutable,
+                is_reference,
+            ),
+            node_next: None,
+            line: self.current_token().line(),
+            column: self.current_token().column(),
+            is_statement: self.is_statement,
+        }))
     }
 
+    fn parse_assign_variable(&mut self) -> R<Box<Node>, String> {
+        let var = self.current_token().token_value().clone();
+        let mut data_type = self.new_empty();
+        let mut value_node = self.new_empty();
+        if self.peek_next_token(1).token_type() == TokenType::Colon {
+            data_type = self.parse_data_type()?;
+            self.next_token();
+        }
+
+        self.next_token();
+        self.next_token();
+        value_node = self.expr()?;
+
+        Ok(Box::new(Node {
+            node_value: NodeValue::Assign(
+                Box::new(Node::new(
+                    NodeValue::Variable(var),
+                    None,
+                    self.current_token().line(),
+                    self.current_token().column(),
+                )),
+                value_node,
+            ),
+            node_next: None,
+            line: self.current_token().line(),
+            column: self.current_token().column(),
+            is_statement: self.is_statement,
+        }))
+    }
     fn parse_single_statement(&mut self) -> R<Box<Node>, String> {
         let mut node: Option<Node> = None;
-
-        if self.current_token().token_type() == TokenType::Ident
-            && self.current_token().token_value() == "if"
-        {
+        if self.current_token().token_value() == "callback" {
+            node = Some(*self.parse_callback_function_definition()?);
+        } else if self.current_token().token_value() == "fn" {
+            node = Some(*self.parse_function_definition()?);
+        } else if self.current_token().token_value() == "while" {
+            node = Some(*self.parse_while_statement()?);
+        } else if self.current_token().token_value() == "if" {
             node = Some(*self.parse_if_statement()?);
         } else if self.current_token().token_type() == TokenType::Ident
             && self.current_token().token_value() == "for"
@@ -758,230 +891,16 @@ impl<'a> Parser<'a> {
                 || self.current_token().token_value() == "l"
                 || self.current_token().token_value() == "v")
         {
-            self.next_token();
-            let mut is_mutable = false;
-            let mut is_statement = false;
-            if self.current_token().token_value() == "mut"
-                || self.current_token().token_value() == "mutable"
-            {
-                self.next_token();
-                is_mutable = true;
-            }
-            let var = self.current_token().token_value().clone();
-            let mut data_type = self.new_empty();
-            let mut value_node = self.new_empty();
-            if self.peek_next_token(1).token_type() == TokenType::Colon {
-                data_type = self.parse_data_type()?;
-                self.next_token();
-            }
-            self.next_token(); // var
-            if self.current_token().token_type() == TokenType::Equals {
-                self.next_token();
-            }
-            let mut is_reference = false;
-            if self.current_token().token_type() == TokenType::Reference {
-                is_reference = true;
-                self.next_token();
-            }
-            if self.peek_next_token(1).token_type() == TokenType::LeftSquareBrace
-                || self.current_token().token_type() == TokenType::LeftSquareBrace
-            {
-                value_node = self.parse_array(&data_type)?;
-            } else {
-                value_node = self.expr()?;
-            }
-
-            //  if self.peek_next_token(1).token_type() != TokenType::Eof{
-            //  if self.current_token().token_type() == TokenType::Semi
-            /*
-            if self.previous_token(1).token_type() == TokenType::Semi
-            {
-                is_statement = true;
-                if self.peek_next_token(1).token_type() != TokenType::Eof{
-                    self.next_token();
-                }
-            }
-            */
-
-            if self.current_token().token_type() == TokenType::Semi {
-                is_statement = true;
-                self.next_token();
-            }
-            let mut is_local = false;
-            let mut brace_count = 0;
-            for i in (0..self.i).rev() {
-                match self.tokens[i].token_type() {
-                    TokenType::LeftCurlyBrace => brace_count += 1,
-                    TokenType::RightCurlyBrace => brace_count -= 1,
-                    _ => {}
-                }
-                if brace_count > 0 {
-                    is_local = true;
-                    break;
-                }
-            }
-            node = Some(Node {
-                node_value: NodeValue::VariableDeclaration(
-                    Box::new(Node::new(
-                        NodeValue::Variable(var),
-                        None,
-                        self.current_token().line(),
-                        self.current_token().column(),
-                    )),
-                    data_type,
-                    value_node,
-                    is_local,
-                    is_mutable,
-                    is_reference,
-                ),
-                node_next: None,
-                line: self.current_token().line(),
-                column: self.current_token().column(),
-                is_statement,
-            });
+            node = Some(*self.parse_variable_declaration()?);
         } else if self.current_token().token_type() == TokenType::Ident
             && self.peek_next_token(2).token_type() == TokenType::Equals
             && self.current_token().token_value() == "type"
         {
-            let mut is_statement = false;
-            self.next_token();
-            let _type_name = self.current_token().token_value().clone();
-            self.next_token();
-            self.next_token();
-            let value_node = self.expr()?;
-            if self.current_token().token_type() == TokenType::Semi {
-                is_statement = true;
-                self.next_token();
-            }
-            node = Some(Node {
-                node_value: NodeValue::TypeDeclaration(
-                    Box::new(Node::new(
-                        NodeValue::Variable(_type_name),
-                        None,
-                        self.current_token().line(),
-                        self.current_token().column(),
-                    )),
-                    value_node,
-                ),
-                node_next: None,
-                line: self.current_token().line(),
-                column: self.current_token().column(),
-                is_statement,
-            });
+            node = Some(*self.parse_type_declaration()?);
         } else if self.current_token().token_type() == TokenType::Ident
             && self.peek_next_token(1).token_type() == TokenType::Equals
         {
-            let mut is_statement = false;
-            let var = self.current_token().token_value().clone();
-            let mut data_type = self.new_empty();
-            let mut value_node = self.new_empty();
-            if self.peek_next_token(1).token_type() == TokenType::Colon {
-                data_type = self.parse_data_type()?;
-                self.next_token();
-            }
-
-            self.next_token();
-            self.next_token();
-
-            if self.peek_next_token(1).token_type() == TokenType::LeftSquareBrace
-                || self.current_token().token_type() == TokenType::LeftSquareBrace
-            {
-                value_node = self.parse_array(&data_type)?;
-            } else {
-                value_node = self.expr()?;
-            }
-
-            if self.current_token().token_type() == TokenType::Semi {
-                is_statement = true;
-                self.next_token();
-            }
-            node = Some(Node {
-                node_value: NodeValue::Assign(
-                    Box::new(Node::new(
-                        NodeValue::Variable(var),
-                        None,
-                        self.current_token().line(),
-                        self.current_token().column(),
-                    )),
-                    value_node,
-                ),
-                node_next: None,
-                line: self.current_token().line(),
-                column: self.current_token().column(),
-                is_statement,
-            });
-        } else if self.current_token().token_type() == TokenType::Ident
-            && matches!(
-                self.peek_next_token(1).token_type(),
-                TokenType::AddAssign
-                    | TokenType::SubAssign
-                    | TokenType::MulAssign
-                    | TokenType::DivAssign
-                    | TokenType::Increment
-                    | TokenType::Decrement
-            )
-        {
-            let var = self.current_token().token_value().clone();
-            let op = self.peek_next_token(1).token_type().clone();
-            self.next_token();
-            self.next_token();
-            let node_value = match op {
-                TokenType::AddAssign => NodeValue::AddAssign(
-                    Box::new(Node::new(
-                        NodeValue::Variable(var.clone()),
-                        None,
-                        self.current_token().line(),
-                        self.current_token().column(),
-                    )),
-                    self.expr()?,
-                ),
-                TokenType::SubAssign => NodeValue::SubAssign(
-                    Box::new(Node::new(
-                        NodeValue::Variable(var.clone()),
-                        None,
-                        self.current_token().line(),
-                        self.current_token().column(),
-                    )),
-                    self.expr()?,
-                ),
-                TokenType::MulAssign => NodeValue::MulAssign(
-                    Box::new(Node::new(
-                        NodeValue::Variable(var.clone()),
-                        None,
-                        self.current_token().line(),
-                        self.current_token().column(),
-                    )),
-                    self.expr()?,
-                ),
-                TokenType::DivAssign => NodeValue::DivAssign(
-                    Box::new(Node::new(
-                        NodeValue::Variable(var.clone()),
-                        None,
-                        self.current_token().line(),
-                        self.current_token().column(),
-                    )),
-                    self.expr()?,
-                ),
-                TokenType::Increment => NodeValue::Increment(Box::new(Node::new(
-                    NodeValue::Variable(var.clone()),
-                    None,
-                    self.current_token().line(),
-                    self.current_token().column(),
-                ))),
-                TokenType::Decrement => NodeValue::Decrement(Box::new(Node::new(
-                    NodeValue::Variable(var.clone()),
-                    None,
-                    self.current_token().line(),
-                    self.current_token().column(),
-                ))),
-                _ => unreachable!(),
-            };
-            node = Some(Node::new(
-                node_value,
-                None,
-                self.current_token().line(),
-                self.current_token().column(),
-            ));
+            node = Some(*self.parse_assign_variable()?);
         } else if self.current_token().token_type() == TokenType::Ident
             && self.current_token().token_value() == "return"
         {
@@ -989,13 +908,7 @@ impl<'a> Parser<'a> {
             //let ret_value = self.expr()?;
             let mut ret_value = Box::new(Node::default());
             let data_type = Box::new(Node::default());
-            if self.peek_next_token(1).token_type() == TokenType::LeftSquareBrace
-                || self.current_token().token_type() == TokenType::LeftSquareBrace
-            {
-                ret_value = self.parse_array(&data_type)?;
-            } else {
-                ret_value = self.expr()?;
-            }
+            ret_value = self.expr()?;
 
             let mut is_statement = false;
             if self.current_token().token_type() == TokenType::Semi {
@@ -1025,11 +938,14 @@ impl<'a> Parser<'a> {
             ));
         } else if self.current_token().token_type() == TokenType::LeftCurlyBrace {
             node = Some(*self.parse_block()?);
+        } else if self.current_token().token_type() == TokenType::Semi {
+            self.is_statement = true;
+            self.next_token();
         } else {
+            self.is_statement = false;
             node = Some(*self.expr()?);
         }
-
-        Ok(Box::new(node.unwrap()))
+        Ok(Box::new(node.unwrap_or_default()))
     }
 
     fn parse_statement(&mut self) -> R<Vec<Box<Node>>, String> {
