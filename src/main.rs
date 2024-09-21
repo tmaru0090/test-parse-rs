@@ -47,6 +47,7 @@ fn main() -> R<(), String> {
             Decoder::new()
         }
     };
+
     match decoder.decode() {
         Ok(v) => {
             info!("ret: {}", v);
@@ -55,7 +56,6 @@ fn main() -> R<(), String> {
         }
         Err(e) => eprintln!("{}", e),
     }
-
     Ok(())
 }
 
@@ -95,5 +95,27 @@ Div, //
 
     println!("{}", formatted_errors);
     println!("{}", formatted_errors_with_children);
+}
+*/
+/*
+use serde_json::to_writer_pretty;
+
+fn main()->R<(),String>{
+    env_logger::init();
+    let default_script_dir = std::path::Path::new("./script");
+    std::env::set_current_dir(&default_script_dir)
+        .expect("カレントディレクトリの設定に失敗しました");
+
+    // コマンドライン引数を取得
+    let args: Vec<String> = env::args().collect();
+    let file_name = if args.len() > 1 { &args[1] } else { "main.sc" };
+    
+    let file = File::create("script-analysis/ast.json").map_err(|e|e.to_string())?;
+    let content = std::fs::read_to_string(file_name).map_err(|e| e.to_string())?;
+    let tokens = Lexer::from_tokenize(file_name,content.clone())?;
+    let nodes = Parser::from_parse(&tokens,file_name,content.clone())?;
+    // 4. 構造体を整形済みのJSON形式にシリアライズしてファイルに書き込む
+    to_writer_pretty(file, &nodes).map_err(|e|e.to_string());
+    Ok(())
 }
 */

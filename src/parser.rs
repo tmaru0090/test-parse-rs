@@ -306,10 +306,18 @@ impl<'a> Parser<'a> {
             }
         }
         self.next_token(); // ')' をスキップ
+                           /*
+                           if self.current_token().token_type() == TokenType::Semi {
+                               self.is_statement = true;
+                           } else {
+                               self.is_statement = false;
+                           }
+                           */
         if self.current_token().token_type() == TokenType::Semi {
             self.is_statement = true;
+            self.next_token();
         } else {
-            self.is_statement = true;
+            self.is_statement = false;
         }
         Ok(Box::new(Node {
             node_value: NodeValue::Call(token.token_value().clone(), args, is_system),
@@ -660,10 +668,9 @@ impl<'a> Parser<'a> {
                 node = *self.parse_array(&data_type)?;
                 return Ok(Box::new(node));
             }
-
             TokenType::Semi => {
-                self.next_token();
                 self.is_statement = true;
+                self.next_token();
                 return Ok(Box::new(node));
             }
             _ => {
@@ -801,10 +808,18 @@ impl<'a> Parser<'a> {
         } else {
             value_node = self.expr()?;
         }
+        /*
+                if self.current_token().token_type() == TokenType::Semi {
+                    self.is_statement = true;
+                } else {
+                    self.is_statement = false;
+                }
+        */
         if self.current_token().token_type() == TokenType::Semi {
             self.is_statement = true;
+            self.next_token();
         } else {
-            self.is_statement = true;
+            self.is_statement = false;
         }
 
         let mut is_local = false;
@@ -870,6 +885,31 @@ impl<'a> Parser<'a> {
             is_statement: self.is_statement,
         }))
     }
+    fn parse_return(&mut self) -> R<Box<Node>, String> {
+        self.next_token();
+        let mut ret_value = Box::new(Node::default());
+        let data_type = Box::new(Node::default());
+        ret_value = self.expr()?;
+
+        Ok(Box::new(Node {
+            node_value: NodeValue::Return(ret_value),
+            node_next: None,
+            line: self.current_token().line(),
+            column: self.current_token().column(),
+            is_statement: self.is_statement,
+        }))
+    }
+    fn parse_include(&mut self) -> R<Box<Node>, String> {
+        self.next_token(); // @
+        self.next_token(); // include
+        let include_file_path = self.current_token().token_value().clone();
+        Ok(Box::new(Node::new(
+            NodeValue::Include(include_file_path),
+            None,
+            self.current_token().line(),
+            self.current_token().column(),
+        )))
+    }
     fn parse_single_statement(&mut self) -> R<Box<Node>, String> {
         let mut node: Option<Node> = None;
         if self.current_token().token_value() == "callback" {
@@ -904,38 +944,12 @@ impl<'a> Parser<'a> {
         } else if self.current_token().token_type() == TokenType::Ident
             && self.current_token().token_value() == "return"
         {
-            self.next_token();
-            //let ret_value = self.expr()?;
-            let mut ret_value = Box::new(Node::default());
-            let data_type = Box::new(Node::default());
-            ret_value = self.expr()?;
-
-            let mut is_statement = false;
-            if self.current_token().token_type() == TokenType::Semi {
-                is_statement = true;
-                self.next_token();
-            }
-
-            node = Some(Node {
-                node_value: NodeValue::Return(ret_value),
-                node_next: None,
-                line: self.current_token().line(),
-                column: self.current_token().column(),
-                is_statement,
-            });
+            node = Some(*self.parse_return()?);
         } else if self.current_token().token_type() == TokenType::AtSign
             && self.peek_next_token(1).token_type() == TokenType::Ident
             && self.peek_next_token(1).token_value() == "include"
         {
-            self.next_token();
-            self.next_token();
-            let include_file_path = self.current_token().token_value().clone();
-            node = Some(Node::new(
-                NodeValue::Include(include_file_path),
-                None,
-                self.current_token().line(),
-                self.current_token().column(),
-            ));
+            node = Some(*self.parse_include()?);
         } else if self.current_token().token_type() == TokenType::LeftCurlyBrace {
             node = Some(*self.parse_block()?);
         } else if self.current_token().token_type() == TokenType::Semi {

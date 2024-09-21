@@ -450,14 +450,14 @@ impl Decoder {
         Ok(value)
     }
     fn eval_block(&mut self, block: &Vec<Box<Node>>) -> R<Value, String> {
-        let mut r = Value::Null;
+        let mut result = Value::Null;
         let initial_local_context = self.context.local_context.clone(); // 現在のローカルコンテキストを保存
         for b in block {
             info!("local_context: {:?}", self.context.local_context.clone());
-            r = self.execute_node(b)?;
+            result = self.execute_node(b)?;
         }
         self.context.local_context = initial_local_context; // ブロックの処理が終わったらローカルコンテキストを元に戻す
-        Ok(r)
+        Ok(result)
     }
 
     fn eval_include(&mut self, file_name: &String) -> R<Value, String> {
@@ -516,6 +516,7 @@ impl Decoder {
     fn eval_assign(&mut self, var_name: &Box<Node>, value: &Box<Node>) -> R<Value, String> {
         let mut result = Value::Null;
         // ステートメントフラグのチェック
+        /*
         if !self.current_node.clone().unwrap().1.is_statement() {
             return Err(compile_error!(
                 "error",
@@ -529,7 +530,7 @@ impl Decoder {
                 "Variable Assign must be a statement"
             ));
         }
-
+        */
         let name = match var_name.node_value() {
             NodeValue::Variable(v) => v,
             _ => String::new(),
@@ -595,17 +596,37 @@ impl Decoder {
 
     fn eval_call(&mut self, name: &String, args: &Vec<Node>, is_system: &bool) -> R<Value, String> {
         let mut result = Value::Null;
+        let mut evaluated_args = Vec::new();
+        //info!("args: {:?}",args);
+
+        for arg in args {
+            let evaluated_arg = self.execute_node(&arg)?;
+            info!("args: {:?}", evaluated_arg);
+            evaluated_args.push(evaluated_arg);
+        }
+
         if *is_system {
             match name.as_str() {
+                "exit" => {
+                    if args.len() != 1 {
+                        return Err("exit expects exactly one argument".into());
+                    }
+                    let status = match self.execute_node(&args[0])? {
+                        Value::Number(n) => n.as_i64().ok_or("exit expects a positive integer")?,
+                        _ => return Err("sleep expects a number as the duration".into()),
+                    };
+                    std::process::exit(status.try_into().unwrap());
+                    return Ok(Value::Number(status.into()));
+                }
                 "args" => {
                     if !args.is_empty() {
-                        return Err("get_hostname expects no arguments".into());
+                        return Err("args expects no arguments".into());
                     }
                     let args: Vec<String> = std::env::args().collect();
                     let value: Value = Value::Array(args.into_iter().map(Value::String).collect());
                     return Ok(value);
                 }
-                "get_file_metadata" => {
+                "file_metadata" => {
                     if args.len() != 1 {
                         return Err("get_file_metadata expects exactly one argument".into());
                     }
@@ -635,28 +656,28 @@ impl Decoder {
             );
                     return Ok(Value::String(result));
                 }
-                "get_hostname" => {
+                "hostname" => {
                     if !args.is_empty() {
                         return Err("get_hostname expects no arguments".into());
                     }
                     let hostname = hostname::get().unwrap().to_string_lossy().to_string();
                     return Ok(Value::String(hostname));
                 }
-                "get_os" => {
+                "os" => {
                     if !args.is_empty() {
                         return Err("get_os expects no arguments".into());
                     }
                     let os = std::env::consts::OS;
                     return Ok(Value::String(os.to_string()));
                 }
-                "get_username" => {
+                "username" => {
                     if !args.is_empty() {
                         return Err("get_user expects no arguments".into());
                     }
                     let user = whoami::username();
                     return Ok(Value::String(user));
                 }
-                "get_env" => {
+                "env" => {
                     if args.len() != 1 {
                         return Err("get_env expects exactly one argument".into());
                     }
@@ -740,13 +761,43 @@ impl Decoder {
                 }
 
                 "cmd" => {
+                    let mut command = String::new();
+                    let mut command_args: Vec<String> = Vec::new();
                     if args.len() < 1 {
                         return Err("execute_command expects at least one argument".into());
                     }
-                    let command = match self.execute_node(&args[0])? {
+                    /*
+                                        command = match self.execute_node(&args[0])? {
+                                            Value::String(v) => v,
+                                            _ => return Err("execute_command expects a string as the command".into()),
+                                        };
+                    */
+                    for value in &evaluated_args {
+                        command = match value {
+                            Value::String(v) => v.to_string(),
+                            _ => command,
+                        };
+                        command_args = match value {
+                            Value::Array(v) => v
+                                .into_iter()
+                                .filter_map(|item| {
+                                    if let Value::String(s) = item {
+                                        Some(s.clone())
+                                    } else {
+                                        None // Ignore non-string elements
+                                    }
+                                })
+                                .collect(),
+                            _ => Vec::new(), // Return an empty Vec<String> if value is not an array
+                        };
+                    }
+                    /*
+                    command = match self.execute_node(&args[0])? {
                         Value::String(v) => v,
                         _ => return Err("execute_command expects a string as the command".into()),
                     };
+                    */
+                    /*
                     let command_args: Vec<String> = args[1..]
                         .iter()
                         .map(|arg| match self.execute_node(arg) {
@@ -755,6 +806,9 @@ impl Decoder {
                             Err(e) => Err(e),
                         })
                         .collect::<Result<Vec<String>, _>>()?;
+                    */
+                    //panic!("{:?} {:?} {:?}",args, command, command_args);
+
                     let output = Command::new(command)
                         .args(&command_args)
                         .output()
@@ -823,12 +877,6 @@ impl Decoder {
                 })?
         };
 
-        let mut evaluated_args = Vec::new();
-        for arg in args {
-            let evaluated_arg = self.execute_node(&arg)?;
-            evaluated_args.push(evaluated_arg);
-        }
-
         // func_infoから関数のアドレスを取得
         let func_address = variables.address;
         let func_info = self.get_value::<Value>(func_address).unwrap();
@@ -836,7 +884,7 @@ impl Decoder {
         let _body = func_info["body"].clone();
         let body: Node = serde_json::from_value(_body).unwrap();
         let return_type = func_info["return_type"].clone();
-
+        //let return_type = serde_json::from_value(_return_type).unwrap();
         for arg in _args.as_array().unwrap() {
             let _arg_name = arg["name"].clone();
             let arg_name = _arg_name.as_str().unwrap();
@@ -855,7 +903,24 @@ impl Decoder {
                 );
             }
         }
-        result = self.execute_node(&body)?;
+
+        let _body = match body.clone().node_value() {
+            NodeValue::Block(v) => v,
+            _ => vec![],
+        };
+        let b = _body
+            .iter()
+            .filter(|node| node.node_value() != NodeValue::Empty)
+            .collect::<Vec<_>>();
+        for body in b {
+            if let NodeValue::Return(r) = body.node_value() {
+                result = self.execute_node(&r)?;
+                break;
+            }
+
+            result = self.execute_node(&body)?;
+        }
+
         info!(
             "CallFunction: name = {:?},args = {:?},return_value = {:?}",
             func_name,
@@ -953,6 +1018,7 @@ impl Decoder {
     ) -> R<Value, String> {
         let mut result = Value::Null;
         // ステートメントフラグのチェック
+        /*
         if !self.current_node.clone().unwrap().1.is_statement() {
             return Err(compile_error!(
                 "error",
@@ -966,6 +1032,7 @@ impl Decoder {
                 "Variable declaration must be a statement"
             ));
         }
+        */
         info!("is_reference: {:?}", is_reference);
         let name = match var_name.node_value() {
             NodeValue::Variable(v) => v,
@@ -1183,14 +1250,413 @@ impl Decoder {
         info!("Return: {:?}", ret);
         Ok(ret)
     }
+
+    fn eval_binary_add(&mut self, lhs: &Box<Node>, rhs: &Box<Node>) -> R<Value, String> {
+        let left = self.execute_node(&lhs)?;
+        let right = self.execute_node(&rhs)?;
+        match (left.clone(), right.clone()) {
+            (Value::Number(l), Value::Number(r)) => {
+                if l.is_i64() && r.is_i64() {
+                    let result = l.as_i64().unwrap() + r.as_i64().unwrap();
+                    info!("Add: {} + {}", l, r);
+                    Ok(Value::Number(serde_json::Number::from(result)))
+                } else {
+                    info!("Add: {} + {}", l, r);
+                    Ok(Value::Number(
+                        serde_json::Number::from_f64(l.as_f64().unwrap() + r.as_f64().unwrap())
+                            .unwrap(),
+                    ))
+                }
+            }
+            (Value::String(l), Value::String(r)) => {
+                let result = l.clone() + &r.clone();
+                info!("Add: {} + {}", l, r);
+                Ok(Value::String(result))
+            }
+
+            _ => Err(compile_error!(
+                "error",
+                self.current_node.clone().unwrap().1.line(),
+                self.current_node.clone().unwrap().1.column(),
+                &self.current_node.clone().unwrap().0,
+                &self
+                    .file_contents
+                    .get(&self.current_node.clone().unwrap().0)
+                    .unwrap(),
+                "Addition operation failed: {:?} + {:?}",
+                left.clone(),
+                right.clone()
+            )),
+        }
+    }
+
+    fn eval_binary_sub(&mut self, lhs: &Box<Node>, rhs: &Box<Node>) -> R<Value, String> {
+        let left = self.execute_node(&lhs)?;
+        let right = self.execute_node(&rhs)?;
+        match (left.clone(), right.clone()) {
+            (Value::Number(l), Value::Number(r)) => {
+                if l.is_i64() && r.is_i64() {
+                    let result = l.as_i64().unwrap() - r.as_i64().unwrap();
+                    info!("Sub: {} - {}", l, r);
+                    Ok(Value::Number(serde_json::Number::from(result)))
+                } else {
+                    info!("Sub: {} - {}", l, r);
+                    Ok(Value::Number(
+                        serde_json::Number::from_f64(l.as_f64().unwrap() - r.as_f64().unwrap())
+                            .unwrap(),
+                    ))
+                }
+            }
+            _ => Err(compile_error!(
+                "error",
+                self.current_node.clone().unwrap().1.line(),
+                self.current_node.clone().unwrap().1.column(),
+                &self.current_node.clone().unwrap().0,
+                &self
+                    .file_contents
+                    .get(&self.current_node.clone().unwrap().0)
+                    .unwrap(),
+                "Subtraction operation failed: {:?} - {:?}",
+                left.clone(),
+                right.clone()
+            )),
+        }
+    }
+    fn eval_binary_mul(&mut self, lhs: &Box<Node>, rhs: &Box<Node>) -> R<Value, String> {
+        let left = self.execute_node(&lhs)?;
+        let right = self.execute_node(&rhs)?;
+        match (left.clone(), right.clone()) {
+            (Value::Number(l), Value::Number(r)) => {
+                if l.is_i64() && r.is_i64() {
+                    let result = l.as_i64().unwrap() * r.as_i64().unwrap();
+                    info!("Mul: {} * {}", l, r);
+                    Ok(Value::Number(serde_json::Number::from(result)))
+                } else {
+                    info!("Mul: {} * {}", l, r);
+                    Ok(Value::Number(
+                        serde_json::Number::from_f64(l.as_f64().unwrap() * r.as_f64().unwrap())
+                            .unwrap(),
+                    ))
+                }
+            }
+            _ => Err(compile_error!(
+                "error",
+                self.current_node.clone().unwrap().1.line(),
+                self.current_node.clone().unwrap().1.column(),
+                &self.current_node.clone().unwrap().0,
+                &self
+                    .file_contents
+                    .get(&self.current_node.clone().unwrap().0)
+                    .unwrap(),
+                "Multiplication operation failed: {:?} * {:?}",
+                left.clone(),
+                right.clone()
+            )),
+        }
+    }
+    fn eval_binary_div(&mut self, lhs: &Box<Node>, rhs: &Box<Node>) -> R<Value, String> {
+        let left = self.execute_node(&lhs)?;
+        let right = self.execute_node(&rhs)?;
+        if let Value::Number(ref r) = right.clone() {
+            if r.as_f64().unwrap() == 0.0 {
+                return Err(compile_error!(
+                    "error",
+                    self.current_node.clone().unwrap().1.line(),
+                    self.current_node.clone().unwrap().1.column(),
+                    &self.current_node.clone().unwrap().0,
+                    &self
+                        .file_contents
+                        .get(&self.current_node.clone().unwrap().0)
+                        .unwrap(),
+                    "Division by zero: {:?} / {:?}",
+                    left.clone(),
+                    right.clone()
+                ));
+            }
+        }
+        match (left.clone(), right.clone()) {
+            (Value::Number(l), Value::Number(r)) => {
+                if l.is_i64() && r.is_i64() {
+                    let result = l.as_i64().unwrap() / r.as_i64().unwrap();
+                    info!("Div: {} / {}", l, r);
+                    Ok(Value::Number(serde_json::Number::from(result)))
+                } else {
+                    info!("Div: {} / {}", l, r);
+                    Ok(Value::Number(
+                        serde_json::Number::from_f64(l.as_f64().unwrap() / r.as_f64().unwrap())
+                            .unwrap(),
+                    ))
+                }
+            }
+            _ => Err(compile_error!(
+                "error",
+                self.current_node.clone().unwrap().1.line(),
+                self.current_node.clone().unwrap().1.column(),
+                &self.current_node.clone().unwrap().0,
+                &self
+                    .file_contents
+                    .get(&self.current_node.clone().unwrap().0)
+                    .unwrap(),
+                "Division operation failed: {:?} / {:?}",
+                left.clone(),
+                right.clone()
+            )),
+        }
+    }
+    fn eval_binary_add_assign(&mut self, lhs: &Box<Node>, rhs: &Box<Node>) -> R<Value, String> {
+        let left_value = match self.execute_node(&lhs)? {
+            Value::Number(v) => v,
+            _ => serde_json::Number::from(-1),
+        };
+        let right_value = match self.execute_node(&rhs)? {
+            Value::Number(v) => v,
+            _ => serde_json::Number::from(-1),
+        };
+
+        let var = match lhs.node_value() {
+            NodeValue::Variable(v) => v,
+            _ => String::new(),
+        };
+
+        let variable_data = self
+            .context
+            .local_context
+            .get(&var)
+            .cloned()
+            .or_else(|| self.context.global_context.get(&var).cloned());
+        if let Some(variable) = variable_data {
+            let result = left_value.as_i64().unwrap() + right_value.as_i64().unwrap();
+            self.update_value(variable.address.clone(), result);
+            Ok(Value::Number(result.into()))
+        } else {
+            Ok(Value::Null)
+        }
+    }
+    fn eval_binary_sub_assign(&mut self, lhs: &Box<Node>, rhs: &Box<Node>) -> R<Value, String> {
+        let left_value = match self.execute_node(&lhs)? {
+            Value::Number(v) => v,
+            _ => serde_json::Number::from(-1),
+        };
+        let right_value = match self.execute_node(&rhs)? {
+            Value::Number(v) => v,
+            _ => serde_json::Number::from(-1),
+        };
+
+        let var = match lhs.node_value() {
+            NodeValue::Variable(v) => v,
+            _ => String::new(),
+        };
+
+        let variable_data = self
+            .context
+            .local_context
+            .get(&var)
+            .cloned()
+            .or_else(|| self.context.global_context.get(&var).cloned());
+        if let Some(variable) = variable_data {
+            let result = left_value.as_i64().unwrap() - right_value.as_i64().unwrap();
+            self.update_value(variable.address.clone(), result);
+            Ok(Value::Number(result.into()))
+        } else {
+            Ok(Value::Null)
+        }
+    }
+    fn eval_binary_mul_assign(&mut self, lhs: &Box<Node>, rhs: &Box<Node>) -> R<Value, String> {
+        let left_value = match self.execute_node(&lhs)? {
+            Value::Number(v) => v,
+            _ => serde_json::Number::from(-1),
+        };
+        let right_value = match self.execute_node(&rhs)? {
+            Value::Number(v) => v,
+            _ => serde_json::Number::from(-1),
+        };
+
+        let var = match lhs.node_value() {
+            NodeValue::Variable(v) => v,
+            _ => String::new(),
+        };
+
+        let variable_data = self
+            .context
+            .local_context
+            .get(&var)
+            .cloned()
+            .or_else(|| self.context.global_context.get(&var).cloned());
+        if let Some(variable) = variable_data {
+            let result = left_value.as_i64().unwrap() * right_value.as_i64().unwrap();
+            self.update_value(variable.address.clone(), result);
+            Ok(Value::Number(result.into()))
+        } else {
+            Ok(Value::Null)
+        }
+    }
+    fn eval_binary_div_assign(&mut self, lhs: &Box<Node>, rhs: &Box<Node>) -> R<Value, String> {
+        let left_value = match self.execute_node(&lhs)? {
+            Value::Number(v) => v,
+            _ => serde_json::Number::from(-1),
+        };
+        let right_value = match self.execute_node(&rhs)? {
+            Value::Number(v) => v,
+            _ => serde_json::Number::from(-1),
+        };
+
+        let var = match lhs.node_value() {
+            NodeValue::Variable(v) => v,
+            _ => String::new(),
+        };
+
+        let variable_data = self
+            .context
+            .local_context
+            .get(&var)
+            .cloned()
+            .or_else(|| self.context.global_context.get(&var).cloned());
+        if let Some(variable) = variable_data {
+            let result = left_value.as_i64().unwrap() / right_value.as_i64().unwrap();
+            self.update_value(variable.address.clone(), result);
+            Ok(Value::Number(result.into()))
+        } else {
+            Ok(Value::Null)
+        }
+    }
+    fn eval_binary_increment(&mut self, lhs: &Box<Node>) -> R<Value, String> {
+        let left_value = match self.execute_node(&lhs)? {
+            Value::Number(v) => v,
+            _ => serde_json::Number::from(-1),
+        };
+        let var = match lhs.node_value() {
+            NodeValue::Variable(v) => v,
+            _ => String::new(),
+        };
+
+        let variable_data = self
+            .context
+            .local_context
+            .get(&var)
+            .cloned()
+            .or_else(|| self.context.global_context.get(&var).cloned());
+        if let Some(variable) = variable_data {
+            let result = left_value.as_i64().unwrap() + 1;
+            self.update_value(variable.address.clone(), result);
+            Ok(Value::Number(result.into()))
+        } else {
+            Ok(Value::Null)
+        }
+    }
+    fn eval_binary_decrement(&mut self, lhs: &Box<Node>) -> R<Value, String> {
+        let left_value = match self.execute_node(&lhs)? {
+            Value::Number(v) => v,
+            _ => serde_json::Number::from(-1),
+        };
+        let var = match lhs.node_value() {
+            NodeValue::Variable(v) => v,
+            _ => String::new(),
+        };
+
+        let variable_data = self
+            .context
+            .local_context
+            .get(&var)
+            .cloned()
+            .or_else(|| self.context.global_context.get(&var).cloned());
+        if let Some(variable) = variable_data {
+            let result = left_value.as_i64().unwrap() - 1;
+            self.update_value(variable.address.clone(), result);
+            Ok(Value::Number(result.into()))
+        } else {
+            Ok(Value::Null)
+        }
+    }
+
+    fn eval_binary_condition(&mut self, node: &Node) -> R<Value, String> {
+        // 条件演算子の処理
+        if let NodeValue::Eq(left, right)
+        | NodeValue::Ne(left, right)
+        | NodeValue::Lt(left, right)
+        | NodeValue::Gt(left, right)
+        | NodeValue::Le(left, right)
+        | NodeValue::Ge(left, right) = &node.node_value()
+        {
+            let left_value = self.execute_node(left)?;
+            let right_value = self.execute_node(right)?;
+
+            match (&node.node_value(), left_value, right_value) {
+                // 等しい (==)
+                (NodeValue::Eq(_, _), Value::Number(l), Value::Number(r)) => {
+                    let l_f64 = l.as_f64().ok_or("Failed to convert left number to f64")?;
+                    let r_f64 = r.as_f64().ok_or("Failed to convert right number to f64")?;
+                    Ok(Value::Bool(l_f64 == r_f64))
+                }
+                (NodeValue::Eq(_, _), Value::String(l), Value::String(r)) => {
+                    Ok(Value::Bool(l == r))
+                }
+                // 等しくない (!=)
+                (NodeValue::Ne(_, _), Value::Number(l), Value::Number(r)) => {
+                    let l_f64 = l.as_f64().ok_or("Failed to convert left number to f64")?;
+                    let r_f64 = r.as_f64().ok_or("Failed to convert right number to f64")?;
+                    Ok(Value::Bool(l_f64 != r_f64))
+                }
+                (NodeValue::Ne(_, _), Value::String(l), Value::String(r)) => {
+                    Ok(Value::Bool(l != r))
+                }
+                // 小なり (<)
+                (NodeValue::Lt(_, _), Value::Number(l), Value::Number(r)) => {
+                    let l_f64 = l.as_f64().ok_or("Failed to convert left number to f64")?;
+                    let r_f64 = r.as_f64().ok_or("Failed to convert right number to f64")?;
+                    Ok(Value::Bool(l_f64 < r_f64))
+                }
+                // 大なり (>)
+                (NodeValue::Gt(_, _), Value::Number(l), Value::Number(r)) => {
+                    let l_f64 = l.as_f64().ok_or("Failed to convert left number to f64")?;
+                    let r_f64 = r.as_f64().ok_or("Failed to convert right number to f64")?;
+                    Ok(Value::Bool(l_f64 > r_f64))
+                }
+                // 以下 (<=)
+                (NodeValue::Le(_, _), Value::Number(l), Value::Number(r)) => {
+                    let l_f64 = l.as_f64().ok_or("Failed to convert left number to f64")?;
+                    let r_f64 = r.as_f64().ok_or("Failed to convert right number to f64")?;
+                    Ok(Value::Bool(l_f64 <= r_f64))
+                }
+                // 以上 (>=)
+                (NodeValue::Ge(_, _), Value::Number(l), Value::Number(r)) => {
+                    let l_f64 = l.as_f64().ok_or("Failed to convert left number to f64")?;
+                    let r_f64 = r.as_f64().ok_or("Failed to convert right number to f64")?;
+                    Ok(Value::Bool(l_f64 >= r_f64))
+                }
+                _ => Err("Unsupported operation or mismatched types in condition".to_string()),
+            }
+        } else {
+            Err("Unsupported node value".to_string())
+        }
+    }
+    fn eval_if_statement(&mut self, condition: &Box<Node>, body: &Box<Node>) -> R<Value, String> {
+        let condition = self.execute_node(&condition)?;
+        let mut result = Value::Null;
+        if let Value::Bool(value) = condition {
+            if value {
+                result = self.execute_node(&body)?;
+            }
+        }
+        Ok(result)
+    }
     fn execute_node(&mut self, node: &Node) -> R<Value, String> {
         let mut result = Value::Null;
         //info!("global_contexts: {:?}", self.context.global_context.clone());
         //info!("local_contexts: {:?}", self.context.local_context.clone());
         //info!("used_context: {:?}", self.context.used_context.clone());
-        info!("current_node: {:?}", self.current_node.clone());
+        //info!("current_node: {:?}", self.current_node.clone());
         let node_value = node.clone().node_value();
         match &node_value {
+            NodeValue::If(condition, body) => self.eval_if_statement(condition, body),
+            NodeValue::Eq(_, _)
+            | NodeValue::Ne(_, _)
+            | NodeValue::Lt(_, _)
+            | NodeValue::Gt(_, _)
+            | NodeValue::Le(_, _)
+            | NodeValue::Ge(_, _)
+            | NodeValue::And(_, _)
+            | NodeValue::Or(_, _) => self.eval_binary_condition(&node.clone()),
+
             NodeValue::Int(number) => Ok(Value::Number((*number).into())),
 
             NodeValue::Float(number) => {
@@ -1247,169 +1713,22 @@ impl Decoder {
             NodeValue::Variable(name) => self.eval_variable(name),
 
             NodeValue::Return(ret) => self.eval_return(ret),
-            NodeValue::Add(lhs, rhs) => {
-                let left = self.execute_node(&lhs)?;
-                let right = self.execute_node(&rhs)?;
-                match (left.clone(), right.clone()) {
-                    (Value::Number(l), Value::Number(r)) => {
-                        if l.is_i64() && r.is_i64() {
-                            let result = l.as_i64().unwrap() + r.as_i64().unwrap();
-                            info!("Add: {} + {}", l, r);
-                            Ok(Value::Number(serde_json::Number::from(result)))
-                        } else {
-                            info!("Add: {} + {}", l, r);
-                            Ok(Value::Number(
-                                serde_json::Number::from_f64(
-                                    l.as_f64().unwrap() + r.as_f64().unwrap(),
-                                )
-                                .unwrap(),
-                            ))
-                        }
-                    }
-                    (Value::String(l), Value::String(r)) => {
-                        let result = l.clone() + &r.clone();
-                        info!("Add: {} + {}", l, r);
-                        Ok(Value::String(result))
-                    }
 
-                    _ => Err(compile_error!(
-                        "error",
-                        node.line(),
-                        node.column(),
-                        &self.current_node.clone().unwrap().0,
-                        &self
-                            .file_contents
-                            .get(&self.current_node.clone().unwrap().0)
-                            .unwrap(),
-                        "Addition operation failed: {:?} + {:?}",
-                        left.clone(),
-                        right.clone()
-                    )),
-                }
-            }
+            NodeValue::Add(lhs, rhs) => self.eval_binary_add(lhs, rhs),
 
-            NodeValue::Sub(lhs, rhs) => {
-                let left = self.execute_node(&lhs)?;
-                let right = self.execute_node(&rhs)?;
-                match (left.clone(), right.clone()) {
-                    (Value::Number(l), Value::Number(r)) => {
-                        if l.is_i64() && r.is_i64() {
-                            let result = l.as_i64().unwrap() - r.as_i64().unwrap();
-                            info!("Sub: {} - {}", l, r);
-                            Ok(Value::Number(serde_json::Number::from(result)))
-                        } else {
-                            info!("Sub: {} - {}", l, r);
-                            Ok(Value::Number(
-                                serde_json::Number::from_f64(
-                                    l.as_f64().unwrap() - r.as_f64().unwrap(),
-                                )
-                                .unwrap(),
-                            ))
-                        }
-                    }
-                    _ => Err(compile_error!(
-                        "error",
-                        node.line(),
-                        node.column(),
-                        &self.current_node.clone().unwrap().0,
-                        &self
-                            .file_contents
-                            .get(&self.current_node.clone().unwrap().0)
-                            .unwrap(),
-                        "Subtraction operation failed: {:?} - {:?}",
-                        left.clone(),
-                        right.clone()
-                    )),
-                }
-            }
+            NodeValue::Sub(lhs, rhs) => self.eval_binary_sub(lhs, rhs),
 
-            NodeValue::Mul(lhs, rhs) => {
-                let left = self.execute_node(&lhs)?;
-                let right = self.execute_node(&rhs)?;
-                match (left.clone(), right.clone()) {
-                    (Value::Number(l), Value::Number(r)) => {
-                        if l.is_i64() && r.is_i64() {
-                            let result = l.as_i64().unwrap() * r.as_i64().unwrap();
-                            info!("Mul: {} * {}", l, r);
-                            Ok(Value::Number(serde_json::Number::from(result)))
-                        } else {
-                            info!("Mul: {} * {}", l, r);
-                            Ok(Value::Number(
-                                serde_json::Number::from_f64(
-                                    l.as_f64().unwrap() * r.as_f64().unwrap(),
-                                )
-                                .unwrap(),
-                            ))
-                        }
-                    }
-                    _ => Err(compile_error!(
-                        "error",
-                        node.line(),
-                        node.column(),
-                        &self.current_node.clone().unwrap().0,
-                        &self
-                            .file_contents
-                            .get(&self.current_node.clone().unwrap().0)
-                            .unwrap(),
-                        "Multiplication operation failed: {:?} * {:?}",
-                        left.clone(),
-                        right.clone()
-                    )),
-                }
-            }
+            NodeValue::Mul(lhs, rhs) => self.eval_binary_sub(lhs, rhs),
 
-            NodeValue::Div(lhs, rhs) => {
-                let left = self.execute_node(&lhs)?;
-                let right = self.execute_node(&rhs)?;
-                if let Value::Number(ref r) = right.clone() {
-                    if r.as_f64().unwrap() == 0.0 {
-                        return Err(compile_error!(
-                            "error",
-                            node.line(),
-                            node.column(),
-                            &self.current_node.clone().unwrap().0,
-                            &self
-                                .file_contents
-                                .get(&self.current_node.clone().unwrap().0)
-                                .unwrap(),
-                            "Division by zero: {:?} / {:?}",
-                            left.clone(),
-                            right.clone()
-                        ));
-                    }
-                }
-                match (left.clone(), right.clone()) {
-                    (Value::Number(l), Value::Number(r)) => {
-                        if l.is_i64() && r.is_i64() {
-                            let result = l.as_i64().unwrap() / r.as_i64().unwrap();
-                            info!("Div: {} / {}", l, r);
-                            Ok(Value::Number(serde_json::Number::from(result)))
-                        } else {
-                            info!("Div: {} / {}", l, r);
-                            Ok(Value::Number(
-                                serde_json::Number::from_f64(
-                                    l.as_f64().unwrap() / r.as_f64().unwrap(),
-                                )
-                                .unwrap(),
-                            ))
-                        }
-                    }
-                    _ => Err(compile_error!(
-                        "error",
-                        node.line(),
-                        node.column(),
-                        &self.current_node.clone().unwrap().0,
-                        &self
-                            .file_contents
-                            .get(&self.current_node.clone().unwrap().0)
-                            .unwrap(),
-                        "Division operation failed: {:?} / {:?}",
-                        left.clone(),
-                        right.clone()
-                    )),
-                }
-            }
+            NodeValue::Div(lhs, rhs) => self.eval_binary_div(lhs, rhs),
 
+            NodeValue::Increment(lhs) => self.eval_binary_increment(lhs),
+            NodeValue::Decrement(lhs) => self.eval_binary_decrement(lhs),
+
+            NodeValue::AddAssign(lhs, rhs) => self.eval_binary_add_assign(lhs, rhs),
+            NodeValue::SubAssign(lhs, rhs) => self.eval_binary_sub_assign(lhs, rhs),
+            NodeValue::MulAssign(lhs, rhs) => self.eval_binary_mul_assign(lhs, rhs),
+            NodeValue::DivAssign(lhs, rhs) => self.eval_binary_div_assign(lhs, rhs),
             _ => Err(compile_error!(
                 "error",
                 node.line(),
