@@ -250,7 +250,11 @@ impl Decoder {
 
         let tokens = Lexer::from_tokenize(file_name, file_content.clone())?;
 
+        info!("tokens: {:?}", tokens.clone());
+
         let nodes = Parser::from_parse(&tokens, file_name, file_content.clone())?;
+
+        info!("nodes: {:?}", nodes.clone());
         ast_map.insert(file_name.to_string(), nodes.clone());
         Ok(Decoder {
             ast_map,
@@ -602,13 +606,16 @@ impl Decoder {
         // 結果を返す
         Ok(Value::Array(array.clone()))
     }
+
     fn eval_assign(
         &mut self,
         node: &Node,
         var_name: &Box<Node>,
         value: &Box<Node>,
+        index: &Box<Node>,
     ) -> R<Value, String> {
         let mut result = Value::Null;
+
         // ステートメントフラグのチェック
         if !node.is_statement() {
             return Err(compile_error!(
@@ -629,7 +636,6 @@ impl Decoder {
             _ => String::new(),
         };
 
-        // 変数のデータを一時変数にコピー
         let variable_data = self
             .context
             .local_context
@@ -638,25 +644,63 @@ impl Decoder {
             .or_else(|| self.context.global_context.get(&name).cloned());
 
         if let Some(mut variable) = variable_data {
-            // 可変性のチェックを追加
             if variable.is_mutable {
+                //panic!("{:?}",variable);
                 let new_value = self.execute_node(&value)?;
 
-                // 型チェックを追加
                 self.check_type(&new_value, variable.data_type.as_str().unwrap_or(""))?;
 
-                // 変数の値を更新
-                self.update_value(variable.address.clone(), new_value.clone());
-                variable.value = new_value.clone();
+                match &mut variable.value {
+                    Value::Array(ref mut array) => {
+                        let index_value = self.execute_node(&index)?;
+                        if let Value::Number(n) = index_value {
+                            let index_usize = n.as_u64().unwrap_or(0) as usize;
+                            if index_usize < array.len() {
+                                array[index_usize] = new_value.clone();
+                                result = new_value.clone();
+                            } else {
+                                return Err(compile_error!(
+                                    "error",
+                                    self.current_node.clone().unwrap().1.line(),
+                                    self.current_node.clone().unwrap().1.column(),
+                                    &self.current_node.clone().unwrap().0,
+                                    &self
+                                        .file_contents
+                                        .get(&self.current_node.clone().unwrap().0)
+                                        .unwrap(),
+                                    "Index out of bounds"
+                                ));
+                            }
+                        } else {
+                            return Err(compile_error!(
+                                "error",
+                                self.current_node.clone().unwrap().1.line(),
+                                self.current_node.clone().unwrap().1.column(),
+                                &self.current_node.clone().unwrap().0,
+                                &self
+                                    .file_contents
+                                    .get(&self.current_node.clone().unwrap().0)
+                                    .unwrap(),
+                                "Index is not a number"
+                            ));
+                        }
+                    }
+                    _ => {
+                        variable.value = new_value.clone();
+                        result = new_value.clone();
+                    }
+                }
+
+                self.update_value(variable.address.clone(), variable.value.clone());
 
                 if self.context.local_context.contains_key(&name) {
                     self.context.local_context.insert(name.clone(), variable);
                 } else {
                     self.context.global_context.insert(name.clone(), variable);
                 }
-                info!("Assign: name = {:?}, new_value = {:?}", name, new_value);
-                result = new_value.clone();
-                Ok(new_value)
+
+                info!("Assign: name = {:?}, new_value = {:?}", name, result);
+                Ok(result)
             } else {
                 Err(compile_error!(
                     "error",
@@ -687,7 +731,6 @@ impl Decoder {
         }
     }
 
-    /*
     fn eval_call(&mut self, name: &String, args: &Vec<Node>, is_system: &bool) -> R<Value, String> {
         let mut result = Value::Null;
         let mut evaluated_args = Vec::new();
@@ -697,148 +740,124 @@ impl Decoder {
             evaluated_args.push(evaluated_arg);
         }
 
-        let func_name = name;
-        let variables = {
-            let global_context = &self.context.global_context;
-            global_context
-                .get(func_name.as_str())
-                .cloned()
-                .ok_or_else(|| {
-                    compile_error!(
-                        "error",
-                        self.current_node.clone().unwrap().1.line(),
-                        self.current_node.clone().unwrap().1.column(),
-                        &self.current_node.clone().unwrap().0,
-                        &self
-                            .file_contents
-                            .get(&self.current_node.clone().unwrap().0)
-                            .unwrap(),
-                        "Function '{}' is not defined",
-                        func_name
-                    )
-                })?
-        };
-
-        let func_address = variables.address;
-        let func_info = self.get_value::<Value>(func_address).unwrap();
-        let _args = func_info["args"].clone();
-        let _body = func_info["body"].clone();
-        let body: Node = serde_json::from_value(_body).unwrap();
-        let return_type = func_info["return_type"].clone();
-
-        for (arg, value) in _args.as_array().unwrap().iter().zip(&evaluated_args) {
-            let arg_name = arg["name"].as_str().unwrap();
-            let arg_type = arg["type"].clone();
-            let index = self.allocate(value.clone());
-            self.context.local_context.insert(
-                arg_name.to_string(),
-                Variable {
-                    value: value.clone(),
-                    data_type: arg_type.clone(),
-                    address: index,
-                    is_mutable: false,
-                    size: 0,
-                },
-            );
-        }
-
-        let _body = match body.clone().node_value() {
-            NodeValue::Block(v) => v,
-            _ => vec![],
-        };
-        let b = _body
-            .iter()
-            .filter(|node| node.node_value() != NodeValue::Empty)
-            .collect::<Vec<_>>();
-        for body in b {
-            result = self.execute_node(&body)?;
-        }
-
-        info!(
-            "CallFunction: name = {:?},args = {:?},return_value = {:?}",
-            func_name,
-            evaluated_args.clone(),
-            result
-        );
-
-        Ok(result)
-    }*/
-
-    fn eval_call(&mut self, name: &String, args: &Vec<Node>, is_system: &bool) -> R<Value, String> {
-        let mut result = Value::Null;
-        let mut evaluated_args = Vec::new();
-        for arg in args {
-            let evaluated_arg = self.execute_node(&arg)?;
-            info!("args: {:?}", evaluated_arg);
-            evaluated_args.push(evaluated_arg);
-        }
-
-        if *is_system {
-            match name.as_str() {
-                "exit" => {
-                    if args.len() != 1 {
-                        return Err("exit expects exactly one argument".into());
-                    }
-                    let status = match self.execute_node(&args[0])? {
-                        Value::Number(n) => n.as_i64().ok_or("exit expects a positive integer")?,
-                        _ => return Err("exit expects a number as the status".into()),
-                    };
-                    std::process::exit(status.try_into().unwrap());
-                }
-                "args" => {
-                    if !args.is_empty() {
-                        return Err("args expects no arguments".into());
-                    }
-                    let args: Vec<String> = std::env::args().collect();
-                    let value: Value = Value::Array(args.into_iter().map(Value::String).collect());
-                    return Ok(value);
-                }
-                "cmd" => {
-                    if evaluated_args.len() < 1 {
-                        return Err("cmd expects at least one argument".into());
-                    }
-                    let command = match &evaluated_args[0] {
-                        Value::String(v) => v.clone(),
-                        _ => return Err("cmd expects the first argument to be a string".into()),
-                    };
-                    let command_args = if evaluated_args.len() > 1 {
-                        match &evaluated_args[1] {
-                            Value::Array(v) => v
-                                .iter()
-                                .filter_map(|item| {
-                                    if let Value::String(s) = item {
-                                        Some(s.clone())
-                                    } else {
-                                        None
-                                    }
-                                })
-                                .collect(),
-                            _ => {
-                                return Err(
-                                    "cmd expects the second argument to be an array of strings"
-                                        .into(),
-                                )
-                            }
+        // #[cfg(feature = "wip")]
+        {
+            if *is_system {
+                match name.as_str() {
+                    "read_file" => {
+                        if args.len() != 1 {
+                            return Err("read_file expects exactly one argument".into());
                         }
-                    } else {
-                        Vec::new()
-                    };
-                    let output = Command::new(command)
-                        .args(&command_args)
-                        .output()
-                        .expect("外部コマンドの実行に失敗しました");
-                    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-                    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-                    return Ok(Value::Array(vec![
-                        Value::String(stdout),
-                        Value::String(stderr),
-                    ]));
+                        let file_name = match self.execute_node(&args[0])? {
+                            Value::String(v) => v,
+                            _ => return Err("read_file expects a string as the file name".into()),
+                        };
+                        let mut file = File::open(file_name).unwrap();
+                        let mut contents = String::new();
+                        file.read_to_string(&mut contents).unwrap();
+                        return Ok(Value::String(contents));
+                    }
+                    "write_file" => {
+                        if args.len() != 2 {
+                            return Err("write_file expects exactly two arguments".into());
+                        }
+                        let file_name = match self.execute_node(&args[0])? {
+                            Value::String(v) => v,
+                            _ => return Err("write_file expects a string as the file name".into()),
+                        };
+                        let content = match self.execute_node(&args[1])? {
+                            Value::String(v) => v,
+                            _ => return Err("write_file expects a string as the content".into()),
+                        };
+                        let mut file = File::create(file_name).unwrap();
+                        file.write_all(content.as_bytes()).unwrap();
+
+                        return Ok(Value::Null);
+                    }
+
+                    "print" => {
+                        for arg in args {
+                            let value = self.execute_node(arg)?;
+                            print!("{}", value);
+                        }
+                        return Ok(Value::Null);
+                    }
+                    "println" => {
+                        for arg in args {
+                            let value = self.execute_node(arg)?;
+                            print!("{}", value);
+                        }
+                        println!();
+                        return Ok(Value::Null);
+                    }
+                    "exit" => {
+                        if args.len() != 1 {
+                            return Err("exit expects exactly one argument".into());
+                        }
+                        let status = match self.execute_node(&args[0])? {
+                            Value::Number(n) => {
+                                n.as_i64().ok_or("exit expects a positive integer")?
+                            }
+                            _ => return Err("exit expects a number as the status".into()),
+                        };
+                        std::process::exit(status.try_into().unwrap());
+
+                        return Ok(Value::Null);
+                    }
+                    "args" => {
+                        if !args.is_empty() {
+                            return Err("args expects no arguments".into());
+                        }
+                        let args: Vec<String> = std::env::args().collect();
+                        let value: Value =
+                            Value::Array(args.into_iter().map(Value::String).collect());
+                        return Ok(value);
+                    }
+                    "cmd" => {
+                        if evaluated_args.len() < 1 {
+                            return Err("cmd expects at least one argument".into());
+                        }
+                        let command = match &evaluated_args[0] {
+                            Value::String(v) => v.clone(),
+                            _ => return Err("cmd expects the first argument to be a string".into()),
+                        };
+                        let command_args =
+                            if evaluated_args.len() > 1 {
+                                match &evaluated_args[1] {
+                                    Value::Array(v) => v
+                                        .iter()
+                                        .filter_map(|item| {
+                                            if let Value::String(s) = item {
+                                                Some(s.clone())
+                                            } else {
+                                                None
+                                            }
+                                        })
+                                        .collect(),
+                                    _ => return Err(
+                                        "cmd expects the second argument to be an array of strings"
+                                            .into(),
+                                    ),
+                                }
+                            } else {
+                                Vec::new()
+                            };
+                        let output = Command::new(command)
+                            .args(&command_args)
+                            .output()
+                            .expect("外部コマンドの実行に失敗しました");
+                        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+                        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+                        return Ok(Value::Array(vec![
+                            Value::String(stdout),
+                            Value::String(stderr),
+                        ]));
+                    }
+                    // 他のシステム関数の処理...
+                    _ => return Err(format!("Unknown function: {}", name)),
                 }
-                // 他のシステム関数の処理...
-                _ => return Err(format!("Unknown function: {}", name)),
             }
         }
-
         let func_name = name;
         let variables = {
             let global_context = &self.context.global_context;
@@ -1719,6 +1738,56 @@ impl Decoder {
         }
         Ok(result)
     }
+
+    fn eval_for_statement(
+        &mut self,
+        value: &Box<Node>,
+        iterator: &Box<Node>,
+        body: &Box<Node>,
+    ) -> R<Value, String> {
+        let mut result = Value::Null;
+
+        // イテレータの評価
+        let iter_value = self.execute_node(iterator)?;
+        if let Value::Array(elements) = iter_value {
+            for element in elements {
+                // ループ変数に値を設定し、メモリを確保
+                let element_address = self.allocate(element.clone());
+                let variable = Variable {
+                    data_type: Value::String("auto".to_string()), // 型推論を仮定
+                    value: element.clone(),
+                    address: element_address,
+                    is_mutable: true, // 仮に可変とする
+                    size: element.size(),
+                };
+                let var = match value.node_value() {
+                    NodeValue::Variable(v) => v,
+                    _ => String::new(),
+                };
+                self.context.local_context.insert(var.clone(), variable);
+
+                // ループボディの評価
+                match self.execute_node(body) {
+                    Ok(val) => result = val,
+                    Err(e) => return Err(e),
+                }
+            }
+        } else {
+            return Err(compile_error!(
+                "error",
+                self.current_node.clone().unwrap().1.line(),
+                self.current_node.clone().unwrap().1.column(),
+                &self.current_node.clone().unwrap().0,
+                &self
+                    .file_contents
+                    .get(&self.current_node.clone().unwrap().0)
+                    .unwrap(),
+                "The iterator is not an array",
+            ));
+        }
+
+        Ok(result)
+    }
     fn eval_primitive_type(&mut self, node: &Node) -> R<Value, String> {
         match &node.node_value() {
             NodeValue::Int(number) => Ok(Value::Number((*number).into())),
@@ -1728,6 +1797,7 @@ impl Decoder {
             }
             NodeValue::String(s) => Ok(Value::String(s.clone())),
             NodeValue::Bool(b) => Ok(Value::Bool(*b)),
+            NodeValue::Array(data_type, values) => self.eval_array(&data_type, &values),
             _ => Ok(Value::Null),
         }
     }
@@ -1742,7 +1812,16 @@ impl Decoder {
         //info!("current_node: {:?}", self.current_node.clone());
 
         match &node_value {
+            NodeValue::Range(start, max) => {
+                let start_value = self.execute_node(start)?;
+                let max_value = self.execute_node(max)?;
+                let array: Vec<u64> =
+                    (start_value.as_u64().unwrap()..=max_value.as_u64().unwrap()).collect();
+                Ok(serde_json::json!(array))
+            }
             NodeValue::If(condition, body) => self.eval_if_statement(condition, body),
+
+            NodeValue::For(value, iterator, body) => self.eval_for_statement(value, iterator, body),
             NodeValue::Eq(_, _)
             | NodeValue::Ne(_, _)
             | NodeValue::Lt(_, _)
@@ -1752,23 +1831,22 @@ impl Decoder {
             | NodeValue::And(_, _)
             | NodeValue::Or(_, _) => self.eval_binary_condition(&node.clone()),
 
-            NodeValue::Int(_) | NodeValue::Float(_) | NodeValue::String(_) | NodeValue::Bool(_) => {
-                self.eval_primitive_type(&node.clone())
-            }
+            NodeValue::Int(_)
+            | NodeValue::Float(_)
+            | NodeValue::String(_)
+            | NodeValue::Bool(_)
+            | NodeValue::Array(_, _) => self.eval_primitive_type(&node.clone()),
 
             NodeValue::Include(file_name) => self.eval_include(file_name),
-            NodeValue::Empty => Ok(result),
             NodeValue::MultiComment(content, (line, column)) => {
                 self.eval_multi_comment(&content, &(*line, *column))
             }
             NodeValue::SingleComment(content, (line, column)) => {
                 self.eval_single_comment(&content, &(*line, *column))
             }
-
-            NodeValue::Array(data_type, values) => self.eval_array(&data_type, &values),
             NodeValue::Block(block) => self.eval_block(&block),
-            NodeValue::Assign(var_name, value) => {
-                self.eval_assign(&node.clone(), &var_name, &value)
+            NodeValue::Assign(var_name, value, index) => {
+                self.eval_assign(&node.clone(), &var_name, &value, &index)
             }
 
             NodeValue::Call(name, args, is_system) => self.eval_call(name, args, is_system),

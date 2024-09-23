@@ -1,1 +1,109 @@
   
+  /*
+    fn eval_call(&mut self, name: &String, args: &Vec<Node>, is_system: &bool) -> R<Value, String> {
+        let mut result = Value::Null;
+        let mut evaluated_args = Vec::new();
+        for arg in args {
+            let evaluated_arg = self.execute_node(&arg)?;
+            info!("args: {:?}", evaluated_arg);
+            evaluated_args.push(evaluated_arg);
+        }
+
+        let func_name = name;
+        let variables = {
+            let global_context = &self.context.global_context;
+            global_context
+                .get(func_name.as_str())
+                .cloned()
+                .ok_or_else(|| {
+                    compile_error!(
+                        "error",
+                        self.current_node.clone().unwrap().1.line(),
+                        self.current_node.clone().unwrap().1.column(),
+                        &self.current_node.clone().unwrap().0,
+                        &self
+                            .file_contents
+                            .get(&self.current_node.clone().unwrap().0)
+                            .unwrap(),
+                        "Function '{}' is not defined",
+                        func_name
+                    )
+                })?
+        };
+
+        let func_address = variables.address;
+        let func_info = self.get_value::<Value>(func_address).unwrap();
+        let _args = func_info["args"].clone();
+        let _body = func_info["body"].clone();
+        let body: Node = serde_json::from_value(_body).unwrap();
+        let return_type = func_info["return_type"].clone();
+
+        for (arg, value) in _args.as_array().unwrap().iter().zip(&evaluated_args) {
+            let arg_name = arg["name"].as_str().unwrap();
+            let arg_type = arg["type"].clone();
+            let index = self.allocate(value.clone());
+            self.context.local_context.insert(
+                arg_name.to_string(),
+                Variable {
+                    value: value.clone(),
+                    data_type: arg_type.clone(),
+                    address: index,
+                    is_mutable: false,
+                    size: 0,
+                },
+            );
+        }
+
+        let _body = match body.clone().node_value() {
+            NodeValue::Block(v) => v,
+            _ => vec![],
+        };
+        let b = _body
+            .iter()
+            .filter(|node| node.node_value() != NodeValue::Empty)
+            .collect::<Vec<_>>();
+        for body in b {
+            result = self.execute_node(&body)?;
+        }
+
+        info!(
+            "CallFunction: name = {:?},args = {:?},return_value = {:?}",
+            func_name,
+            evaluated_args.clone(),
+            result
+        );
+
+        Ok(result)
+    }*/
+  /*
+        fn parse_for_statement(&mut self) -> R<Box<Node>, String> {
+            self.next_token(); // for
+            let var = self.current_token().token_value().clone();
+            self.next_token(); // var
+            self.next_token(); // in
+            let array = self.current_token().token_value().clone();
+            self.next_token(); // { をスキップ
+            let body = self.parse_block()?;
+            Ok(Box::new(Node::new(
+                NodeValue::For(
+                    Box::new(Node::new(
+                        NodeValue::Variable(var),
+                        None,
+                        self.current_token().line(),
+                        self.current_token().column(),
+                    )),
+                    Box::new(Node::new(
+                        NodeValue::Variable(array),
+                        None,
+                        self.current_token().line(),
+                        self.current_token().column(),
+                    )),
+                    body,
+                ),
+                None,
+                self.current_token().line(),
+                self.current_token().column(),
+            )))
+        }
+    */
+

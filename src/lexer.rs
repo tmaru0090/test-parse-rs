@@ -110,30 +110,104 @@ impl Lexer {
 
             let start_line = self.line();
             let start_column = self.column();
+            /*
+                        if c.is_digit(10) {
+                            let mut number = String::new();
+                            let mut has_decimal_point = false;
+                            let mut decimal_point_count = 0;
+                            while let Some(&c) = chars.peek() {
+                                if c.is_digit(10) {
+                                    number.push(c);
+                                    chars.next();
+                                    self.column += 1;
+                                } else if c == '.' {
+                                    decimal_point_count += 1;
+                                    if decimal_point_count == 1 {
+                                        number.push(c);
+                                        chars.next();
+                                        self.column += 1;
+                                        has_decimal_point = true;
+                                    } else if decimal_point_count == 2 {
+                                        // 2つ目のドットが見つかった場合、TokenType::Rangeを生成
+                                        tokens.push(Token::new(
+                                            "..".to_string(),
+                                            TokenType::Range,
+                                            start_line,
+                                            start_column,
+                                        ));
+                                        chars.next();
+                                        self.column += 1;
+                                        continue;
+                                    } else {
+                                        break;
+                                    }
+                                } else {
+                                    break;
+                                }
+                            }
+                            if decimal_point_count < 2 {
+                                tokens.push(Token::new(
+                                    number,
+                                    TokenType::Number,
+                                    start_line,
+                                    start_column,
+                                ));
+                            }
+                        }
+            */
 
             if c.is_digit(10) {
                 let mut number = String::new();
                 let mut has_decimal_point = false;
+                let mut decimal_point_count = 0;
+
                 while let Some(&c) = chars.peek() {
                     if c.is_digit(10) {
                         number.push(c);
                         chars.next();
                         self.column += 1;
-                    } else if c == '.' && !has_decimal_point {
-                        number.push(c);
-                        chars.next();
-                        self.column += 1;
-                        has_decimal_point = true;
+                    } else if c == '.' {
+                        decimal_point_count += 1;
+                        if decimal_point_count == 1 {
+                            chars.next();
+                            self.column += 1;
+                            has_decimal_point = true;
+                        } else if decimal_point_count == 2 {
+                            // 数字トークンを追加
+                            if !number.is_empty() {
+                                tokens.push(Token::new(
+                                    number.clone(),
+                                    TokenType::Number,
+                                    start_line,
+                                    start_column,
+                                ));
+                                number.clear(); // 数字バッファをクリア
+                            }
+                            // 2つ目のドットが見つかった場合、TokenType::Rangeを生成
+                            tokens.push(Token::new(
+                                "..".to_string(),
+                                TokenType::Range,
+                                start_line,
+                                start_column,
+                            ));
+                            chars.next();
+                            self.column += 1;
+                            break;
+                        } else {
+                            break;
+                        }
                     } else {
                         break;
                     }
                 }
-                tokens.push(Token::new(
-                    number,
-                    TokenType::Number,
-                    start_line,
-                    start_column,
-                ));
+                if decimal_point_count < 2 && !number.is_empty() {
+                    tokens.push(Token::new(
+                        number,
+                        TokenType::Number,
+                        start_line,
+                        start_column,
+                    ));
+                }
             } else if c.is_alphanumeric() || c == '_' {
                 let mut ident = String::new();
                 while let Some(&c) = chars.peek() {

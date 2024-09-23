@@ -46,6 +46,7 @@ pub enum TokenType {
     MultiComment(Vec<String>, (usize, usize)), // "/**/"
     RightArrow,                                // ->
     Eof,                                       // EOF
+    Range,                                     // ..
 }
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub enum NodeValue {
@@ -55,6 +56,7 @@ pub enum NodeValue {
     ElseIf(Box<Node>, Box<Node>),         // ElseIf(条件,ボディ)
     While(Box<Node>, Box<Node>),          // ElseIf(条件,ボディ)
     For(Box<Node>, Box<Node>, Box<Node>), // For(値、イテレータ|コレクション値|配列,ボディ)
+    Range(Box<Node>, Box<Node>),
     /* 条件用演算子 */
     Eq(Box<Node>, Box<Node>), // 等しい (左辺,右辺)
     Ne(Box<Node>, Box<Node>), // 等しくない (左辺,右辺)
@@ -92,7 +94,7 @@ pub enum NodeValue {
 
     VariableDeclaration(Box<Node>, Box<Node>, Box<Node>, bool, bool, bool), //変数定義(変数,型,右辺値,スコープフラグ,可変フラグ,参照フラグ)
 
-    Assign(Box<Node>, Box<Node>), // 代入(変数,右辺値)
+    Assign(Box<Node>, Box<Node>, Box<Node>), // 代入(変数,右辺値,配列の場合のインデックス)
     Block(Vec<Box<Node>>),
     Variable(String), // 変数(変数名)
     Int(i64),         // 数値(i64)

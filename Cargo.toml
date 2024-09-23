@@ -22,5 +22,4 @@ unicode-width = "0.1.13"
 uuid = { version = "1.10.0", features = ["v4"] }
 whoami = "1.5.2"
 [features]
-asm = []
-decode = []
+wip = []
