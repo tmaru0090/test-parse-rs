@@ -351,8 +351,6 @@
           [
             "\r",
             "fn test(){\r",
-            "    let a = @args();\r",
-            "    let host_name = @hostname();\r",
             "    let _path = \"C:/Users/tanukimaru/Downloads/bgm/\"+\"pokemon-bw-sentou-zimu.wav\";\r",
             "    l _out = @cmd(\"mpv\",[_path]);\r",
             "    l ret =&[100,100];\r",
@@ -360,7 +358,9 @@
             "    l args = [\"-i\",\"C:\\\\ProgramData\\\\soundfonts\\\\THFont.sf2\",\"C:\\\\Users\\\\tanukimaru\\\\Downloads\\\\th1202.mid\"];\r",
             "    l out = @cmd(path,args);\r",
             "}\r",
-            "test();\r"
+            "fn main(){\r",
+            "    //test();\r",
+            "}\r"
           ],
           [
             5,
@@ -369,178 +369,87 @@
         ]
       },
       "node_next": null,
-      "line": 20,
-      "column": 1,
-      "is_statement": false
-    },
-    {
-      "node_value": {
-        "SingleComment": [
-          "l a = @file_metadata(\"../src/main.rs\");",
-          [
-            20,
-            1
-          ]
-        ]
-      },
-      "node_next": null,
-      "line": 21,
-      "column": 5,
-      "is_statement": false
-    },
-    {
-      "node_value": {
-        "SingleComment": [
-          "let _path = \"C:/Users/tanukimaru/Downloads/bgm/\"+\"pokemon-bw-end.wav\"; ",
-          [
-            21,
-            5
-          ]
-        ]
-      },
-      "node_next": null,
-      "line": 22,
-      "column": 1,
-      "is_statement": false
-    },
-    {
-      "node_value": {
-        "MultiComment": [
-          [
-            "\r",
-            "   l _out = @cmd(\"mpv\",[_path]);\r",
-            "    l ret =&[100,100];\r",
-            "    l path = \"C:\\\\Users\\\\tanukimaru\\\\Downloads\\\\fluidsynth-2.3.5-win10-x64\\\\bin\\\\fluidsynth\";\r",
-            "    l args = [\"-i\",\"C:\\\\ProgramData\\\\soundfonts\\\\THFont.sf2\",\"C:\\\\Users\\\\tanukimaru\\\\Downloads\\\\th1202.mid\"];\r",
-            "    l out = @cmd(path,args);\r"
-          ],
-          [
-            22,
-            1
-          ]
-        ]
-      },
-      "node_next": null,
-      "line": 30,
+      "line": 18,
       "column": 1,
       "is_statement": false
     },
     {
       "node_value": {
         "Function": [
-          "main",
-          [],
+          "test",
+          [
+            [
+              {
+                "node_value": "Empty",
+                "node_next": null,
+                "line": 18,
+                "column": 10,
+                "is_statement": false
+              },
+              "a"
+            ],
+            [
+              {
+                "node_value": "Empty",
+                "node_next": null,
+                "line": 18,
+                "column": 12,
+                "is_statement": false
+              },
+              "b"
+            ]
+          ],
           {
             "node_value": {
               "Block": [
                 {
                   "node_value": {
-                    "VariableDeclaration": [
-                      {
-                        "node_value": {
-                          "Variable": "_path"
-                        },
-                        "node_next": null,
-                        "line": 32,
-                        "column": 5,
-                        "is_statement": false
+                    "Return": {
+                      "node_value": {
+                        "Bool": false
                       },
-                      {
-                        "node_value": "Empty",
-                        "node_next": null,
-                        "line": 31,
-                        "column": 7,
-                        "is_statement": false
-                      },
-                      {
-                        "node_value": {
-                          "Add": [
-                            {
-                              "node_value": {
-                                "String": "C:/Users/tanukimaru/Downloads/bgm/"
-                              },
-                              "node_next": null,
-                              "line": 31,
-                              "column": 51,
-                              "is_statement": false
-                            },
-                            {
-                              "node_value": {
-                                "String": "*.wav"
-                              },
-                              "node_next": null,
-                              "line": 32,
-                              "column": 5,
-                              "is_statement": false
-                            }
-                          ]
-                        },
-                        "node_next": null,
-                        "line": 32,
-                        "column": 5,
-                        "is_statement": false
-                      },
-                      true,
-                      false,
-                      false
-                    ]
+                      "node_next": null,
+                      "line": 20,
+                      "column": 1,
+                      "is_statement": false
+                    }
                   },
                   "node_next": null,
-                  "line": 32,
-                  "column": 5,
-                  "is_statement": false
-                },
-                {
-                  "node_value": {
-                    "SingleComment": [
-                      "let out = @cmd(\"mpv\",[_path]);",
-                      [
-                        32,
-                        5
-                      ]
-                    ]
-                  },
-                  "node_next": null,
-                  "line": 33,
+                  "line": 20,
                   "column": 1,
                   "is_statement": false
                 }
               ]
             },
             "node_next": null,
-            "line": 33,
+            "line": 20,
             "column": 1,
             "is_statement": false
           },
           {
-            "node_value": "Empty",
+            "node_value": {
+              "ReturnType": {
+                "node_value": {
+                  "Variable": "bool"
+                },
+                "node_next": null,
+                "line": 18,
+                "column": 19,
+                "is_statement": false
+              }
+            },
             "node_next": null,
-            "line": 30,
-            "column": 9,
+            "line": 18,
+            "column": 19,
             "is_statement": false
           },
           false
         ]
       },
       "node_next": null,
-      "line": 33,
+      "line": 20,
       "column": 1,
       "is_statement": false
-    }
-  ],
-  "main-entry": [
-    {
-      "node_value": {
-        "Call": [
-          "main",
-          [],
-          false
-        ]
-      },
-      "node_next": null,
-      "line": 1,
-      "column": 7,
-      "is_statement": true
     }
   ]
 }

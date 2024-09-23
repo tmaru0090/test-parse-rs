@@ -1,8 +1,8 @@
 // main関数
 @include "./std.sc"
-@include "example/test.sc"
+//@include "example/test.sc"
 
-
+/*
 fn test(){
     let _path = "C:/Users/tanukimaru/Downloads/bgm/"+"pokemon-bw-sentou-zimu.wav";
     l _out = @cmd("mpv",[_path]);
@@ -12,6 +12,7 @@ fn test(){
     l out = @cmd(path,args);
 }
 fn main(){
-    test();
+    //test();
 }
+*/
 

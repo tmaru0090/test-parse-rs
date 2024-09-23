@@ -306,16 +306,9 @@ impl<'a> Parser<'a> {
             }
         }
         self.next_token(); // ')' をスキップ
-                           /*
-                           if self.current_token().token_type() == TokenType::Semi {
-                               self.is_statement = true;
-                           } else {
-                               self.is_statement = false;
-                           }
-                           */
+ 
         if self.current_token().token_type() == TokenType::Semi {
             self.is_statement = true;
-            self.next_token();
         } else {
             self.is_statement = false;
         }
@@ -960,6 +953,8 @@ impl<'a> Parser<'a> {
             node = Some(*self.expr()?);
         }
         Ok(Box::new(node.unwrap_or_default()))
+
+        //Ok(Box::new(node.unwrap()))
     }
 
     fn parse_statement(&mut self) -> R<Vec<Box<Node>>, String> {

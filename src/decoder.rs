@@ -585,7 +585,7 @@ impl Decoder {
     fn eval_assign(&mut self, var_name: &Box<Node>, value: &Box<Node>) -> R<Value, String> {
         let mut result = Value::Null;
         // ステートメントフラグのチェック
-        /*
+        
         if !self.current_node.clone().unwrap().1.is_statement() {
             return Err(compile_error!(
                 "error",
@@ -599,7 +599,7 @@ impl Decoder {
                 "Variable Assign must be a statement"
             ));
         }
-        */
+        
         let name = match var_name.node_value() {
             NodeValue::Variable(v) => v,
             _ => String::new(),
@@ -891,7 +891,7 @@ impl Decoder {
     ) -> R<Value, String> {
         let mut result = Value::Null;
         // ステートメントフラグのチェック
-        /*
+        
         if !self.current_node.clone().unwrap().1.is_statement() {
             return Err(compile_error!(
                 "error",
@@ -905,7 +905,7 @@ impl Decoder {
                 "Variable declaration must be a statement"
             ));
         }
-        */
+        
         //info!("is_reference: {:?}", is_reference);
         let name = match var_name.node_value() {
             NodeValue::Variable(v) => v,
