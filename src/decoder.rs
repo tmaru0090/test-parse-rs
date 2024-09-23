@@ -88,11 +88,6 @@ impl Clone for MemoryBlock {
         }
     }
 }
-#[derive(Debug)]
-struct MemoryBlock {
-    id: Uuid,
-    value: Box<dyn Any>,
-}
 
 impl MemoryBlock {
     // クローン可能な値を持つ場合のみクローンを許可
@@ -107,18 +102,29 @@ impl MemoryBlock {
         }
     }
 }
+#[derive(Debug)]
+struct MemoryBlock {
+    id: Uuid,
+    value: Box<dyn Any>,
+}
+
 // メモリの管理
 #[derive(Debug, Clone)]
 struct MemoryManager {
     pub heap: HashMap<Uuid, MemoryBlock>, // ヒープ(アドレス,値)
     pub free_list: Vec<Uuid>,
+    pub stack_frames: HashMap<String, StackFrame>, // 関数名ごとのスタックフレーム
 }
-
+#[derive(Debug, Clone)]
+struct StackFrame {
+    blocks: Vec<MemoryBlock>, // スタックフレーム内のメモリブロック
+}
 impl MemoryManager {
     fn new(heap_size: usize) -> Self {
         MemoryManager {
             heap: HashMap::new(),
             free_list: Vec::new(),
+            stack_frames: HashMap::new(),
         }
     }
 }
@@ -471,6 +477,7 @@ impl Decoder {
 
         // ASTを評価して実行
         let mut evaluated_files = std::collections::HashSet::new();
+
         for (file_name, nodes) in self.ast_map() {
             if evaluated_files.contains(&file_name) {
                 continue; // 既に評価済みのファイルはスキップ
@@ -485,7 +492,6 @@ impl Decoder {
                 value = self.execute_node(&node)?;
             }
         }
-
         // メインエントリーが定義されていたら実行
         if self.entry_func.0 {
             self.add_ast_from_text("main-entry", &format!("{}();", self.entry_func.1))?;
@@ -582,11 +588,15 @@ impl Decoder {
         // 結果を返す
         Ok(Value::Array(array.clone()))
     }
-    fn eval_assign(&mut self, var_name: &Box<Node>, value: &Box<Node>) -> R<Value, String> {
+    fn eval_assign(
+        &mut self,
+        node: &Node,
+        var_name: &Box<Node>,
+        value: &Box<Node>,
+    ) -> R<Value, String> {
         let mut result = Value::Null;
         // ステートメントフラグのチェック
-        
-        if !self.current_node.clone().unwrap().1.is_statement() {
+        if !node.is_statement() {
             return Err(compile_error!(
                 "error",
                 self.current_node.clone().unwrap().1.line(),
@@ -599,7 +609,7 @@ impl Decoder {
                 "Variable Assign must be a statement"
             ));
         }
-        
+
         let name = match var_name.node_value() {
             NodeValue::Variable(v) => v,
             _ => String::new(),
@@ -670,73 +680,8 @@ impl Decoder {
             info!("args: {:?}", evaluated_arg);
             evaluated_args.push(evaluated_arg);
         }
-
-        if *is_system {
-            match name.as_str() {
-                "exit" => {
-                    if args.len() != 1 {
-                        return Err("exit expects exactly one argument".into());
-                    }
-                    let status = match self.execute_node(&args[0])? {
-                        Value::Number(n) => n.as_i64().ok_or("exit expects a positive integer")?,
-                        _ => return Err("exit expects a number as the status".into()),
-                    };
-                    std::process::exit(status.try_into().unwrap());
-                }
-                "args" => {
-                    if !args.is_empty() {
-                        return Err("args expects no arguments".into());
-                    }
-                    let args: Vec<String> = std::env::args().collect();
-                    let value: Value = Value::Array(args.into_iter().map(Value::String).collect());
-                    return Ok(value);
-                }
-                "cmd" => {
-                    if evaluated_args.len() < 1 {
-                        return Err("cmd expects at least one argument".into());
-                    }
-                    let command = match &evaluated_args[0] {
-                        Value::String(v) => v.clone(),
-                        _ => return Err("cmd expects the first argument to be a string".into()),
-                    };
-                    let command_args = if evaluated_args.len() > 1 {
-                        match &evaluated_args[1] {
-                            Value::Array(v) => v
-                                .iter()
-                                .filter_map(|item| {
-                                    if let Value::String(s) = item {
-                                        Some(s.clone())
-                                    } else {
-                                        None
-                                    }
-                                })
-                                .collect(),
-                            _ => {
-                                return Err(
-                                    "cmd expects the second argument to be an array of strings"
-                                        .into(),
-                                )
-                            }
-                        }
-                    } else {
-                        Vec::new()
-                    };
-                    let output = Command::new(command)
-                        .args(&command_args)
-                        .output()
-                        .expect("外部コマンドの実行に失敗しました");
-                    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-                    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-                    return Ok(Value::Array(vec![
-                        Value::String(stdout),
-                        Value::String(stderr),
-                    ]));
-                }
-                // 他のシステム関数の処理...
-                _ => return Err(format!("Unknown function: {}", name)),
-            }
-        }
-
+        
+     
         let func_name = name;
         let variables = {
             let global_context = &self.context.global_context;
@@ -882,6 +827,7 @@ impl Decoder {
     }
     fn eval_variable_declaration(
         &mut self,
+        node: &Node,
         var_name: &Box<Node>,
         data_type: &Box<Node>,
         value: &Box<Node>,
@@ -889,10 +835,8 @@ impl Decoder {
         is_mutable: &bool,
         is_reference: &bool,
     ) -> R<Value, String> {
-        let mut result = Value::Null;
         // ステートメントフラグのチェック
-        
-        if !self.current_node.clone().unwrap().1.is_statement() {
+        if !node.is_statement() {
             return Err(compile_error!(
                 "error",
                 self.current_node.clone().unwrap().1.line(),
@@ -905,7 +849,7 @@ impl Decoder {
                 "Variable declaration must be a statement"
             ));
         }
-        
+
         //info!("is_reference: {:?}", is_reference);
         let name = match var_name.node_value() {
             NodeValue::Variable(v) => v,
@@ -1033,7 +977,6 @@ impl Decoder {
         }
 
         info!("VariableDeclaration: name = {:?}, data_type = {:?}, value = {:?}, address = {:?} is_local: {}", name, v_type, v_value, address,is_local);
-        result = v_value.clone();
         let line = self.current_node.clone().unwrap().1.line();
         let column = self.current_node.clone().unwrap().1.column();
         self.context
@@ -1657,7 +1600,9 @@ impl Decoder {
 
             NodeValue::Array(data_type, values) => self.eval_array(&data_type, &values),
             NodeValue::Block(block) => self.eval_block(&block),
-            NodeValue::Assign(var_name, value) => self.eval_assign(&var_name, &value),
+            NodeValue::Assign(var_name, value) => {
+                self.eval_assign(&node.clone(), &var_name, &value)
+            }
 
             NodeValue::Call(name, args, is_system) => self.eval_call(name, args, is_system),
             NodeValue::CallBackFunction(name, args, body, return_type, is_system) => {
@@ -1675,6 +1620,7 @@ impl Decoder {
                 is_mutable,
                 is_reference,
             ) => self.eval_variable_declaration(
+                &node.clone(),
                 var_name,
                 data_type,
                 value,

@@ -76,7 +76,7 @@ impl CompilerError {
             for &(line, column) in &msg.lines {
                 if let Some(source_line) = source_code.lines().nth(line - 1) {
                     result.push_str(&format!(
-                        "{}  {}   {}  \n",
+                        "{} {}   {}  \n",
                         line.to_string().blue().bold(),
                         "|".blue().bold(),
                         source_line

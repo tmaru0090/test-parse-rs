@@ -296,8 +296,6 @@ impl<'a> Parser<'a> {
     fn parse_function_call(&mut self, token: Token, is_system: bool) -> R<Box<Node>, String> {
         self.next_token(); // '(' をスキップ
         let mut args = Vec::new();
-        let mut is_statement = false;
-        let data_type = Box::new(Node::default());
         while self.current_token().token_type() != TokenType::RightParen {
             let arg = self.expr()?;
             args.push(*arg);
@@ -306,11 +304,9 @@ impl<'a> Parser<'a> {
             }
         }
         self.next_token(); // ')' をスキップ
- 
+
         if self.current_token().token_type() == TokenType::Semi {
             self.is_statement = true;
-        } else {
-            self.is_statement = false;
         }
         Ok(Box::new(Node {
             node_value: NodeValue::Call(token.token_value().clone(), args, is_system),
@@ -663,7 +659,6 @@ impl<'a> Parser<'a> {
             }
             TokenType::Semi => {
                 self.is_statement = true;
-                self.next_token();
                 return Ok(Box::new(node));
             }
             _ => {
@@ -687,7 +682,7 @@ impl<'a> Parser<'a> {
         }
         let mut nodes = Vec::new();
         while self.current_token().token_type() != TokenType::RightCurlyBrace {
-            //info!("{:?}",self.current_token());
+            //            info!("{:?}",self.current_token());
 
             if self.current_token().token_type() == TokenType::Eof {
                 return Err(compile_error!(
@@ -810,9 +805,7 @@ impl<'a> Parser<'a> {
         */
         if self.current_token().token_type() == TokenType::Semi {
             self.is_statement = true;
-            self.next_token();
-        } else {
-            self.is_statement = false;
+            //   self.next_token();
         }
 
         let mut is_local = false;
