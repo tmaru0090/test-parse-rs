@@ -203,12 +203,22 @@ impl<'a> Parser<'a> {
         matches!(self.tokens.get(self.i + 1), Some(token) if token.token_type() == TokenType::Eof)
     }
 
+    /*
     fn peek_next_token(&mut self, i: usize) -> Token {
         if (self.i + i) < self.tokens.len() {
             let token = self.tokens[self.i + i].clone();
             token
         } else {
             panic!("Index out of bounds");
+        }
+    }
+    */
+
+    fn peek_next_token(&mut self, i: usize) -> Option<Token> {
+        if (self.i + i) < self.tokens.len() {
+            Some(self.tokens[self.i + i].clone())
+        } else {
+            None
         }
     }
     fn previous_token(&mut self, i: usize) -> Token {
@@ -475,6 +485,54 @@ impl<'a> Parser<'a> {
         }
         Ok(node)
     }
+    /*
+        fn parse_if_statement(&mut self) -> R<Box<Node>, String> {
+            self.next_token(); // 'if' をスキップ
+            let mut condition = self.new_empty();
+            if self.current_token().unwrap().token_type() != TokenType::LeftCurlyBrace {
+                condition = self.parse_condition()?;
+            }
+            self.next_token(); // { をスキップ
+            let body = self.parse_block()?; // ブロックの解析
+            Ok(Box::new(Node::new(
+                NodeValue::If(Box::new(*condition), Box::new(*body)),
+                None,
+                self.current_token().unwrap().line(),
+                self.current_token().unwrap().column(),
+            )))
+        }
+    */
+
+    fn parse_loop_statement(&mut self) -> R<Box<Node>, String> {
+        self.next_token(); // 'loop' をスキップ
+        self.next_token(); // { をスキップ
+
+        let body = self.parse_block()?; // ブロックの解析
+        Ok(Box::new(Node::new(
+            NodeValue::Loop(body),
+            None,
+            self.current_token().unwrap().line(),
+            self.current_token().unwrap().column(),
+        )))
+    }
+    fn parse_break(&mut self) -> R<Box<Node>, String> {
+        self.next_token(); // break
+        Ok(Box::new(Node::new(
+            NodeValue::Break,
+            None,
+            self.current_token().unwrap().line(),
+            self.current_token().unwrap().column(),
+        )))
+    }
+    fn parse_continue(&mut self) -> R<Box<Node>, String> {
+        self.next_token(); // continue
+        Ok(Box::new(Node::new(
+            NodeValue::Continue,
+            None,
+            self.current_token().unwrap().line(),
+            self.current_token().unwrap().column(),
+        )))
+    }
 
     fn parse_if_statement(&mut self) -> R<Box<Node>, String> {
         self.next_token(); // 'if' をスキップ
@@ -484,12 +542,43 @@ impl<'a> Parser<'a> {
         }
         self.next_token(); // { をスキップ
         let body = self.parse_block()?; // ブロックの解析
-        Ok(Box::new(Node::new(
-            NodeValue::If(Box::new(*condition), Box::new(*body)),
-            None,
-            self.current_token().unwrap().line(),
-            self.current_token().unwrap().column(),
-        )))
+
+        let mut if_node = Node {
+            node_value: NodeValue::If(Box::new(*condition), Box::new(*body)),
+            node_next: None,
+            line: self.current_token().unwrap().line(),
+            column: self.current_token().unwrap().column(),
+            is_statement: true,
+        };
+
+        // 'else' または 'else if' の処理
+        if let Some(next_token) = self.peek_next_token(1) {
+            if next_token.token_value() == "else" {
+                self.next_token(); // 'else' をスキップ
+                if let Some(next_token) = self.peek_next_token(1) {
+                    if next_token.token_value() == "if" {
+                        // 'else if' の処理
+                        self.next_token(); // 'if' をスキップ
+                        let else_if_node = self.parse_if_statement()?;
+                        if_node.node_next = Some(else_if_node);
+                    } else {
+                        // 'else' の処理
+                        self.next_token(); // { をスキップ
+                        let else_body = self.parse_block()?;
+                        let else_node = Node {
+                            node_value: NodeValue::Else(Box::new(*else_body)),
+                            node_next: None,
+                            line: self.current_token().unwrap().line(),
+                            column: self.current_token().unwrap().column(),
+                            is_statement: true,
+                        };
+                        if_node.node_next = Some(Box::new(else_node));
+                    }
+                }
+            }
+        }
+
+        Ok(Box::new(if_node))
     }
 
     fn parse_for_statement(&mut self) -> R<Box<Node>, String> {
@@ -503,7 +592,7 @@ impl<'a> Parser<'a> {
         //panic!("{:?}",start_token);
         let iterator_node = if
         //self.current_token().unwrap().token_type() == TokenType::Range {
-        self.peek_next_token(1).token_type() == TokenType::Range {
+        self.peek_next_token(1).unwrap().token_type() == TokenType::Range {
             self.next_token(); // skip ..
             self.next_token();
             let end_token = self.current_token().unwrap().token_value().clone();
@@ -759,7 +848,7 @@ impl<'a> Parser<'a> {
         }
     }
     fn parse_data_type(&mut self) -> R<Box<Node>, String> {
-        self.next_token(); // : をスキップ
+        //       self.next_token(); // : をスキップ
         self.next_token(); // 変数名 をスキップ
         info!("current: {:?}", self.current_token().unwrap());
         let data_type = self.expr()?;
@@ -810,24 +899,27 @@ impl<'a> Parser<'a> {
             is_statement: self.is_statement,
         }))
     }
+
     fn parse_variable_declaration(&mut self) -> R<Box<Node>, String> {
-        self.next_token(); // let
+        self.next_token();
         let mut is_mutable = false;
-        if self.current_token().unwrap().token_value() == "mut"
-            || self.current_token().unwrap().token_value() == "mutable"
-        {
-            self.next_token();
-            is_mutable = true;
+        if let Some(token) = self.current_token() {
+            if token.token_value() == "mut" || token.token_value() == "mutable" {
+                self.next_token();
+                is_mutable = true;
+            }
         }
         let var = self.current_token().unwrap().token_value().clone();
         let mut data_type = self.new_empty();
         let mut value_node = self.new_empty();
-        if self.peek_next_token(1).token_type() == TokenType::Colon {
+        if self.peek_next_token(1).unwrap().token_type() == TokenType::Colon {
+            self.next_token(); // : をスキップ
             data_type = self.parse_data_type()?;
         }
-        self.next_token();
-        //panic!("{:?}",self.current_token());
-
+        self.next_token(); // var をスキップ
+        if self.current_token().unwrap().token_type() == TokenType::Equals {
+            self.next_token();
+        }
         let mut is_reference = false;
         if self.current_token().unwrap().token_type() == TokenType::Reference {
             is_reference = true;
@@ -835,6 +927,7 @@ impl<'a> Parser<'a> {
         } else {
             value_node = self.expr()?;
         }
+
         if self.current_token().unwrap().token_type() == TokenType::Semi {
             self.is_statement = true;
         }
@@ -953,63 +1046,6 @@ impl<'a> Parser<'a> {
         self.next_token();
         Ok(Box::new(include_node))
     }
-    /*
-        fn parse_single_statement(&mut self) -> R<Box<Node>, String> {
-            let mut node: Option<Node> = None;
-            if self.current_token().unwrap().token_value() == "callback" {
-                node = Some(*self.parse_callback_function_definition()?);
-            } else if self.current_token().unwrap().token_value() == "fn" {
-                node = Some(*self.parse_function_definition()?);
-            } else if self.current_token().unwrap().token_value() == "while" {
-                node = Some(*self.parse_while_statement()?);
-            } else if self.current_token().unwrap().token_value() == "if" {
-                node = Some(*self.parse_if_statement()?);
-            } else if self.current_token().unwrap().token_type() == TokenType::Ident
-                && self.current_token().unwrap().token_value() == "for"
-                && self.peek_next_token(2).token_value() == "in"
-            {
-                node = Some(*self.parse_for_statement()?);
-            } else if self.current_token().unwrap().token_type() == TokenType::Ident
-                && (self.current_token().unwrap().token_value() == "let"
-                    || self.current_token().unwrap().token_value() == "var"
-                    || self.current_token().unwrap().token_value() == "l"
-                    || self.current_token().unwrap().token_value() == "v")
-            {
-                node = Some(*self.parse_variable_declaration()?);
-            } else if self.current_token().unwrap().token_type() == TokenType::Ident
-                && self.peek_next_token(2).token_type() == TokenType::Equals
-                && self.current_token().unwrap().token_value() == "type"
-            {
-                node = Some(*self.parse_type_declaration()?);
-            } else if self.current_token().unwrap().token_type() == TokenType::Ident
-                && self.peek_next_token(1).token_type() == TokenType::Equals
-                || self.current_token().unwrap().token_type() == TokenType::Ident
-                    && self.peek_next_token(1).token_type() == TokenType::LeftSquareBrace
-            {
-                node = Some(*self.parse_assign_variable()?);
-            } else if self.current_token().unwrap().token_type() == TokenType::Ident
-                && self.current_token().unwrap().token_value() == "return"
-            {
-                node = Some(*self.parse_return()?);
-            } else if self.current_token().unwrap().token_type() == TokenType::AtSign
-                && self.peek_next_token(1).token_type() == TokenType::Ident
-                && self.peek_next_token(1).token_value() == "include"
-            {
-                node = Some(*self.parse_include()?);
-            } else if self.current_token().unwrap().token_type() == TokenType::LeftCurlyBrace {
-                node = Some(*self.parse_block()?);
-            } else if self.current_token().unwrap().token_type() == TokenType::Semi {
-                self.is_statement = true;
-                self.next_token();
-            } else {
-                self.is_statement = false;
-                node = Some(*self.expr()?);
-            }
-               Ok(Box::new(node.unwrap_or_default()))
-
-            //Ok(Box::new(node.unwrap()))
-        }
-    */
 
     fn parse_single_statement(&mut self) -> Option<R<Box<Node>, String>> {
         let result = if self.current_token().unwrap().token_value() == "callback" {
@@ -1022,9 +1058,11 @@ impl<'a> Parser<'a> {
             self.parse_if_statement()
         } else if self.current_token().unwrap().token_type() == TokenType::Ident
             && self.current_token().unwrap().token_value() == "for"
-            && self.peek_next_token(2).token_value() == "in"
+            && self.peek_next_token(2).unwrap().token_value() == "in"
         {
             self.parse_for_statement()
+        } else if self.current_token().unwrap().token_value() == "loop" {
+            self.parse_loop_statement()
         } else if self.current_token().unwrap().token_type() == TokenType::Ident
             && (self.current_token().unwrap().token_value() == "let"
                 || self.current_token().unwrap().token_value() == "var"
@@ -1033,23 +1071,31 @@ impl<'a> Parser<'a> {
         {
             self.parse_variable_declaration()
         } else if self.current_token().unwrap().token_type() == TokenType::Ident
-            && self.peek_next_token(2).token_type() == TokenType::Equals
+            && self.peek_next_token(2).unwrap().token_type() == TokenType::Equals
             && self.current_token().unwrap().token_value() == "type"
         {
             self.parse_type_declaration()
         } else if self.current_token().unwrap().token_type() == TokenType::Ident
-            && self.peek_next_token(1).token_type() == TokenType::Equals
+            && self.peek_next_token(1).unwrap().token_type() == TokenType::Equals
             || self.current_token().unwrap().token_type() == TokenType::Ident
-                && self.peek_next_token(1).token_type() == TokenType::LeftSquareBrace
+                && self.peek_next_token(1).unwrap().token_type() == TokenType::LeftSquareBrace
         {
             self.parse_assign_variable()
         } else if self.current_token().unwrap().token_type() == TokenType::Ident
             && self.current_token().unwrap().token_value() == "return"
         {
             self.parse_return()
+        } else if self.current_token().unwrap().token_type() == TokenType::Ident
+            && self.current_token().unwrap().token_value() == "break"
+        {
+            self.parse_break()
+        } else if self.current_token().unwrap().token_type() == TokenType::Ident
+            && self.current_token().unwrap().token_value() == "continue"
+        {
+            self.parse_continue()
         } else if self.current_token().unwrap().token_type() == TokenType::AtSign
-            && self.peek_next_token(1).token_type() == TokenType::Ident
-            && self.peek_next_token(1).token_value() == "include"
+            && self.peek_next_token(1).unwrap().token_type() == TokenType::Ident
+            && self.peek_next_token(1).unwrap().token_value() == "include"
         {
             self.parse_include()
         } else if self.current_token().unwrap().token_type() == TokenType::LeftCurlyBrace {
@@ -1077,18 +1123,7 @@ impl<'a> Parser<'a> {
         }
         Ok(nodes)
     }
-    /*
-        fn parse_statement(&mut self) -> R<Vec<Box<Node>>, String> {
-            let mut nodes: Vec<Box<Node>> = Vec::new();
-            while self.current_token().unwrap().token_type() != TokenType::Eof
-                && self.current_token().unwrap().token_type() != TokenType::RightCurlyBrace
-            {
-                let statement = self.parse_single_statement()?;
-                nodes.push(statement);
-            }
-            Ok(nodes)
-        }
-    */
+
     pub fn parse(&mut self) -> R<Vec<Box<Node>>, String> {
         let mut nodes: Vec<Box<Node>> = Vec::new();
         nodes = self.parse_statement()?;

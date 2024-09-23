@@ -24,6 +24,20 @@ pub enum TokenType {
     Ge,  // >=
     And, // &&
     Or,  // ||
+
+    /*ビット演算用演算子*/
+    BitAnd,           // &
+    BitOr,            // |
+    BitXor,           // ^
+    BitNot,           // ~
+    ShiftLeft,        // <<
+    ShiftRight,       // >>
+    BitAndAssign,     // &=
+    BitOrAssign,      // |=
+    BitXorAssign,     // ^=
+    ShiftLeftAssign,  // <<=
+    ShiftRightAssign, // >>=
+
     /*識別子*/
     Ident,
     Number,
@@ -54,8 +68,11 @@ pub enum NodeValue {
     If(Box<Node>, Box<Node>), // If(条件,ボディ)
     Else(Box<Node>),
     ElseIf(Box<Node>, Box<Node>),         // ElseIf(条件,ボディ)
+    Loop(Box<Node>),                      // Loop(ボディ)
     While(Box<Node>, Box<Node>),          // ElseIf(条件,ボディ)
     For(Box<Node>, Box<Node>, Box<Node>), // For(値、イテレータ|コレクション値|配列,ボディ)
+    Break,                                // Break
+    Continue,                             // Continue
     Range(Box<Node>, Box<Node>),
     /* 条件用演算子 */
     Eq(Box<Node>, Box<Node>), // 等しい (左辺,右辺)
@@ -92,17 +109,29 @@ pub enum NodeValue {
 
     DivAssign(Box<Node>, Box<Node>), // 除算代入(左辺,右辺)
 
+    /*ビット演算用演算子*/
+    BitAnd(Box<Node>, Box<Node>),           // ビットAND (左辺,右辺)
+    BitOr(Box<Node>, Box<Node>),            // ビットOR (左辺,右辺)
+    BitXor(Box<Node>, Box<Node>),           // ビットXOR (左辺,右辺)
+    BitNot(Box<Node>),                      // ビットNOT (値)
+    ShiftLeft(Box<Node>, Box<Node>),        // 左シフト (左辺,右辺)
+    ShiftRight(Box<Node>, Box<Node>),       // 右シフト (左辺,右辺)
+    BitAndAssign(Box<Node>, Box<Node>),     // ビットAND代入 (左辺,右辺)
+    BitOrAssign(Box<Node>, Box<Node>),      // ビットOR代入 (左辺,右辺)
+    BitXorAssign(Box<Node>, Box<Node>),     // ビットXOR代入 (左辺,右辺)
+    ShiftLeftAssign(Box<Node>, Box<Node>),  // 左シフト代入 (左辺,右辺)
+    ShiftRightAssign(Box<Node>, Box<Node>), // 右シフト代入 (左辺,右辺)
     VariableDeclaration(Box<Node>, Box<Node>, Box<Node>, bool, bool, bool), //変数定義(変数,型,右辺値,スコープフラグ,可変フラグ,参照フラグ)
 
     Assign(Box<Node>, Box<Node>, Box<Node>), // 代入(変数,右辺値,配列の場合のインデックス)
     Block(Vec<Box<Node>>),
-    Variable(String), // 変数(変数名)
-    Int(i64),         // 数値(i64)
-    Float(f64),       // 浮動型少数の数値(f64)
-    String(String),   // 文字列(文字列)
-    Bool(bool),       // 真偽値(ブーリアン値)
-    Unit(()),         // Unit値(Void型)
-
+    Variable(String),                  // 変数(変数名)
+    Int(i64),                          // 数値(i64)
+    Float(f64),                        // 浮動型少数の数値(f64)
+    String(String),                    // 文字列(文字列)
+    Bool(bool),                        // 真偽値(ブーリアン値)
+    Unit(()),                          // Unit値(Void型)
+    Struct(Box<Node>, Vec<Box<Node>>), // 構造体定義(構造体名,メンバリスト)
     Function(String, Vec<(Box<Node>, String)>, Box<Node>, Box<Node>, bool), // 関数定義(関数名,(引数の型,引数名リスト),ボディ,戻り値,戻り値の型,システム関数フラグ)
     CallBackFunction(String, Vec<(Box<Node>, String)>, Box<Node>, Box<Node>, bool), // 関数定義(関数名,(引数の型,引数名リスト),ボディ,戻り値,戻り値の型,システム関数フラグ)
 

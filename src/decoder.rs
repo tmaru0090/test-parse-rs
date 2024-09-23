@@ -28,6 +28,10 @@ use std::time::Instant;
 use std::time::UNIX_EPOCH;
 use uuid::Uuid;
 use whoami;
+static RESERVED_WORDS: &[&str] = &[
+    "if", "else", "while", "for", "break", "continue", "i32", "i64", "f32", "f64", "u32", "u64",
+    "type", "let", "l", "var", "v", "fn", "mut", "loop","=","+","++","-","--","+=","-=","*","*=","/","/=","{","}","[","]"
+];
 
 trait Size {
     fn size(&self) -> usize;
@@ -949,6 +953,8 @@ impl Decoder {
             self.entry_func.0 = true;
             self.entry_func.1 = func_name.clone();
         }
+        self.check_reserved_words(&func_name, RESERVED_WORDS)?;
+
         // 関数がすでに定義されているかチェック
         if self.context.global_context.contains_key(func_name.as_str()) {
             return Err(compile_error!(
@@ -1012,6 +1018,25 @@ impl Decoder {
         );
         Ok(Value::Null)
     }
+
+    fn check_reserved_words(&self, input: &str, reserved_words: &[&str]) -> Result<Value, String> {
+        if reserved_words.contains(&input) {
+            return Err(compile_error!(
+                "error",
+                self.current_node.clone().unwrap().1.line(),
+                self.current_node.clone().unwrap().1.column(),
+                &self.current_node.clone().unwrap().0,
+                &self
+                    .file_contents
+                    .get(&self.current_node.clone().unwrap().0)
+                    .unwrap(),
+                "'{}' is a reserved word",
+                input
+            ));
+        } else {
+            Ok(Value::Null)
+        }
+    }
     fn eval_variable_declaration(
         &mut self,
         node: &Node,
@@ -1043,6 +1068,7 @@ impl Decoder {
             _ => String::new(),
         };
 
+        self.check_reserved_words(&name, RESERVED_WORDS)?;
         let mut v_type = Value::Null;
         let v_value;
         let address;
@@ -1729,30 +1755,153 @@ impl Decoder {
             Err("Unsupported node value".to_string())
         }
     }
+    /*
+        fn eval_if_statement(&mut self, condition: &Box<Node>, body: &Box<Node>) -> R<Value, String> {
+            let condition = self.execute_node(&condition)?;
+            let mut result = Value::Null;
+            if let Value::Bool(value) = condition {
+                if value {
+                    result = self.execute_node(&body)?;
+                }
+            }
+            Ok(result)
+        }
+    */
+
     fn eval_if_statement(&mut self, condition: &Box<Node>, body: &Box<Node>) -> R<Value, String> {
-        let condition = self.execute_node(&condition)?;
+        let condition_result = self.execute_node(&condition)?;
         let mut result = Value::Null;
-        if let Value::Bool(value) = condition {
+
+        if let Value::Bool(value) = condition_result {
             if value {
                 result = self.execute_node(&body)?;
+            } else if let Some(ref next_node) = condition.node_next() {
+                match next_node.node_value() {
+                    NodeValue::If(ref next_condition, ref next_body) => {
+                        result = self.eval_if_statement(next_condition, next_body)?;
+                    }
+                    NodeValue::Else(ref else_body) => {
+                        result = self.execute_node(&else_body)?;
+                    }
+                    _ => {}
+                }
             }
+        }
+
+        Ok(result)
+    }
+    fn eval_loop_statement(&mut self, body: &Box<Node>) -> R<Value, String> {
+        let mut result = Value::Null;
+        loop {
+            result = self.execute_node(&body)?;
         }
         Ok(result)
     }
+    /*
+        fn eval_while_statement(
+            &mut self,
+            condition: &Box<Node>,
+            body: &Box<Node>,
+        ) -> R<Value, String> {
+            let mut result = Value::Null;
+            loop {
+                let condition_value = self.execute_node(&condition)?;
+                if let Value::Bool(value) = condition_value {
+                    if value {
+                        result = self.execute_node(&body)?;
+                    } else {
+                        break;
+                    }
+                } else {
+                    return Err("Condition must evaluate to a boolean".to_string());
+                }
+            }
+            Ok(result)
+        }
+
+        fn eval_for_statement(
+            &mut self,
+            value: &Box<Node>,
+            iterator: &Box<Node>,
+            body: &Box<Node>,
+        ) -> R<Value, String> {
+            let mut result = Value::Null;
+
+            // イテレータの評価
+            let iter_value = self.execute_node(iterator)?;
+            if let Value::Array(elements) = iter_value {
+                for element in elements {
+                    // ループ変数に値を設定し、メモリを確保
+                    let element_address = self.allocate(element.clone());
+                    let variable = Variable {
+                        data_type: Value::String("auto".to_string()), // 型推論を仮定
+                        value: element.clone(),
+                        address: element_address,
+                        is_mutable: true, // 仮に可変とする
+                        size: element.size(),
+                    };
+                    let var = match value.node_value() {
+                        NodeValue::Variable(v) => v,
+                        _ => String::new(),
+                    };
+                    self.context.local_context.insert(var.clone(), variable);
+
+                    // ループボディの評価
+                    match self.execute_node(body) {
+                        Ok(val) => result = val,
+                        Err(e) => return Err(e),
+                    }
+                }
+            } else {
+                return Err(compile_error!(
+                    "error",
+                    self.current_node.clone().unwrap().1.line(),
+                    self.current_node.clone().unwrap().1.column(),
+                    &self.current_node.clone().unwrap().0,
+                    &self
+                        .file_contents
+                        .get(&self.current_node.clone().unwrap().0)
+                        .unwrap(),
+                    "The iterator is not an array",
+                ));
+            }
+
+            Ok(result)
+        }
+    */
+
     fn eval_while_statement(
         &mut self,
         condition: &Box<Node>,
         body: &Box<Node>,
     ) -> R<Value, String> {
-        let condition = self.execute_node(&condition)?;
         let mut result = Value::Null;
-        if let Value::Bool(value) = condition {
-            while value {
-                result = self.execute_node(&body)?;
+        loop {
+            let condition_value = self.execute_node(&condition)?;
+            if let Value::Bool(value) = condition_value {
+                if value {
+                    match self.execute_node(&body) {
+                        Ok(val) => {
+                            if val == Value::String("break".to_string()) {
+                                break;
+                            } else if val == Value::String("continue".to_string()) {
+                                continue;
+                            } else {
+                                result = val;
+                            }
+                        }
+                        Err(e) => return Err(e),
+                    }
+                } else {
+                    break;
+                }
+            } else {
+                return Err("Condition must evaluate to a boolean".to_string());
             }
         }
         Ok(result)
     }
+
     fn eval_for_statement(
         &mut self,
         value: &Box<Node>,
@@ -1782,7 +1931,15 @@ impl Decoder {
 
                 // ループボディの評価
                 match self.execute_node(body) {
-                    Ok(val) => result = val,
+                    Ok(val) => {
+                        if val == Value::String("break".to_string()) {
+                            break;
+                        } else if val == Value::String("continue".to_string()) {
+                            continue;
+                        } else {
+                            result = val;
+                        }
+                    }
                     Err(e) => return Err(e),
                 }
             }
@@ -1817,7 +1974,7 @@ impl Decoder {
     }
     // ノードを評価
     fn execute_node(&mut self, node: &Node) -> R<Value, String> {
-        let result = Value::Null;
+        let mut result = Value::Null;
         let node_value = node.clone().node_value();
 
         //info!("global_contexts: {:?}", self.context.global_context.clone());
@@ -1831,12 +1988,27 @@ impl Decoder {
                 let max_value = self.execute_node(max)?;
                 let array: Vec<u64> =
                     (start_value.as_u64().unwrap()..=max_value.as_u64().unwrap()).collect();
-                Ok(serde_json::json!(array))
+                result = serde_json::json!(array);
             }
-            NodeValue::If(condition, body) => self.eval_if_statement(condition, body),
+            NodeValue::Break => {
+                result = Value::String("break".into());
+            }
+            NodeValue::Continue => {
+                result = Value::String("continue".into());
+            }
+            NodeValue::Loop(body) => {
+                result = self.eval_loop_statement(body)?;
+            }
+            NodeValue::If(condition, body) => {
+                result = self.eval_if_statement(condition, body)?;
+            }
 
-            NodeValue::While(condition, body) => self.eval_while_statement(condition, body),
-            NodeValue::For(value, iterator, body) => self.eval_for_statement(value, iterator, body),
+            NodeValue::While(condition, body) => {
+                result = self.eval_while_statement(condition, body)?;
+            }
+            NodeValue::For(value, iterator, body) => {
+                result = self.eval_for_statement(value, iterator, body)?;
+            }
             NodeValue::Eq(_, _)
             | NodeValue::Ne(_, _)
             | NodeValue::Lt(_, _)
@@ -1844,32 +2016,44 @@ impl Decoder {
             | NodeValue::Le(_, _)
             | NodeValue::Ge(_, _)
             | NodeValue::And(_, _)
-            | NodeValue::Or(_, _) => self.eval_binary_condition(&node.clone()),
+            | NodeValue::Or(_, _) => {
+                result = self.eval_binary_condition(&node.clone())?;
+            }
 
             NodeValue::Int(_)
             | NodeValue::Float(_)
             | NodeValue::String(_)
             | NodeValue::Bool(_)
-            | NodeValue::Array(_, _) => self.eval_primitive_type(&node.clone()),
+            | NodeValue::Array(_, _) => {
+                result = self.eval_primitive_type(&node.clone())?;
+            }
 
-            NodeValue::Include(file_name) => self.eval_include(file_name),
+            NodeValue::Include(file_name) => {
+                result = self.eval_include(file_name)?;
+            }
             NodeValue::MultiComment(content, (line, column)) => {
-                self.eval_multi_comment(&content, &(*line, *column))
+                self.eval_multi_comment(&content, &(*line, *column))?;
+                return Ok(result);
             }
             NodeValue::SingleComment(content, (line, column)) => {
-                self.eval_single_comment(&content, &(*line, *column))
+                self.eval_single_comment(&content, &(*line, *column))?;
+                return Ok(result);
             }
-            NodeValue::Block(block) => self.eval_block(&block),
+            NodeValue::Block(block) => {
+                result = self.eval_block(&block)?;
+            }
             NodeValue::Assign(var_name, value, index) => {
-                self.eval_assign(&node.clone(), &var_name, &value, &index)
+                result = self.eval_assign(&node.clone(), &var_name, &value, &index)?;
             }
 
-            NodeValue::Call(name, args, is_system) => self.eval_call(name, args, is_system),
+            NodeValue::Call(name, args, is_system) => {
+                result = self.eval_call(name, args, is_system)?;
+            }
             NodeValue::CallBackFunction(name, args, body, return_type, is_system) => {
-                self.eval_callback_function(name, args, body, return_type, is_system)
+                result = self.eval_callback_function(name, args, body, return_type, is_system)?;
             }
             NodeValue::Function(name, args, body, return_type, is_system) => {
-                self.eval_function(name, args, body, return_type, is_system)
+                result = self.eval_function(name, args, body, return_type, is_system)?;
             }
 
             NodeValue::VariableDeclaration(
@@ -1879,25 +2063,35 @@ impl Decoder {
                 is_local,
                 is_mutable,
                 is_reference,
-            ) => self.eval_variable_declaration(
-                &node.clone(),
-                var_name,
-                data_type,
-                value,
-                is_local,
-                is_mutable,
-                is_reference,
-            ),
+            ) => {
+                result = self.eval_variable_declaration(
+                    &node.clone(),
+                    var_name,
+                    data_type,
+                    value,
+                    is_local,
+                    is_mutable,
+                    is_reference,
+                )?;
+            }
 
             NodeValue::TypeDeclaration(_type_name, _type) => {
-                self.eval_type_declaration(_type_name, _type)
+                result = self.eval_type_declaration(_type_name, _type)?;
             }
-            NodeValue::Variable(name) => self.eval_variable(name),
+            NodeValue::Variable(name) => {
+                result = self.eval_variable(name)?;
+            }
 
-            NodeValue::Return(ret) => self.eval_return(ret),
+            NodeValue::Return(ret) => {
+                result = self.eval_return(ret)?;
+            }
 
-            NodeValue::Increment(lhs) => self.eval_binary_increment(lhs),
-            NodeValue::Decrement(lhs) => self.eval_binary_decrement(lhs),
+            NodeValue::Increment(lhs) => {
+                result = self.eval_binary_increment(lhs)?;
+            }
+            NodeValue::Decrement(lhs) => {
+                result = self.eval_binary_decrement(lhs)?;
+            }
 
             NodeValue::Add(_, _)
             | NodeValue::Sub(_, _)
@@ -1906,20 +2100,24 @@ impl Decoder {
             | NodeValue::AddAssign(_, _)
             | NodeValue::SubAssign(_, _)
             | NodeValue::MulAssign(_, _)
-            | NodeValue::DivAssign(_, _) => self.eval_binary_op(&node.clone()),
-
-            _ => Err(compile_error!(
-                "error",
-                node.line(),
-                node.column(),
-                &self.current_node.clone().unwrap().0,
-                &self
-                    .file_contents
-                    .get(&self.current_node.clone().unwrap().0)
-                    .unwrap(),
-                "Unknown node value: {:?}",
-                node.node_value()
-            )),
+            | NodeValue::DivAssign(_, _) => {
+                result = self.eval_binary_op(&node.clone())?;
+            }
+            _ => {
+                return Err(compile_error!(
+                    "error",
+                    node.line(),
+                    node.column(),
+                    &self.current_node.clone().unwrap().0,
+                    &self
+                        .file_contents
+                        .get(&self.current_node.clone().unwrap().0)
+                        .unwrap(),
+                    "Unknown node value: {:?}",
+                    node.node_value()
+                ));
+            }
         }
+        Ok(result)
     }
 }
