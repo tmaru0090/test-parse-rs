@@ -205,7 +205,6 @@ impl Decoder {
         let content = std::fs::read_to_string(file_name).map_err(|e| e.to_string())?;
         let tokens = Lexer::from_tokenize(file_name, content.clone())?;
         let nodes = Parser::from_parse(&tokens, file_name, content.clone())?;
-
         // 最初に要素を挿入するために新しい IndexMap を作る
         let mut new_ast_map = IndexMap::new();
         new_ast_map.insert(file_name.to_string(), nodes.clone());

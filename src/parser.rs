@@ -877,7 +877,6 @@ impl<'a> Parser<'a> {
     fn parse_return(&mut self) -> R<Box<Node>, String> {
         self.next_token();
         let mut ret_value = Box::new(Node::default());
-        let data_type = Box::new(Node::default());
         ret_value = self.expr()?;
 
         Ok(Box::new(Node {

@@ -487,6 +487,34 @@ impl Lexer {
                 chars.next();
                 self.column += 1;
                 if let Some(&next_char) = chars.peek() {
+                    if next_char.is_digit(10) {
+                        let mut number = String::new();
+
+                        let mut has_decimal_point = false;
+
+                        number.push('-');
+                        while let Some(&c) = chars.peek() {
+                            if c.is_digit(10) {
+                                number.push(c);
+                                chars.next();
+                                self.column += 1;
+                            } else if c == '.' && !has_decimal_point {
+                                number.push(c);
+                                chars.next();
+                                self.column += 1;
+                                has_decimal_point = true;
+                            } else {
+                                break;
+                            }
+                        }
+                        tokens.push(Token::new(
+                            number,
+                            TokenType::Number,
+                            start_line,
+                            start_column,
+                        ));
+                        continue;
+                    }
                     if next_char == '-' {
                         tokens.push(Token::new(
                             "--".to_string(),
