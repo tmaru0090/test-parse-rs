@@ -130,7 +130,7 @@ impl Lexer {
                 }
                 tokens.push(Token::new(
                     number,
-                    TokenType::Ident,
+                    TokenType::Number,
                     start_line,
                     start_column,
                 ));
@@ -151,71 +151,7 @@ impl Lexer {
                     start_line,
                     start_column,
                 ));
-            }
-            /*
-                        else if c == '\'' {
-                            let mut string = String::new();
-                            chars.next(); // 開始のクォートをスキップ
-                            self.column += 1;
-                            let mut closed = false;
-                            while let Some(c) = chars.next() {
-                                if c == '\'' {
-                                    self.column += 1;
-                                    closed = true;
-                                    break;
-                                }
-                                string.push(c);
-                                self.column += 1;
-                            }
-                            if !closed {
-                                return Err(compile_error!(
-                                    "error",
-                                    start_line,
-                                    start_column,
-                                    &self.input_path.clone(),
-                                    &self.input_content.clone(),
-                                    "Single quote not closed",
-                                ));
-                            }
-                            tokens.push(Token::new(
-                                string,
-                                TokenType::SingleQuote,
-                                start_line,
-                                start_column,
-                            ));
-                        } else if c == '\"' {
-                            let mut string = String::new();
-                            chars.next(); // 開始のクォートをスキップ
-                            self.column += 1;
-                            let mut closed = false;
-                            while let Some(c) = chars.next() {
-                                if c == '\"' {
-                                    self.column += 1;
-                                    closed = true;
-                                    break;
-                                }
-                                string.push(c);
-                                self.column += 1;
-                            }
-                            if !closed {
-                                return Err(compile_error!(
-                                    "error",
-                                    start_line,
-                                    start_column,
-                                    &self.input_path.clone(),
-                                    &self.input_content.clone(),
-                                    "Double quote not closed",
-                                ));
-                            }
-                            tokens.push(Token::new(
-                                string,
-                                TokenType::DoubleQuote,
-                                start_line,
-                                start_column,
-                            ));
-                        }
-            */
-            else if c == '\'' {
+            } else if c == '\'' {
                 let mut string = String::new();
                 chars.next(); // 開始のクォートをスキップ
                 self.column += 1;

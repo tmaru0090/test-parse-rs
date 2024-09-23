@@ -296,6 +296,21 @@ impl Decoder {
             _ => serde_json::to_vec(v_value).unwrap().len(),
         }
     }
+    fn push_stack_frame(&mut self, func_name: &str) {
+        self.memory_mgr
+            .stack_frames
+            .insert(func_name.to_string(), StackFrame { blocks: Vec::new() });
+    }
+
+    fn pop_stack_frame(&mut self, func_name: &str) {
+        self.memory_mgr.stack_frames.remove(func_name);
+    }
+
+    fn add_to_stack_frame(&mut self, func_name: &str, block: MemoryBlock) {
+        if let Some(frame) = self.memory_mgr.stack_frames.get_mut(func_name) {
+            frame.blocks.push(block);
+        }
+    }
     // 指定の型の値を確保してUUIDのアドレスを返す
     fn allocate<T: 'static + Any>(&mut self, value: T) -> Uuid {
         let id = if let Some(free_id) = self.memory_mgr.free_list.pop() {
@@ -672,6 +687,8 @@ impl Decoder {
             ))
         }
     }
+
+    /*
     fn eval_call(&mut self, name: &String, args: &Vec<Node>, is_system: &bool) -> R<Value, String> {
         let mut result = Value::Null;
         let mut evaluated_args = Vec::new();
@@ -680,8 +697,7 @@ impl Decoder {
             info!("args: {:?}", evaluated_arg);
             evaluated_args.push(evaluated_arg);
         }
-        
-     
+
         let func_name = name;
         let variables = {
             let global_context = &self.context.global_context;
@@ -747,8 +763,160 @@ impl Decoder {
         );
 
         Ok(result)
-    }
+    }*/
 
+    fn eval_call(&mut self, name: &String, args: &Vec<Node>, is_system: &bool) -> R<Value, String> {
+        let mut result = Value::Null;
+        let mut evaluated_args = Vec::new();
+        for arg in args {
+            let evaluated_arg = self.execute_node(&arg)?;
+            info!("args: {:?}", evaluated_arg);
+            evaluated_args.push(evaluated_arg);
+        }
+
+        if *is_system {
+            match name.as_str() {
+                "exit" => {
+                    if args.len() != 1 {
+                        return Err("exit expects exactly one argument".into());
+                    }
+                    let status = match self.execute_node(&args[0])? {
+                        Value::Number(n) => n.as_i64().ok_or("exit expects a positive integer")?,
+                        _ => return Err("exit expects a number as the status".into()),
+                    };
+                    std::process::exit(status.try_into().unwrap());
+                }
+                "args" => {
+                    if !args.is_empty() {
+                        return Err("args expects no arguments".into());
+                    }
+                    let args: Vec<String> = std::env::args().collect();
+                    let value: Value = Value::Array(args.into_iter().map(Value::String).collect());
+                    return Ok(value);
+                }
+                "cmd" => {
+                    if evaluated_args.len() < 1 {
+                        return Err("cmd expects at least one argument".into());
+                    }
+                    let command = match &evaluated_args[0] {
+                        Value::String(v) => v.clone(),
+                        _ => return Err("cmd expects the first argument to be a string".into()),
+                    };
+                    let command_args = if evaluated_args.len() > 1 {
+                        match &evaluated_args[1] {
+                            Value::Array(v) => v
+                                .iter()
+                                .filter_map(|item| {
+                                    if let Value::String(s) = item {
+                                        Some(s.clone())
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .collect(),
+                            _ => {
+                                return Err(
+                                    "cmd expects the second argument to be an array of strings"
+                                        .into(),
+                                )
+                            }
+                        }
+                    } else {
+                        Vec::new()
+                    };
+                    let output = Command::new(command)
+                        .args(&command_args)
+                        .output()
+                        .expect("外部コマンドの実行に失敗しました");
+                    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+                    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+                    return Ok(Value::Array(vec![
+                        Value::String(stdout),
+                        Value::String(stderr),
+                    ]));
+                }
+                // 他のシステム関数の処理...
+                _ => return Err(format!("Unknown function: {}", name)),
+            }
+        }
+
+        let func_name = name;
+        let variables = {
+            let global_context = &self.context.global_context;
+            global_context
+                .get(func_name.as_str())
+                .cloned()
+                .ok_or_else(|| {
+                    compile_error!(
+                        "error",
+                        self.current_node.clone().unwrap().1.line(),
+                        self.current_node.clone().unwrap().1.column(),
+                        &self.current_node.clone().unwrap().0,
+                        &self
+                            .file_contents
+                            .get(&self.current_node.clone().unwrap().0)
+                            .unwrap(),
+                        "Function '{}' is not defined",
+                        func_name
+                    )
+                })?
+        };
+
+        let func_address = variables.address;
+        let func_info = self.get_value::<Value>(func_address).unwrap();
+        let _args = func_info["args"].clone();
+        let _body = func_info["body"].clone();
+        let body: Node = serde_json::from_value(_body).unwrap();
+        let return_type = func_info["return_type"].clone();
+
+        // スタックフレームをプッシュ
+        self.push_stack_frame(func_name);
+
+        for (arg, value) in _args.as_array().unwrap().iter().zip(&evaluated_args) {
+            let arg_name = arg["name"].as_str().unwrap();
+            let arg_type = arg["type"].clone();
+            let index = self.allocate(value.clone());
+            let block = MemoryBlock {
+                id: index,
+                value: Box::new(value.clone()),
+            };
+            self.add_to_stack_frame(func_name, block);
+            self.context.local_context.insert(
+                arg_name.to_string(),
+                Variable {
+                    value: value.clone(),
+                    data_type: arg_type.clone(),
+                    address: index,
+                    is_mutable: false,
+                    size: 0,
+                },
+            );
+        }
+
+        let _body = match body.clone().node_value() {
+            NodeValue::Block(v) => v,
+            _ => vec![],
+        };
+        let b = _body
+            .iter()
+            .filter(|node| node.node_value() != NodeValue::Empty)
+            .collect::<Vec<_>>();
+        for body in b {
+            result = self.execute_node(&body)?;
+        }
+
+        // スタックフレームをポップ
+        self.pop_stack_frame(func_name);
+
+        info!(
+            "CallFunction: name = {:?},args = {:?},return_value = {:?}",
+            func_name,
+            evaluated_args.clone(),
+            result
+        );
+
+        Ok(result)
+    }
     fn eval_function(
         &mut self,
         name: &String,

@@ -26,6 +26,7 @@ pub enum TokenType {
     Or,  // ||
     /*識別子*/
     Ident,
+    Number,
     /*その他*/
     Reference,                                 // &
     LeftParen,                                 // (

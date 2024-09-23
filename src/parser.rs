@@ -589,16 +589,8 @@ impl<'a> Parser<'a> {
                 ));
                 }
             }
-            TokenType::Ident => {
-                if let Ok(bool_value) = token.token_value().parse::<bool>() {
-                    self.next_token();
-                    node = Node::new(
-                        NodeValue::Bool(bool_value),
-                        None,
-                        self.current_token().line(),
-                        self.current_token().column(),
-                    );
-                } else if let Ok(number) = token.token_value().parse::<i64>() {
+            TokenType::Number => {
+                if let Ok(number) = token.token_value().parse::<i64>() {
                     self.next_token();
                     node = Node::new(
                         NodeValue::Int(number),
@@ -610,6 +602,17 @@ impl<'a> Parser<'a> {
                     self.next_token();
                     node = Node::new(
                         NodeValue::Float(number),
+                        None,
+                        self.current_token().line(),
+                        self.current_token().column(),
+                    );
+                }
+            }
+            TokenType::Ident => {
+                if let Ok(bool_value) = token.token_value().parse::<bool>() {
+                    self.next_token();
+                    node = Node::new(
+                        NodeValue::Bool(bool_value),
                         None,
                         self.current_token().line(),
                         self.current_token().column(),

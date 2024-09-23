@@ -17,9 +17,15 @@ fn test()->i32{
     10
 }
 */
-
+fn test(n){
+    if n == 0{
+        return -1;
+    }
+    return 1919;
+}
 fn main(){
-    l a = f(5);
+ //   test(0);
+    l a = 100-1000;
 }
 
 
