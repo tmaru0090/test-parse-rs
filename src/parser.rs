@@ -475,6 +475,7 @@ impl<'a> Parser<'a> {
         }
         Ok(node)
     }
+
     fn parse_if_statement(&mut self) -> R<Box<Node>, String> {
         self.next_token(); // 'if' をスキップ
         let mut condition = self.new_empty();
@@ -810,7 +811,7 @@ impl<'a> Parser<'a> {
         }))
     }
     fn parse_variable_declaration(&mut self) -> R<Box<Node>, String> {
-        self.next_token();
+        self.next_token(); // let
         let mut is_mutable = false;
         if self.current_token().unwrap().token_value() == "mut"
             || self.current_token().unwrap().token_value() == "mutable"
@@ -823,12 +824,10 @@ impl<'a> Parser<'a> {
         let mut value_node = self.new_empty();
         if self.peek_next_token(1).token_type() == TokenType::Colon {
             data_type = self.parse_data_type()?;
-            self.next_token();
         }
-        self.next_token(); // var
-        if self.current_token().unwrap().token_type() == TokenType::Equals {
-            self.next_token();
-        }
+        self.next_token();
+        //panic!("{:?}",self.current_token());
+
         let mut is_reference = false;
         if self.current_token().unwrap().token_type() == TokenType::Reference {
             is_reference = true;
@@ -883,13 +882,12 @@ impl<'a> Parser<'a> {
         self.next_token(); // var
         if self.current_token().unwrap().token_type() == TokenType::LeftSquareBrace {
             self.next_token(); // [
-                               //panic!("current: {:?}",self.current_token().unwrap().;
             index = self.expr()?;
 
             self.next_token(); // ]
             self.next_token(); // =
 
-            //        panic!("current: {:?}",self.current_token().unwrap());
+            value_node = self.expr()?;
             Ok(Box::new(Node {
                 node_value: NodeValue::Assign(
                     Box::new(Node::new(

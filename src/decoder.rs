@@ -646,8 +646,9 @@ impl Decoder {
         if let Some(mut variable) = variable_data {
             if variable.is_mutable {
                 //panic!("{:?}",variable);
-                let new_value = self.execute_node(&value)?;
 
+                //panic!("{:?}",value);
+                let new_value = self.execute_node(&value)?;
                 self.check_type(&new_value, variable.data_type.as_str().unwrap_or(""))?;
 
                 match &mut variable.value {
@@ -1738,7 +1739,20 @@ impl Decoder {
         }
         Ok(result)
     }
-
+    fn eval_while_statement(
+        &mut self,
+        condition: &Box<Node>,
+        body: &Box<Node>,
+    ) -> R<Value, String> {
+        let condition = self.execute_node(&condition)?;
+        let mut result = Value::Null;
+        if let Value::Bool(value) = condition {
+            while value {
+                result = self.execute_node(&body)?;
+            }
+        }
+        Ok(result)
+    }
     fn eval_for_statement(
         &mut self,
         value: &Box<Node>,
@@ -1821,6 +1835,7 @@ impl Decoder {
             }
             NodeValue::If(condition, body) => self.eval_if_statement(condition, body),
 
+            NodeValue::While(condition, body) => self.eval_while_statement(condition, body),
             NodeValue::For(value, iterator, body) => self.eval_for_statement(value, iterator, body),
             NodeValue::Eq(_, _)
             | NodeValue::Ne(_, _)
