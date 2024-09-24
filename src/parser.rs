@@ -241,7 +241,7 @@ impl<'a> Parser<'a> {
         Ok(node)
     }
 
-    fn expr(&mut self) -> R<Box<Node>, String> {
+    fn expr(&mut self) -> Result<Box<Node>, String> {
         let mut node = self.term()?;
         while matches!(
             self.current_token().unwrap().token_type(),
@@ -251,6 +251,11 @@ impl<'a> Parser<'a> {
                 | TokenType::SubAssign
                 | TokenType::Increment
                 | TokenType::Decrement
+                | TokenType::BitAnd
+                | TokenType::BitOr
+                | TokenType::BitXor
+                | TokenType::ShiftLeft
+                | TokenType::ShiftRight
         ) {
             let op = self.current_token().unwrap().clone();
             self.next_token();
@@ -263,6 +268,11 @@ impl<'a> Parser<'a> {
                     TokenType::SubAssign => NodeValue::SubAssign(node, rhs),
                     TokenType::Increment => NodeValue::Increment(node),
                     TokenType::Decrement => NodeValue::Decrement(node),
+                    TokenType::BitAnd => NodeValue::BitAnd(node, rhs),
+                    TokenType::BitOr => NodeValue::BitOr(node, rhs),
+                    TokenType::BitXor => NodeValue::BitXor(node, rhs),
+                    TokenType::ShiftLeft => NodeValue::ShiftLeft(node, rhs),
+                    TokenType::ShiftRight => NodeValue::ShiftRight(node, rhs),
                     _ => panic!(
                         "{}",
                         compile_error!(
@@ -283,7 +293,6 @@ impl<'a> Parser<'a> {
         }
         Ok(node)
     }
-
     fn parse_function_call(&mut self, token: Token, is_system: bool) -> R<Box<Node>, String> {
         self.next_token(); // '(' をスキップ
         let mut args = Vec::new();

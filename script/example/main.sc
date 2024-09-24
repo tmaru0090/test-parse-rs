@@ -1,5 +1,6 @@
 // main関数
 @include "./std.sc"
+
 /*
 l mut _path ="./test-dir/generate";
 l mut content = "あいうえおー 数:";

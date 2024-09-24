@@ -1533,6 +1533,55 @@ impl Decoder {
         }
     }
 
+    fn eval_binary_bit(&mut self, node: &Node) -> Result<Value, String> {
+        // ビット演算子の処理
+        if let NodeValue::BitAnd(left, right)
+        | NodeValue::BitOr(left, right)
+        | NodeValue::BitXor(left, right)
+        | NodeValue::ShiftLeft(left, right)
+        | NodeValue::ShiftRight(left, right) = &node.node_value()
+        {
+            let left_value = self.execute_node(left)?;
+            let right_value = self.execute_node(right)?;
+
+            match (&node.node_value(), left_value, right_value) {
+                // ビットAND (&)
+                (NodeValue::BitAnd(_, _), Value::Number(l), Value::Number(r)) => {
+                    let l_i64 = l.as_i64().ok_or("Failed to convert left number to i64")?;
+                    let r_i64 = r.as_i64().ok_or("Failed to convert right number to i64")?;
+                    Ok(Value::Number((l_i64 & r_i64).into()))
+                }
+                // ビットOR (|)
+                (NodeValue::BitOr(_, _), Value::Number(l), Value::Number(r)) => {
+                    let l_i64 = l.as_i64().ok_or("Failed to convert left number to i64")?;
+                    let r_i64 = r.as_i64().ok_or("Failed to convert right number to i64")?;
+                    Ok(Value::Number((l_i64 | r_i64).into()))
+                }
+                // ビットXOR (^)
+                (NodeValue::BitXor(_, _), Value::Number(l), Value::Number(r)) => {
+                    let l_i64 = l.as_i64().ok_or("Failed to convert left number to i64")?;
+                    let r_i64 = r.as_i64().ok_or("Failed to convert right number to i64")?;
+                    Ok(Value::Number((l_i64 ^ r_i64).into()))
+                }
+                // 左シフト (<<)
+                (NodeValue::ShiftLeft(_, _), Value::Number(l), Value::Number(r)) => {
+                    let l_i64 = l.as_i64().ok_or("Failed to convert left number to i64")?;
+                    let r_i64 = r.as_i64().ok_or("Failed to convert right number to i64")?;
+                    Ok(Value::Number((l_i64 << r_i64).into()))
+                }
+                // 右シフト (>>)
+                (NodeValue::ShiftRight(_, _), Value::Number(l), Value::Number(r)) => {
+                    let l_i64 = l.as_i64().ok_or("Failed to convert left number to i64")?;
+                    let r_i64 = r.as_i64().ok_or("Failed to convert right number to i64")?;
+                    Ok(Value::Number((l_i64 >> r_i64).into()))
+                }
+                _ => Err("Unsupported operation or mismatched types in condition".to_string()),
+            }
+        } else {
+            Err("Unsupported node value".to_string())
+        }
+    }
+
     fn eval_binary_condition(&mut self, node: &Node) -> R<Value, String> {
         // 条件演算子の処理
         if let NodeValue::Eq(left, right)
@@ -1874,19 +1923,6 @@ impl Decoder {
             Err("Unsupported node value".to_string())
         }
     }
-    /*
-        fn eval_if_statement(&mut self, condition: &Box<Node>, body: &Box<Node>) -> R<Value, String> {
-            let condition = self.execute_node(&condition)?;
-            let mut result = Value::Null;
-            if let Value::Bool(value) = condition {
-                if value {
-                    result = self.execute_node(&body)?;
-                }
-            }
-            Ok(result)
-        }
-    */
-
     fn eval_if_statement(&mut self, condition: &Box<Node>, body: &Box<Node>) -> R<Value, String> {
         let condition_result = self.execute_node(&condition)?;
         let mut result = Value::Null;
@@ -2067,6 +2103,13 @@ impl Decoder {
             | NodeValue::And(_, _)
             | NodeValue::Or(_, _) => {
                 result = self.eval_binary_condition(&node.clone())?;
+            }
+            NodeValue::BitAnd(_, _)
+            | NodeValue::BitOr(_, _)
+            | NodeValue::BitXor(_, _)
+            | NodeValue::ShiftLeft(_, _)
+            | NodeValue::ShiftRight(_, _) => {
+                result = self.eval_binary_bit(&node.clone())?;
             }
 
             NodeValue::Int(_)
