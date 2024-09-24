@@ -20,7 +20,16 @@
         "TypeDeclaration": [
           {
             "node_value": {
-              "Variable": "i32"
+              "Variable": [
+                {
+                  "node_value": "Null",
+                  "node_next": null,
+                  "line": 2,
+                  "column": 17,
+                  "is_statement": false
+                },
+                "i32"
+              ]
             },
             "node_next": null,
             "line": 2,
@@ -48,7 +57,16 @@
         "TypeDeclaration": [
           {
             "node_value": {
-              "Variable": "f32"
+              "Variable": [
+                {
+                  "node_value": "Null",
+                  "node_next": null,
+                  "line": 3,
+                  "column": 17,
+                  "is_statement": false
+                },
+                "f32"
+              ]
             },
             "node_next": null,
             "line": 3,
@@ -76,7 +94,16 @@
         "TypeDeclaration": [
           {
             "node_value": {
-              "Variable": "i64"
+              "Variable": [
+                {
+                  "node_value": "Null",
+                  "node_next": null,
+                  "line": 4,
+                  "column": 17,
+                  "is_statement": false
+                },
+                "i64"
+              ]
             },
             "node_next": null,
             "line": 4,
@@ -104,7 +131,16 @@
         "TypeDeclaration": [
           {
             "node_value": {
-              "Variable": "f64"
+              "Variable": [
+                {
+                  "node_value": "Null",
+                  "node_next": null,
+                  "line": 5,
+                  "column": 17,
+                  "is_statement": false
+                },
+                "f64"
+              ]
             },
             "node_next": null,
             "line": 5,
@@ -132,7 +168,16 @@
         "TypeDeclaration": [
           {
             "node_value": {
-              "Variable": "string"
+              "Variable": [
+                {
+                  "node_value": "Null",
+                  "node_next": null,
+                  "line": 6,
+                  "column": 23,
+                  "is_statement": false
+                },
+                "string"
+              ]
             },
             "node_next": null,
             "line": 6,
@@ -160,7 +205,16 @@
         "TypeDeclaration": [
           {
             "node_value": {
-              "Variable": "void"
+              "Variable": [
+                {
+                  "node_value": "Null",
+                  "node_next": null,
+                  "line": 7,
+                  "column": 19,
+                  "is_statement": false
+                },
+                "void"
+              ]
             },
             "node_next": null,
             "line": 7,
@@ -188,7 +242,16 @@
         "TypeDeclaration": [
           {
             "node_value": {
-              "Variable": "array"
+              "Variable": [
+                {
+                  "node_value": "Null",
+                  "node_next": null,
+                  "line": 8,
+                  "column": 21,
+                  "is_statement": false
+                },
+                "array"
+              ]
             },
             "node_next": null,
             "line": 8,
@@ -216,7 +279,16 @@
         "TypeDeclaration": [
           {
             "node_value": {
-              "Variable": "bool"
+              "Variable": [
+                {
+                  "node_value": "Null",
+                  "node_next": null,
+                  "line": 9,
+                  "column": 19,
+                  "is_statement": false
+                },
+                "bool"
+              ]
             },
             "node_next": null,
             "line": 9,
@@ -267,188 +339,127 @@
     },
     {
       "node_value": {
-        "MultiComment": [
+        "Struct": [
+          "Test",
           [
-            "\r",
-            "l mut _path =\"./test-dir/generate\";\r",
-            "l mut content = \"あいうえおー 数:\";\r",
-            "\r",
-            "// 5秒ごとにファイルを作成\r",
-            "for i in 0..2{ \r",
-            "  let ii = @str(i);\r",
-            "  @write_file(_path+ii,content+ii);\r",
-            "  @sleep(5);\r",
-            "}\r",
-            "\r",
-            "//@show_msg_box(\"okay\",\"完了ダイアログ\",\"ファイル生成が完了しました。\",\"information\");\r"
-          ],
-          [
-            3,
-            1
+            {
+              "node_value": {
+                "Variable": [
+                  {
+                    "node_value": {
+                      "DataType": {
+                        "node_value": {
+                          "Variable": [
+                            {
+                              "node_value": "Null",
+                              "node_next": null,
+                              "line": 5,
+                              "column": 14,
+                              "is_statement": false
+                            },
+                            "i32"
+                          ]
+                        },
+                        "node_next": null,
+                        "line": 5,
+                        "column": 14,
+                        "is_statement": false
+                      }
+                    },
+                    "node_next": null,
+                    "line": 5,
+                    "column": 14,
+                    "is_statement": false
+                  },
+                  "test1"
+                ]
+              },
+              "node_next": null,
+              "line": 5,
+              "column": 14,
+              "is_statement": false
+            },
+            {
+              "node_value": {
+                "Variable": [
+                  {
+                    "node_value": {
+                      "DataType": {
+                        "node_value": {
+                          "Variable": [
+                            {
+                              "node_value": "Null",
+                              "node_next": null,
+                              "line": 6,
+                              "column": 14,
+                              "is_statement": false
+                            },
+                            "i32"
+                          ]
+                        },
+                        "node_next": null,
+                        "line": 6,
+                        "column": 14,
+                        "is_statement": false
+                      }
+                    },
+                    "node_next": null,
+                    "line": 6,
+                    "column": 14,
+                    "is_statement": false
+                  },
+                  "test2"
+                ]
+              },
+              "node_next": null,
+              "line": 6,
+              "column": 14,
+              "is_statement": false
+            },
+            {
+              "node_value": {
+                "Variable": [
+                  {
+                    "node_value": {
+                      "DataType": {
+                        "node_value": {
+                          "Variable": [
+                            {
+                              "node_value": "Null",
+                              "node_next": null,
+                              "line": 7,
+                              "column": 14,
+                              "is_statement": false
+                            },
+                            "i32"
+                          ]
+                        },
+                        "node_next": null,
+                        "line": 7,
+                        "column": 14,
+                        "is_statement": false
+                      }
+                    },
+                    "node_next": null,
+                    "line": 7,
+                    "column": 14,
+                    "is_statement": false
+                  },
+                  "test3"
+                ]
+              },
+              "node_next": null,
+              "line": 7,
+              "column": 14,
+              "is_statement": false
+            }
           ]
         ]
       },
       "node_next": null,
-      "line": 16,
+      "line": 8,
       "column": 1,
       "is_statement": false
-    },
-    {
-      "node_value": {
-        "VariableDeclaration": [
-          {
-            "node_value": {
-              "Variable": "a"
-            },
-            "node_next": null,
-            "line": 16,
-            "column": 13,
-            "is_statement": false
-          },
-          {
-            "node_value": {
-              "DataType": {
-                "node_value": "Null",
-                "node_next": null,
-                "line": 16,
-                "column": 3,
-                "is_statement": false
-              }
-            },
-            "node_next": null,
-            "line": 16,
-            "column": 3,
-            "is_statement": false
-          },
-          {
-            "node_value": {
-              "Int": 5
-            },
-            "node_next": null,
-            "line": 16,
-            "column": 13,
-            "is_statement": false
-          },
-          false,
-          false,
-          false
-        ]
-      },
-      "node_next": null,
-      "line": 16,
-      "column": 13,
-      "is_statement": true
-    },
-    {
-      "node_value": {
-        "VariableDeclaration": [
-          {
-            "node_value": {
-              "Variable": "b"
-            },
-            "node_next": null,
-            "line": 17,
-            "column": 13,
-            "is_statement": false
-          },
-          {
-            "node_value": {
-              "DataType": {
-                "node_value": "Null",
-                "node_next": null,
-                "line": 17,
-                "column": 3,
-                "is_statement": false
-              }
-            },
-            "node_next": null,
-            "line": 17,
-            "column": 3,
-            "is_statement": false
-          },
-          {
-            "node_value": {
-              "Int": 13
-            },
-            "node_next": null,
-            "line": 17,
-            "column": 13,
-            "is_statement": false
-          },
-          false,
-          false,
-          false
-        ]
-      },
-      "node_next": null,
-      "line": 17,
-      "column": 13,
-      "is_statement": true
-    },
-    {
-      "node_value": {
-        "VariableDeclaration": [
-          {
-            "node_value": {
-              "Variable": "ret"
-            },
-            "node_next": null,
-            "line": 18,
-            "column": 13,
-            "is_statement": false
-          },
-          {
-            "node_value": {
-              "DataType": {
-                "node_value": "Null",
-                "node_next": null,
-                "line": 18,
-                "column": 3,
-                "is_statement": false
-              }
-            },
-            "node_next": null,
-            "line": 18,
-            "column": 3,
-            "is_statement": false
-          },
-          {
-            "node_value": {
-              "ShiftLeft": [
-                {
-                  "node_value": {
-                    "Variable": "a"
-                  },
-                  "node_next": null,
-                  "line": 18,
-                  "column": 10,
-                  "is_statement": false
-                },
-                {
-                  "node_value": {
-                    "Variable": "b"
-                  },
-                  "node_next": null,
-                  "line": 18,
-                  "column": 13,
-                  "is_statement": false
-                }
-              ]
-            },
-            "node_next": null,
-            "line": 18,
-            "column": 13,
-            "is_statement": false
-          },
-          false,
-          false,
-          false
-        ]
-      },
-      "node_next": null,
-      "line": 18,
-      "column": 13,
-      "is_statement": true
     }
   ]
 }

@@ -541,7 +541,7 @@ impl Decoder {
         }
 
         let name = match var_name.node_value() {
-            NodeValue::Variable(v) => v,
+            NodeValue::Variable(_, v) => v,
             _ => String::new(),
         };
 
@@ -554,9 +554,6 @@ impl Decoder {
 
         if let Some(mut variable) = variable_data {
             if variable.is_mutable {
-                //panic!("{:?}",variable);
-
-                //panic!("{:?}",value);
                 let new_value = self.execute_node(&value)?;
                 self.check_type(&new_value, variable.data_type.as_str().unwrap_or(""))?;
 
@@ -1184,7 +1181,7 @@ impl Decoder {
 
         //info!("is_reference: {:?}", is_reference);
         let name = match var_name.node_value() {
-            NodeValue::Variable(v) => v,
+            NodeValue::Variable(_, v) => v,
             _ => String::new(),
         };
 
@@ -1219,7 +1216,7 @@ impl Decoder {
 
             let v = match data_type.node_value() {
                 NodeValue::DataType(v_type) => match v_type.node_value() {
-                    NodeValue::Variable(v) => v,
+                    NodeValue::Variable(_, v) => v,
                     _ => String::new(),
                 },
                 _ => String::new(),
@@ -1242,7 +1239,7 @@ impl Decoder {
                 };
 
                 match value.node_value() {
-                    NodeValue::Variable(v) => {
+                    NodeValue::Variable(_, v) => {
                         if let Some(variable) = context.get(&v) {
                             variable.address
                         } else {
@@ -1318,7 +1315,7 @@ impl Decoder {
         _type: &Box<Node>,
     ) -> R<Value, String> {
         let name = match _type_name.node_value() {
-            NodeValue::Variable(v) => v,
+            NodeValue::Variable(_, v) => v,
             _ => String::new(),
         };
         if self.context.type_context.contains_key(&name) {
@@ -1488,7 +1485,7 @@ impl Decoder {
             _ => serde_json::Number::from(-1),
         };
         let var = match lhs.node_value() {
-            NodeValue::Variable(v) => v,
+            NodeValue::Variable(_, v) => v,
             _ => String::new(),
         };
 
@@ -1513,7 +1510,7 @@ impl Decoder {
             _ => serde_json::Number::from(-1),
         };
         let var = match lhs.node_value() {
-            NodeValue::Variable(v) => v,
+            NodeValue::Variable(_, v) => v,
             _ => String::new(),
         };
 
@@ -1737,7 +1734,7 @@ impl Decoder {
 
                 (NodeValue::AddAssign(_, _), Value::Number(l), Value::Number(r)) => {
                     let var = match lhs.node_value() {
-                        NodeValue::Variable(v) => v,
+                        NodeValue::Variable(_, v) => v,
                         _ => String::new(),
                     };
 
@@ -1784,7 +1781,7 @@ impl Decoder {
 
                 (NodeValue::SubAssign(_, _), Value::Number(l), Value::Number(r)) => {
                     let var = match lhs.node_value() {
-                        NodeValue::Variable(v) => v,
+                        NodeValue::Variable(_, v) => v,
                         _ => String::new(),
                     };
 
@@ -1826,7 +1823,7 @@ impl Decoder {
 
                 (NodeValue::MulAssign(_, _), Value::Number(l), Value::Number(r)) => {
                     let var = match lhs.node_value() {
-                        NodeValue::Variable(v) => v,
+                        NodeValue::Variable(_, v) => v,
                         _ => String::new(),
                     };
 
@@ -1867,7 +1864,7 @@ impl Decoder {
 
                 (NodeValue::DivAssign(_, _), Value::Number(l), Value::Number(r)) => {
                     let var = match lhs.node_value() {
-                        NodeValue::Variable(v) => v,
+                        NodeValue::Variable(_, v) => v,
                         _ => String::new(),
                     };
 
@@ -2006,7 +2003,7 @@ impl Decoder {
                     size: element.size(),
                 };
                 let var = match value.node_value() {
-                    NodeValue::Variable(v) => v,
+                    NodeValue::Variable(_, v) => v,
                     _ => String::new(),
                 };
                 self.context.local_context.insert(var.clone(), variable);
@@ -2054,6 +2051,53 @@ impl Decoder {
             _ => Ok(Value::Null),
         }
     }
+
+    fn eval_struct_statement(
+        &mut self,
+        name: &String,
+        members: &Vec<Box<Node>>,
+    ) -> R<Value, String> {
+        let mut structs: HashMap<String, Vec<(String, String)>> = HashMap::new();
+        for m in members {
+            let member_name = match m.node_value() {
+                NodeValue::Variable(_, v) => v,
+                _ => String::new(),
+            };
+            let _member_type = match m.node_value() {
+                NodeValue::Variable(v, _) => v,
+                _ => Box::new(Node::default()),
+            };
+            let member_type = match _member_type.node_value() {
+                NodeValue::DataType(v) => match v.node_value() {
+                    NodeValue::Variable(_, v) => v,
+                    _ => String::new(),
+                },
+                _ => String::new(),
+            };
+            structs
+                .entry(name.clone())
+                .or_insert(Vec::new())
+                .push((member_name, member_type));
+        }
+        let value = serde_json::json!(structs);
+        let index = self.memory_mgr.allocate(structs.clone());
+        let variables = Variable {
+            value: value.clone(),
+            data_type: Value::Null,
+            address: index,
+            is_mutable: false,
+            size: 0,
+        };
+        self.context.global_context.insert(name.clone(), variables);
+        info!(
+            "StructDefined: name = {:?}, data_type = , value = {:?}, address = {:?}",
+            name,
+            value.clone(),
+            index
+        );
+
+        Ok(value.clone())
+    }
     // ノードを評価
     fn execute_node(&mut self, node: &Node) -> R<Value, String> {
         let mut result = Value::Null;
@@ -2067,6 +2111,9 @@ impl Decoder {
         match &node_value {
             NodeValue::Null => {
                 result = Value::Null;
+            }
+            NodeValue::Struct(name, members) => {
+                result = self.eval_struct_statement(name, &members)?;
             }
             NodeValue::Range(start, max) => {
                 let start_value = self.execute_node(start)?;
@@ -2170,7 +2217,7 @@ impl Decoder {
             NodeValue::TypeDeclaration(_type_name, _type) => {
                 result = self.eval_type_declaration(_type_name, _type)?;
             }
-            NodeValue::Variable(name) => {
+            NodeValue::Variable(_, name) => {
                 result = self.eval_variable(name)?;
             }
 

@@ -137,7 +137,12 @@ impl<'a> Parser<'a> {
     }
 
     pub fn new_variable(name: String, expr: Box<Node>, line: usize, column: usize) -> Box<Node> {
-        let node = Node::new(NodeValue::Variable(name.clone()), Some(expr), line, column);
+        let node = Node::new(
+            NodeValue::Variable(Parser::<'a>::new_null(line, column), name.clone()),
+            Some(expr),
+            line,
+            column,
+        );
         Box::new(node)
     }
 
@@ -352,7 +357,7 @@ impl<'a> Parser<'a> {
                     ));
                 }
                 let arg_name = match arg.node_value() {
-                    NodeValue::Variable(ref name) => name.clone(),
+                    NodeValue::Variable(_, ref name) => name.clone(),
                     _ => return Err("Invalid argument name".to_string()),
                 };
                 args.push((data_type, arg_name));
@@ -407,7 +412,7 @@ impl<'a> Parser<'a> {
                 ));
             }
             let arg_name = match arg.node_value() {
-                NodeValue::Variable(ref name) => name.clone(),
+                NodeValue::Variable(_, ref name) => name.clone(),
                 _ => return Err("Invalid argument name".to_string()),
             };
             args.push((data_type, arg_name));
@@ -478,23 +483,6 @@ impl<'a> Parser<'a> {
         }
         Ok(node)
     }
-    /*
-        fn parse_if_statement(&mut self) -> R<Box<Node>, String> {
-            self.next_token(); // 'if' をスキップ
-            let mut condition = Parser::<'a>::new_null(self.current_token().unwrap().line(),self.current_token().unwrap().column());
-            if self.current_token().unwrap().token_type() != TokenType::LeftCurlyBrace {
-                condition = self.parse_condition()?;
-            }
-            self.next_token(); // { をスキップ
-            let body = self.parse_block()?; // ブロックの解析
-            Ok(Box::new(Node::new(
-                NodeValue::If(Box::new(*condition), Box::new(*body)),
-                None,
-                self.current_token().unwrap().line(),
-                self.current_token().unwrap().column(),
-            )))
-        }
-    */
 
     fn parse_loop_statement(&mut self) -> R<Box<Node>, String> {
         self.next_token(); // 'loop' をスキップ
@@ -613,7 +601,13 @@ impl<'a> Parser<'a> {
             ))
         } else {
             Box::new(Node::new(
-                NodeValue::Variable(start_token),
+                NodeValue::Variable(
+                    Parser::<'a>::new_null(
+                        self.current_token().unwrap().line(),
+                        self.current_token().unwrap().column(),
+                    ),
+                    start_token,
+                ),
                 None,
                 self.current_token().unwrap().line(),
                 self.current_token().unwrap().column(),
@@ -624,7 +618,13 @@ impl<'a> Parser<'a> {
         Ok(Box::new(Node::new(
             NodeValue::For(
                 Box::new(Node::new(
-                    NodeValue::Variable(var),
+                    NodeValue::Variable(
+                        Parser::<'a>::new_null(
+                            self.current_token().unwrap().line(),
+                            self.current_token().unwrap().column(),
+                        ),
+                        var,
+                    ),
                     None,
                     self.current_token().unwrap().line(),
                     self.current_token().unwrap().column(),
@@ -748,11 +748,22 @@ impl<'a> Parser<'a> {
                     );
                 } else {
                     self.next_token();
+
+                    //panic!("current_token: {:?}",self.current_token());
                     if self.current_token().unwrap().token_type() == TokenType::LeftParen {
                         node = *self.parse_function_call(token, is_system)?;
                     } else {
+                        let mut data_type = Parser::<'a>::new_null(
+                            self.current_token().unwrap().line(),
+                            self.current_token().unwrap().column(),
+                        );
+
+                        if self.current_token().unwrap().token_type() == TokenType::Colon {
+                            self.next_token();
+                            data_type = self.parse_data_type()?;
+                        }
                         node = Node::new(
-                            NodeValue::Variable(token.token_value().clone()),
+                            NodeValue::Variable(data_type, token.token_value().clone()),
                             None,
                             self.current_token().unwrap().line(),
                             self.current_token().unwrap().column(),
@@ -850,8 +861,13 @@ impl<'a> Parser<'a> {
     }
     fn parse_data_type(&mut self) -> R<Box<Node>, String> {
         //       self.next_token(); // : をスキップ
-        self.next_token(); // 変数名 をスキップ
+        if self.peek_next_token(1).unwrap().token_type() != TokenType::Eof
+            && self.peek_next_token(1).unwrap().token_type() != TokenType::Conma
+        {
+            self.next_token(); // 変数名 をスキップ
+        }
         info!("current: {:?}", self.current_token().unwrap());
+        //let data_type_name = self.current_token().unwrap().token_value();
         let data_type = self.expr()?;
         Ok(Box::new(Node::new(
             NodeValue::DataType(data_type),
@@ -887,7 +903,13 @@ impl<'a> Parser<'a> {
         Ok(Box::new(Node {
             node_value: NodeValue::TypeDeclaration(
                 Box::new(Node::new(
-                    NodeValue::Variable(_type_name),
+                    NodeValue::Variable(
+                        Parser::<'a>::new_null(
+                            self.current_token().unwrap().line(),
+                            self.current_token().unwrap().column(),
+                        ),
+                        _type_name,
+                    ),
                     None,
                     self.current_token().unwrap().line(),
                     self.current_token().unwrap().column(),
@@ -947,7 +969,13 @@ impl<'a> Parser<'a> {
             return Ok(Box::new(Node {
                 node_value: NodeValue::VariableDeclaration(
                     Box::new(Node::new(
-                        NodeValue::Variable(var),
+                        NodeValue::Variable(
+                            Parser::<'a>::new_null(
+                                self.current_token().unwrap().line(),
+                                self.current_token().unwrap().column(),
+                            ),
+                            var,
+                        ),
                         None,
                         self.current_token().unwrap().line(),
                         self.current_token().unwrap().column(),
@@ -988,7 +1016,13 @@ impl<'a> Parser<'a> {
             return Ok(Box::new(Node {
                 node_value: NodeValue::VariableDeclaration(
                     Box::new(Node::new(
-                        NodeValue::Variable(var),
+                        NodeValue::Variable(
+                            Parser::<'a>::new_null(
+                                self.current_token().unwrap().line(),
+                                self.current_token().unwrap().column(),
+                            ),
+                            var,
+                        ),
                         None,
                         self.current_token().unwrap().line(),
                         self.current_token().unwrap().column(),
@@ -1034,7 +1068,13 @@ impl<'a> Parser<'a> {
         Ok(Box::new(Node {
             node_value: NodeValue::VariableDeclaration(
                 Box::new(Node::new(
-                    NodeValue::Variable(var),
+                    NodeValue::Variable(
+                        Parser::<'a>::new_null(
+                            self.current_token().unwrap().line(),
+                            self.current_token().unwrap().column(),
+                        ),
+                        var,
+                    ),
                     None,
                     self.current_token().unwrap().line(),
                     self.current_token().unwrap().column(),
@@ -1079,7 +1119,13 @@ impl<'a> Parser<'a> {
             Ok(Box::new(Node {
                 node_value: NodeValue::Assign(
                     Box::new(Node::new(
-                        NodeValue::Variable(var),
+                        NodeValue::Variable(
+                            Parser::<'a>::new_null(
+                                self.current_token().unwrap().line(),
+                                self.current_token().unwrap().column(),
+                            ),
+                            var,
+                        ),
                         None,
                         self.current_token().unwrap().line(),
                         self.current_token().unwrap().column(),
@@ -1100,7 +1146,13 @@ impl<'a> Parser<'a> {
             Ok(Box::new(Node {
                 node_value: NodeValue::Assign(
                     Box::new(Node::new(
-                        NodeValue::Variable(var),
+                        NodeValue::Variable(
+                            Parser::<'a>::new_null(
+                                self.current_token().unwrap().line(),
+                                self.current_token().unwrap().column(),
+                            ),
+                            var,
+                        ),
                         None,
                         self.current_token().unwrap().line(),
                         self.current_token().unwrap().column(),
@@ -1142,9 +1194,34 @@ impl<'a> Parser<'a> {
         Ok(Box::new(include_node))
     }
 
+    fn parse_struct_definition(&mut self) -> R<Box<Node>, String> {
+        self.next_token(); // struct
+        let var = self.current_token().unwrap().token_value().clone();
+        let mut member: Vec<Box<Node>> = Vec::new();
+
+        self.next_token(); // var
+        self.next_token(); // {
+                           //panic!("{:?}",self.current_token());
+        while self.current_token().unwrap().token_type() != TokenType::RightCurlyBrace {
+            let member_value = self.expr()?;
+            member.push(member_value);
+            if self.current_token().unwrap().token_type() == TokenType::Conma {
+                self.next_token();
+            }
+        }
+        self.next_token(); // }
+        Ok(Box::new(Node::new(
+            NodeValue::Struct(var.clone(), member.clone()),
+            None,
+            self.current_token().unwrap().line(),
+            self.current_token().unwrap().column(),
+        )))
+    }
     fn parse_single_statement(&mut self) -> Option<R<Box<Node>, String>> {
         let result = if self.current_token().unwrap().token_value() == "callback" {
             self.parse_callback_function_definition()
+        } else if self.current_token().unwrap().token_value() == "struct" {
+            self.parse_struct_definition()
         } else if self.current_token().unwrap().token_value() == "fn" {
             self.parse_function_definition()
         } else if self.current_token().unwrap().token_value() == "while" {
@@ -1198,7 +1275,7 @@ impl<'a> Parser<'a> {
         } else if self.current_token().unwrap().token_type() == TokenType::Semi {
             self.is_statement = true;
             self.next_token();
-            return None; // 空ノードを生成せずにスキップ
+            return None; // ステートメントを終了
         } else {
             self.is_statement = false;
             self.expr()
