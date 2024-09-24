@@ -1,5 +1,5 @@
 use crate::parser::Node;
-
+use serde_json::Value;
 use serde::{Deserialize, Serialize};
 #[derive(PartialEq, Debug, Clone, Serialize)]
 pub enum TokenType {
@@ -159,3 +159,8 @@ pub static RESERVED_WORDS: &[&str] = &[
     "type", "let", "l", "var", "v", "fn", "mut", "loop", "=", "+", "++", "-", "--", "+=", "-=",
     "*", "*=", "/", "/=", "{", "}", "[", "]",
 ];
+
+pub enum DataType{
+    Value(Value),
+    Reference(Box<Value>),
+}

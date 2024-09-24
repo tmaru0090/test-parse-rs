@@ -15,6 +15,7 @@ use hostname::get;
 use indexmap::IndexMap;
 use log::info;
 use property_rs::Property;
+use rodio::{source::Source, OutputStream};
 use serde::{Deserialize, Serialize};
 use serde_json::to_string_pretty;
 use serde_json::{Number, Value};
@@ -22,6 +23,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fs::File;
 use std::fs::OpenOptions;
+use std::io::BufReader;
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::ops::{Add, Div, Mul, Sub};
 use std::process::{Command, Output};
@@ -651,6 +653,31 @@ impl Decoder {
         {
             if *is_system {
                 match name.as_str() {
+                    "play_music" => {
+                        if args.len() != 1 {
+                            return Err("play_music expects exactly one argument".into());
+                        }
+                        let file_path = match self.execute_node(&args[0])? {
+                            Value::String(v) => v,
+                            _ => {
+                                return Err("show_msg_box expects a string as the file name".into())
+                            }
+                        };
+                        // 出力ストリームを作成
+                        let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+                        // 音楽ファイルを読み込む
+                        let file = File::open(file_path).unwrap();
+                        let source = rodio::Decoder::new(BufReader::new(file)).unwrap();
+                        // 音楽の長さを取得
+                        let duration = source.total_duration().unwrap();
+
+                        // 音楽を再生
+                        stream_handle.play_raw(source.convert_samples()).unwrap();
+
+                        // 音楽が再生される間、プログラムを終了させない
+                        std::thread::sleep(duration);
+                        return Ok(Value::Null);
+                    }
                     "str" => {
                         if args.len() != 1 {
                             return Err("to_str expects exactly one argument".into());

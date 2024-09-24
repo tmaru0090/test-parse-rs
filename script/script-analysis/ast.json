@@ -273,54 +273,8 @@
               "Variable": "_path"
             },
             "node_next": null,
-            "line": 3,
-            "column": 35,
-            "is_statement": false
-          },
-          {
-            "node_value": {
-              "DataType": {
-                "node_value": "Null",
-                "node_next": null,
-                "line": 3,
-                "column": 7,
-                "is_statement": false
-              }
-            },
-            "node_next": null,
-            "line": 3,
-            "column": 7,
-            "is_statement": false
-          },
-          {
-            "node_value": {
-              "String": "./test-dir/generate"
-            },
-            "node_next": null,
-            "line": 3,
-            "column": 35,
-            "is_statement": false
-          },
-          false,
-          true,
-          false
-        ]
-      },
-      "node_next": null,
-      "line": 3,
-      "column": 35,
-      "is_statement": true
-    },
-    {
-      "node_value": {
-        "VariableDeclaration": [
-          {
-            "node_value": {
-              "Variable": "content"
-            },
-            "node_next": null,
             "line": 4,
-            "column": 28,
+            "column": 35,
             "is_statement": false
           },
           {
@@ -340,11 +294,11 @@
           },
           {
             "node_value": {
-              "String": "あいうえおー 数:"
+              "String": "./test-dir/generate"
             },
             "node_next": null,
             "line": 4,
-            "column": 28,
+            "column": 35,
             "is_statement": false
           },
           false,
@@ -354,6 +308,52 @@
       },
       "node_next": null,
       "line": 4,
+      "column": 35,
+      "is_statement": true
+    },
+    {
+      "node_value": {
+        "VariableDeclaration": [
+          {
+            "node_value": {
+              "Variable": "content"
+            },
+            "node_next": null,
+            "line": 5,
+            "column": 28,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "DataType": {
+                "node_value": "Null",
+                "node_next": null,
+                "line": 5,
+                "column": 7,
+                "is_statement": false
+              }
+            },
+            "node_next": null,
+            "line": 5,
+            "column": 7,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "String": "あいうえおー 数:"
+            },
+            "node_next": null,
+            "line": 5,
+            "column": 28,
+            "is_statement": false
+          },
+          false,
+          true,
+          false
+        ]
+      },
+      "node_next": null,
+      "line": 5,
       "column": 28,
       "is_statement": true
     },
@@ -362,13 +362,13 @@
         "SingleComment": [
           " 5秒ごとにファイルを作成",
           [
-            6,
+            7,
             1
           ]
         ]
       },
       "node_next": null,
-      "line": 7,
+      "line": 8,
       "column": 1,
       "is_statement": false
     },
@@ -380,7 +380,7 @@
               "Variable": "i"
             },
             "node_next": null,
-            "line": 12,
+            "line": 14,
             "column": 1,
             "is_statement": false
           },
@@ -392,7 +392,7 @@
                     "Int": 0
                   },
                   "node_next": null,
-                  "line": 7,
+                  "line": 8,
                   "column": 13,
                   "is_statement": false
                 },
@@ -401,14 +401,14 @@
                     "Int": 2
                   },
                   "node_next": null,
-                  "line": 7,
+                  "line": 8,
                   "column": 13,
                   "is_statement": false
                 }
               ]
             },
             "node_next": null,
-            "line": 7,
+            "line": 8,
             "column": 13,
             "is_statement": false
           },
@@ -423,7 +423,7 @@
                           "Variable": "ii"
                         },
                         "node_next": null,
-                        "line": 8,
+                        "line": 9,
                         "column": 19,
                         "is_statement": false
                       },
@@ -432,13 +432,13 @@
                           "DataType": {
                             "node_value": "Null",
                             "node_next": null,
-                            "line": 8,
+                            "line": 9,
                             "column": 7,
                             "is_statement": false
                           }
                         },
                         "node_next": null,
-                        "line": 8,
+                        "line": 9,
                         "column": 7,
                         "is_statement": false
                       },
@@ -452,7 +452,7 @@
                                   "Variable": "i"
                                 },
                                 "node_next": null,
-                                "line": 8,
+                                "line": 9,
                                 "column": 18,
                                 "is_statement": false
                               }
@@ -461,7 +461,7 @@
                           ]
                         },
                         "node_next": null,
-                        "line": 8,
+                        "line": 9,
                         "column": 19,
                         "is_statement": true
                       },
@@ -471,7 +471,7 @@
                     ]
                   },
                   "node_next": null,
-                  "line": 8,
+                  "line": 9,
                   "column": 19,
                   "is_statement": true
                 },
@@ -488,7 +488,7 @@
                                   "Variable": "_path"
                                 },
                                 "node_next": null,
-                                "line": 9,
+                                "line": 10,
                                 "column": 20,
                                 "is_statement": false
                               },
@@ -497,14 +497,14 @@
                                   "Variable": "ii"
                                 },
                                 "node_next": null,
-                                "line": 9,
+                                "line": 10,
                                 "column": 23,
                                 "is_statement": false
                               }
                             ]
                           },
                           "node_next": null,
-                          "line": 9,
+                          "line": 10,
                           "column": 23,
                           "is_statement": false
                         },
@@ -516,7 +516,7 @@
                                   "Variable": "content"
                                 },
                                 "node_next": null,
-                                "line": 9,
+                                "line": 10,
                                 "column": 31,
                                 "is_statement": false
                               },
@@ -525,14 +525,14 @@
                                   "Variable": "ii"
                                 },
                                 "node_next": null,
-                                "line": 9,
+                                "line": 10,
                                 "column": 34,
                                 "is_statement": false
                               }
                             ]
                           },
                           "node_next": null,
-                          "line": 9,
+                          "line": 10,
                           "column": 34,
                           "is_statement": false
                         }
@@ -541,7 +541,7 @@
                     ]
                   },
                   "node_next": null,
-                  "line": 9,
+                  "line": 10,
                   "column": 35,
                   "is_statement": true
                 },
@@ -555,7 +555,7 @@
                             "Int": 5
                           },
                           "node_next": null,
-                          "line": 10,
+                          "line": 11,
                           "column": 11,
                           "is_statement": false
                         }
@@ -564,21 +564,21 @@
                     ]
                   },
                   "node_next": null,
-                  "line": 10,
+                  "line": 11,
                   "column": 12,
                   "is_statement": true
                 }
               ]
             },
             "node_next": null,
-            "line": 12,
+            "line": 14,
             "column": 1,
             "is_statement": false
           }
         ]
       },
       "node_next": null,
-      "line": 12,
+      "line": 14,
       "column": 1,
       "is_statement": false
     },
@@ -592,7 +592,7 @@
                 "String": "okay"
               },
               "node_next": null,
-              "line": 12,
+              "line": 14,
               "column": 21,
               "is_statement": false
             },
@@ -601,7 +601,7 @@
                 "String": "完了ダイアログ"
               },
               "node_next": null,
-              "line": 12,
+              "line": 14,
               "column": 31,
               "is_statement": false
             },
@@ -610,7 +610,7 @@
                 "String": "ファイル生成が完了しました。"
               },
               "node_next": null,
-              "line": 12,
+              "line": 14,
               "column": 48,
               "is_statement": false
             },
@@ -619,7 +619,7 @@
                 "String": "information"
               },
               "node_next": null,
-              "line": 12,
+              "line": 14,
               "column": 62,
               "is_statement": false
             }
@@ -628,7 +628,7 @@
         ]
       },
       "node_next": null,
-      "line": 12,
+      "line": 14,
       "column": 63,
       "is_statement": true
     }

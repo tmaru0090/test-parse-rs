@@ -1,5 +1,6 @@
 // main関数
 @include "./std.sc"
+
 l mut _path ="./test-dir/generate";
 l mut content = "あいうえおー 数:";
 
@@ -9,4 +10,6 @@ for i in 0..2{
   @write_file(_path+ii,content+ii);
   @sleep(5);
 }
+
 @show_msg_box("okay","完了ダイアログ","ファイル生成が完了しました。","information");
+
