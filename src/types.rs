@@ -133,7 +133,7 @@ pub enum NodeValue {
     Unit(()),                          // Unit値(Void型)
     Struct(Box<Node>, Vec<Box<Node>>), // 構造体定義(構造体名,メンバリスト)
     Function(String, Vec<(Box<Node>, String)>, Box<Node>, Box<Node>, bool), // 関数定義(関数名,(引数の型,引数名リスト),ボディ,戻り値,戻り値の型,システム関数フラグ)
-    CallBackFunction(String, Vec<(Box<Node>, String)>, Box<Node>, Box<Node>, bool), // 関数定義(関数名,(引数の型,引数名リスト),ボディ,戻り値,戻り値の型,システム関数フラグ)
+    CallBackFunction(String, Vec<(Box<Node>, String)>, Box<Node>, Box<Node>, bool), // 関数定義(関数名,(引数の型,引数名リスト),ボディ,戻り値の型,システム関数フラグ)
 
     ReturnType(Box<Node>),                     // 関数の戻り値の型(戻り値の型)
     DataType(Box<Node>),                       // 変数の型
@@ -144,10 +144,8 @@ pub enum NodeValue {
     Include(String),               // ファイル名
     TypeDeclaration(Box<Node>, Box<Node>), // 型定義(型名,型)
     Array(Box<Node>, Vec<Box<Node>>), // 配列(型名,値)
-    StatementEnd,                  // ステートメントの終わり
     Null,                          // 何もない値
-    //    Empty,
-    Unknown, // 異常値
+    Unknown,                       // 異常値
 }
 impl Default for NodeValue {
     fn default() -> Self {

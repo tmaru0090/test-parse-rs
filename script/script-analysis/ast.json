@@ -1,416 +1,4 @@
 {
-  "example/main.sc": [
-    {
-      "node_value": {
-        "SingleComment": [
-          " main関数",
-          [
-            1,
-            1
-          ]
-        ]
-      },
-      "node_next": null,
-      "line": 2,
-      "column": 1,
-      "is_statement": false
-    },
-    {
-      "node_value": {
-        "Include": "./std.sc"
-      },
-      "node_next": null,
-      "line": 2,
-      "column": 10,
-      "is_statement": false
-    },
-    {
-      "node_value": {
-        "VariableDeclaration": [
-          {
-            "node_value": {
-              "Variable": "_path"
-            },
-            "node_next": null,
-            "line": 4,
-            "column": 35,
-            "is_statement": false
-          },
-          {
-            "node_value": {
-              "DataType": {
-                "node_value": "Null",
-                "node_next": null,
-                "line": 4,
-                "column": 7,
-                "is_statement": false
-              }
-            },
-            "node_next": null,
-            "line": 4,
-            "column": 7,
-            "is_statement": false
-          },
-          {
-            "node_value": {
-              "String": "./test-dir/generate"
-            },
-            "node_next": null,
-            "line": 4,
-            "column": 35,
-            "is_statement": false
-          },
-          false,
-          true,
-          false
-        ]
-      },
-      "node_next": null,
-      "line": 4,
-      "column": 35,
-      "is_statement": true
-    },
-    {
-      "node_value": {
-        "VariableDeclaration": [
-          {
-            "node_value": {
-              "Variable": "content"
-            },
-            "node_next": null,
-            "line": 5,
-            "column": 28,
-            "is_statement": false
-          },
-          {
-            "node_value": {
-              "DataType": {
-                "node_value": "Null",
-                "node_next": null,
-                "line": 5,
-                "column": 7,
-                "is_statement": false
-              }
-            },
-            "node_next": null,
-            "line": 5,
-            "column": 7,
-            "is_statement": false
-          },
-          {
-            "node_value": {
-              "String": "あいうえおー 数:"
-            },
-            "node_next": null,
-            "line": 5,
-            "column": 28,
-            "is_statement": false
-          },
-          false,
-          true,
-          false
-        ]
-      },
-      "node_next": null,
-      "line": 5,
-      "column": 28,
-      "is_statement": true
-    },
-    {
-      "node_value": {
-        "SingleComment": [
-          " 5秒ごとにファイルを作成",
-          [
-            7,
-            1
-          ]
-        ]
-      },
-      "node_next": null,
-      "line": 8,
-      "column": 1,
-      "is_statement": false
-    },
-    {
-      "node_value": {
-        "For": [
-          {
-            "node_value": {
-              "Variable": "i"
-            },
-            "node_next": null,
-            "line": 14,
-            "column": 1,
-            "is_statement": false
-          },
-          {
-            "node_value": {
-              "Range": [
-                {
-                  "node_value": {
-                    "Int": 0
-                  },
-                  "node_next": null,
-                  "line": 8,
-                  "column": 13,
-                  "is_statement": false
-                },
-                {
-                  "node_value": {
-                    "Int": 2
-                  },
-                  "node_next": null,
-                  "line": 8,
-                  "column": 13,
-                  "is_statement": false
-                }
-              ]
-            },
-            "node_next": null,
-            "line": 8,
-            "column": 13,
-            "is_statement": false
-          },
-          {
-            "node_value": {
-              "Block": [
-                {
-                  "node_value": {
-                    "VariableDeclaration": [
-                      {
-                        "node_value": {
-                          "Variable": "ii"
-                        },
-                        "node_next": null,
-                        "line": 9,
-                        "column": 19,
-                        "is_statement": false
-                      },
-                      {
-                        "node_value": {
-                          "DataType": {
-                            "node_value": "Null",
-                            "node_next": null,
-                            "line": 9,
-                            "column": 7,
-                            "is_statement": false
-                          }
-                        },
-                        "node_next": null,
-                        "line": 9,
-                        "column": 7,
-                        "is_statement": false
-                      },
-                      {
-                        "node_value": {
-                          "Call": [
-                            "str",
-                            [
-                              {
-                                "node_value": {
-                                  "Variable": "i"
-                                },
-                                "node_next": null,
-                                "line": 9,
-                                "column": 18,
-                                "is_statement": false
-                              }
-                            ],
-                            true
-                          ]
-                        },
-                        "node_next": null,
-                        "line": 9,
-                        "column": 19,
-                        "is_statement": true
-                      },
-                      true,
-                      false,
-                      false
-                    ]
-                  },
-                  "node_next": null,
-                  "line": 9,
-                  "column": 19,
-                  "is_statement": true
-                },
-                {
-                  "node_value": {
-                    "Call": [
-                      "write_file",
-                      [
-                        {
-                          "node_value": {
-                            "Add": [
-                              {
-                                "node_value": {
-                                  "Variable": "_path"
-                                },
-                                "node_next": null,
-                                "line": 10,
-                                "column": 20,
-                                "is_statement": false
-                              },
-                              {
-                                "node_value": {
-                                  "Variable": "ii"
-                                },
-                                "node_next": null,
-                                "line": 10,
-                                "column": 23,
-                                "is_statement": false
-                              }
-                            ]
-                          },
-                          "node_next": null,
-                          "line": 10,
-                          "column": 23,
-                          "is_statement": false
-                        },
-                        {
-                          "node_value": {
-                            "Add": [
-                              {
-                                "node_value": {
-                                  "Add": [
-                                    {
-                                      "node_value": {
-                                        "Variable": "content"
-                                      },
-                                      "node_next": null,
-                                      "line": 10,
-                                      "column": 31,
-                                      "is_statement": false
-                                    },
-                                    {
-                                      "node_value": {
-                                        "Variable": "ii"
-                                      },
-                                      "node_next": null,
-                                      "line": 10,
-                                      "column": 34,
-                                      "is_statement": false
-                                    }
-                                  ]
-                                },
-                                "node_next": null,
-                                "line": 10,
-                                "column": 34,
-                                "is_statement": false
-                              },
-                              {
-                                "node_value": {
-                                  "String": ""
-                                },
-                                "node_next": null,
-                                "line": 10,
-                                "column": 38,
-                                "is_statement": false
-                              }
-                            ]
-                          },
-                          "node_next": null,
-                          "line": 10,
-                          "column": 39,
-                          "is_statement": false
-                        }
-                      ],
-                      true
-                    ]
-                  },
-                  "node_next": null,
-                  "line": 10,
-                  "column": 40,
-                  "is_statement": true
-                },
-                {
-                  "node_value": {
-                    "Call": [
-                      "sleep",
-                      [
-                        {
-                          "node_value": {
-                            "Int": 5
-                          },
-                          "node_next": null,
-                          "line": 11,
-                          "column": 11,
-                          "is_statement": false
-                        }
-                      ],
-                      true
-                    ]
-                  },
-                  "node_next": null,
-                  "line": 11,
-                  "column": 12,
-                  "is_statement": true
-                }
-              ]
-            },
-            "node_next": null,
-            "line": 14,
-            "column": 1,
-            "is_statement": false
-          }
-        ]
-      },
-      "node_next": null,
-      "line": 14,
-      "column": 1,
-      "is_statement": false
-    },
-    {
-      "node_value": {
-        "Call": [
-          "show_msg_box",
-          [
-            {
-              "node_value": {
-                "String": "okay"
-              },
-              "node_next": null,
-              "line": 14,
-              "column": 21,
-              "is_statement": false
-            },
-            {
-              "node_value": {
-                "String": "完了ダイアログ"
-              },
-              "node_next": null,
-              "line": 14,
-              "column": 31,
-              "is_statement": false
-            },
-            {
-              "node_value": {
-                "String": "ファイル生成が完了しました。"
-              },
-              "node_next": null,
-              "line": 14,
-              "column": 48,
-              "is_statement": false
-            },
-            {
-              "node_value": {
-                "String": "information"
-              },
-              "node_next": null,
-              "line": 14,
-              "column": 62,
-              "is_statement": false
-            }
-          ],
-          true
-        ]
-      },
-      "node_next": null,
-      "line": 14,
-      "column": 63,
-      "is_statement": true
-    }
-  ],
   "./std.sc": [
     {
       "node_value": {
@@ -650,6 +238,60 @@
       "line": 9,
       "column": 19,
       "is_statement": true
+    }
+  ],
+  "example/main.sc": [
+    {
+      "node_value": {
+        "SingleComment": [
+          " main関数",
+          [
+            1,
+            1
+          ]
+        ]
+      },
+      "node_next": null,
+      "line": 2,
+      "column": 1,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "Include": "./std.sc"
+      },
+      "node_next": null,
+      "line": 2,
+      "column": 10,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "MultiComment": [
+          [
+            "\r",
+            "l mut _path =\"./test-dir/generate\";\r",
+            "l mut content = \"あいうえおー 数:\";\r",
+            "\r",
+            "// 5秒ごとにファイルを作成\r",
+            "for i in 0..2{ \r",
+            "  let ii = @str(i);\r",
+            "  @write_file(_path+ii,content+ii);\r",
+            "  @sleep(5);\r",
+            "}\r",
+            "\r",
+            "//@show_msg_box(\"okay\",\"完了ダイアログ\",\"ファイル生成が完了しました。\",\"information\");\r"
+          ],
+          [
+            3,
+            1
+          ]
+        ]
+      },
+      "node_next": null,
+      "line": 3,
+      "column": 1,
+      "is_statement": false
     }
   ]
 }

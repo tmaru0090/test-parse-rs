@@ -13,7 +13,7 @@ pub struct Variable {
 // コンテキスト
 #[derive(Debug, Clone)]
 pub struct Context {
-    pub local_context: IndexMap<String, Variable>, // ローカルスコープ
+    pub local_context: IndexMap<String,Variable>, // ローカルスコープ
     pub global_context: IndexMap<String, Variable>, // グローバルスコープ
     pub type_context: IndexMap<String, String>,    // グローバルス型定義スコープ
     pub comment_lists: IndexMap<(usize, usize), Vec<String>>, // コメントリスト
