@@ -6,6 +6,7 @@ use anyhow::{anyhow, Context, Result as R};
 use log::{error, info, warn};
 use property_rs::Property;
 use serde::{Deserialize, Serialize};
+
 #[derive(Debug, PartialEq, Clone, Property, Serialize, Deserialize)]
 pub struct Node {
     #[property(get)]
@@ -773,7 +774,7 @@ impl<'a> Parser<'a> {
             }
             TokenType::LeftParen => {
                 self.next_token();
-                let expr = self.expr()?;
+                node = *self.expr()?;
                 if self.current_token().unwrap().token_type() != TokenType::RightParen {
                     return Err(compile_error!(
                         "error",
@@ -786,7 +787,6 @@ impl<'a> Parser<'a> {
                     ));
                 } else {
                     self.next_token();
-                    node = *self.expr()?;
                 }
                 return Ok(Box::new(node));
             }

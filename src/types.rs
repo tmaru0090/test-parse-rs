@@ -1,6 +1,6 @@
 use crate::parser::Node;
-use serde_json::Value;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 #[derive(PartialEq, Debug, Clone, Serialize)]
 pub enum TokenType {
     /*基本算術演算子*/
@@ -160,7 +160,7 @@ pub static RESERVED_WORDS: &[&str] = &[
     "*", "*=", "/", "/=", "{", "}", "[", "]",
 ];
 
-pub enum DataType{
+pub enum DataType {
     Value(Value),
     Reference(Box<Value>),
 }

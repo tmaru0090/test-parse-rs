@@ -1,245 +1,4 @@
 {
-  "./std.sc": [
-    {
-      "node_value": {
-        "SingleComment": [
-          " std.script",
-          [
-            1,
-            1
-          ]
-        ]
-      },
-      "node_next": null,
-      "line": 2,
-      "column": 1,
-      "is_statement": false
-    },
-    {
-      "node_value": {
-        "TypeDeclaration": [
-          {
-            "node_value": {
-              "Variable": "i32"
-            },
-            "node_next": null,
-            "line": 2,
-            "column": 17,
-            "is_statement": false
-          },
-          {
-            "node_value": {
-              "String": "i32"
-            },
-            "node_next": null,
-            "line": 2,
-            "column": 17,
-            "is_statement": false
-          }
-        ]
-      },
-      "node_next": null,
-      "line": 2,
-      "column": 17,
-      "is_statement": false
-    },
-    {
-      "node_value": {
-        "TypeDeclaration": [
-          {
-            "node_value": {
-              "Variable": "f32"
-            },
-            "node_next": null,
-            "line": 3,
-            "column": 17,
-            "is_statement": false
-          },
-          {
-            "node_value": {
-              "String": "f32"
-            },
-            "node_next": null,
-            "line": 3,
-            "column": 17,
-            "is_statement": false
-          }
-        ]
-      },
-      "node_next": null,
-      "line": 3,
-      "column": 17,
-      "is_statement": true
-    },
-    {
-      "node_value": {
-        "TypeDeclaration": [
-          {
-            "node_value": {
-              "Variable": "i64"
-            },
-            "node_next": null,
-            "line": 4,
-            "column": 17,
-            "is_statement": false
-          },
-          {
-            "node_value": {
-              "String": "i64"
-            },
-            "node_next": null,
-            "line": 4,
-            "column": 17,
-            "is_statement": false
-          }
-        ]
-      },
-      "node_next": null,
-      "line": 4,
-      "column": 17,
-      "is_statement": true
-    },
-    {
-      "node_value": {
-        "TypeDeclaration": [
-          {
-            "node_value": {
-              "Variable": "f64"
-            },
-            "node_next": null,
-            "line": 5,
-            "column": 17,
-            "is_statement": false
-          },
-          {
-            "node_value": {
-              "String": "f64"
-            },
-            "node_next": null,
-            "line": 5,
-            "column": 17,
-            "is_statement": false
-          }
-        ]
-      },
-      "node_next": null,
-      "line": 5,
-      "column": 17,
-      "is_statement": true
-    },
-    {
-      "node_value": {
-        "TypeDeclaration": [
-          {
-            "node_value": {
-              "Variable": "string"
-            },
-            "node_next": null,
-            "line": 6,
-            "column": 23,
-            "is_statement": false
-          },
-          {
-            "node_value": {
-              "String": "string"
-            },
-            "node_next": null,
-            "line": 6,
-            "column": 23,
-            "is_statement": false
-          }
-        ]
-      },
-      "node_next": null,
-      "line": 6,
-      "column": 23,
-      "is_statement": true
-    },
-    {
-      "node_value": {
-        "TypeDeclaration": [
-          {
-            "node_value": {
-              "Variable": "void"
-            },
-            "node_next": null,
-            "line": 7,
-            "column": 19,
-            "is_statement": false
-          },
-          {
-            "node_value": {
-              "String": "unit"
-            },
-            "node_next": null,
-            "line": 7,
-            "column": 19,
-            "is_statement": false
-          }
-        ]
-      },
-      "node_next": null,
-      "line": 7,
-      "column": 19,
-      "is_statement": true
-    },
-    {
-      "node_value": {
-        "TypeDeclaration": [
-          {
-            "node_value": {
-              "Variable": "array"
-            },
-            "node_next": null,
-            "line": 8,
-            "column": 21,
-            "is_statement": false
-          },
-          {
-            "node_value": {
-              "String": "array"
-            },
-            "node_next": null,
-            "line": 8,
-            "column": 21,
-            "is_statement": false
-          }
-        ]
-      },
-      "node_next": null,
-      "line": 8,
-      "column": 21,
-      "is_statement": true
-    },
-    {
-      "node_value": {
-        "TypeDeclaration": [
-          {
-            "node_value": {
-              "Variable": "bool"
-            },
-            "node_next": null,
-            "line": 9,
-            "column": 19,
-            "is_statement": false
-          },
-          {
-            "node_value": {
-              "String": "bool"
-            },
-            "node_next": null,
-            "line": 9,
-            "column": 19,
-            "is_statement": false
-          }
-        ]
-      },
-      "node_next": null,
-      "line": 9,
-      "column": 19,
-      "is_statement": true
-    }
-  ],
   "example/main.sc": [
     {
       "node_value": {
@@ -513,27 +272,46 @@
                             "Add": [
                               {
                                 "node_value": {
-                                  "Variable": "content"
-                                },
-                                "node_next": null,
-                                "line": 10,
-                                "column": 31,
-                                "is_statement": false
-                              },
-                              {
-                                "node_value": {
-                                  "Variable": "ii"
+                                  "Add": [
+                                    {
+                                      "node_value": {
+                                        "Variable": "content"
+                                      },
+                                      "node_next": null,
+                                      "line": 10,
+                                      "column": 31,
+                                      "is_statement": false
+                                    },
+                                    {
+                                      "node_value": {
+                                        "Variable": "ii"
+                                      },
+                                      "node_next": null,
+                                      "line": 10,
+                                      "column": 34,
+                                      "is_statement": false
+                                    }
+                                  ]
                                 },
                                 "node_next": null,
                                 "line": 10,
                                 "column": 34,
+                                "is_statement": false
+                              },
+                              {
+                                "node_value": {
+                                  "String": ""
+                                },
+                                "node_next": null,
+                                "line": 10,
+                                "column": 38,
                                 "is_statement": false
                               }
                             ]
                           },
                           "node_next": null,
                           "line": 10,
-                          "column": 34,
+                          "column": 39,
                           "is_statement": false
                         }
                       ],
@@ -542,7 +320,7 @@
                   },
                   "node_next": null,
                   "line": 10,
-                  "column": 35,
+                  "column": 40,
                   "is_statement": true
                 },
                 {
@@ -630,6 +408,247 @@
       "node_next": null,
       "line": 14,
       "column": 63,
+      "is_statement": true
+    }
+  ],
+  "./std.sc": [
+    {
+      "node_value": {
+        "SingleComment": [
+          " std.script",
+          [
+            1,
+            1
+          ]
+        ]
+      },
+      "node_next": null,
+      "line": 2,
+      "column": 1,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "TypeDeclaration": [
+          {
+            "node_value": {
+              "Variable": "i32"
+            },
+            "node_next": null,
+            "line": 2,
+            "column": 17,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "String": "i32"
+            },
+            "node_next": null,
+            "line": 2,
+            "column": 17,
+            "is_statement": false
+          }
+        ]
+      },
+      "node_next": null,
+      "line": 2,
+      "column": 17,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "TypeDeclaration": [
+          {
+            "node_value": {
+              "Variable": "f32"
+            },
+            "node_next": null,
+            "line": 3,
+            "column": 17,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "String": "f32"
+            },
+            "node_next": null,
+            "line": 3,
+            "column": 17,
+            "is_statement": false
+          }
+        ]
+      },
+      "node_next": null,
+      "line": 3,
+      "column": 17,
+      "is_statement": true
+    },
+    {
+      "node_value": {
+        "TypeDeclaration": [
+          {
+            "node_value": {
+              "Variable": "i64"
+            },
+            "node_next": null,
+            "line": 4,
+            "column": 17,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "String": "i64"
+            },
+            "node_next": null,
+            "line": 4,
+            "column": 17,
+            "is_statement": false
+          }
+        ]
+      },
+      "node_next": null,
+      "line": 4,
+      "column": 17,
+      "is_statement": true
+    },
+    {
+      "node_value": {
+        "TypeDeclaration": [
+          {
+            "node_value": {
+              "Variable": "f64"
+            },
+            "node_next": null,
+            "line": 5,
+            "column": 17,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "String": "f64"
+            },
+            "node_next": null,
+            "line": 5,
+            "column": 17,
+            "is_statement": false
+          }
+        ]
+      },
+      "node_next": null,
+      "line": 5,
+      "column": 17,
+      "is_statement": true
+    },
+    {
+      "node_value": {
+        "TypeDeclaration": [
+          {
+            "node_value": {
+              "Variable": "string"
+            },
+            "node_next": null,
+            "line": 6,
+            "column": 23,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "String": "string"
+            },
+            "node_next": null,
+            "line": 6,
+            "column": 23,
+            "is_statement": false
+          }
+        ]
+      },
+      "node_next": null,
+      "line": 6,
+      "column": 23,
+      "is_statement": true
+    },
+    {
+      "node_value": {
+        "TypeDeclaration": [
+          {
+            "node_value": {
+              "Variable": "void"
+            },
+            "node_next": null,
+            "line": 7,
+            "column": 19,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "String": "unit"
+            },
+            "node_next": null,
+            "line": 7,
+            "column": 19,
+            "is_statement": false
+          }
+        ]
+      },
+      "node_next": null,
+      "line": 7,
+      "column": 19,
+      "is_statement": true
+    },
+    {
+      "node_value": {
+        "TypeDeclaration": [
+          {
+            "node_value": {
+              "Variable": "array"
+            },
+            "node_next": null,
+            "line": 8,
+            "column": 21,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "String": "array"
+            },
+            "node_next": null,
+            "line": 8,
+            "column": 21,
+            "is_statement": false
+          }
+        ]
+      },
+      "node_next": null,
+      "line": 8,
+      "column": 21,
+      "is_statement": true
+    },
+    {
+      "node_value": {
+        "TypeDeclaration": [
+          {
+            "node_value": {
+              "Variable": "bool"
+            },
+            "node_next": null,
+            "line": 9,
+            "column": 19,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "String": "bool"
+            },
+            "node_next": null,
+            "line": 9,
+            "column": 19,
+            "is_statement": false
+          }
+        ]
+      },
+      "node_next": null,
+      "line": 9,
+      "column": 19,
       "is_statement": true
     }
   ]
