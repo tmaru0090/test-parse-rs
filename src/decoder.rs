@@ -1,13 +1,14 @@
 use crate::compile_error;
 use crate::compile_group_error;
-use crate::memory_mgr::*;
+use crate::context::*;
 use crate::error::CompilerError;
 use crate::lexer::{Lexer, Token};
+use crate::memory_mgr::*;
 use crate::parser::Node;
 use crate::parser::Parser;
+use crate::traits::Size;
 use crate::types::NodeValue;
 use crate::types::*;
-use crate::context::*;
 use anyhow::Result as R;
 use chrono::{DateTime, Local, Utc};
 use hostname::get;
@@ -17,7 +18,6 @@ use property_rs::Property;
 use serde::{Deserialize, Serialize};
 use serde_json::to_string_pretty;
 use serde_json::{Number, Value};
-use std::any::Any;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fs::File;
@@ -36,56 +36,86 @@ use win_msgbox::{
     YesNo, YesNoCancel,
 };
 
-trait Size {
-    fn size(&self) -> usize;
-}
+fn show_messagebox(
+    message_type: &str,
+    title: &str,
+    message: &str,
+    icon: Option<&str>,
+) -> Option<String> {
+    let msg_icon = match icon {
+        Some("information") => Icon::Information,
+        Some("warning") => Icon::Warning,
+        Some("error") => Icon::Error,
+        _ => return None, // デフォルトはアイコンなし
+    };
 
-impl Size for Value {
-    fn size(&self) -> usize {
-        match self {
-            Value::Null => 0,
-            Value::Bool(_) => std::mem::size_of::<bool>(),
-            Value::Number(n) => {
-                if n.is_i64() {
-                    std::mem::size_of::<i64>()
-                } else if n.is_u64() {
-                    std::mem::size_of::<u64>()
-                } else if n.is_f64() {
-                    std::mem::size_of::<f64>()
-                } else if let Some(i) = n.as_i64() {
-                    if i <= i32::MAX as i64 && i >= i32::MIN as i64 {
-                        std::mem::size_of::<i32>()
-                    } else {
-                        std::mem::size_of::<i64>()
-                    }
-                } else if let Some(u) = n.as_u64() {
-                    if u <= u32::MAX as u64 {
-                        std::mem::size_of::<u32>()
-                    } else {
-                        std::mem::size_of::<u64>()
-                    }
-                } else if let Some(f) = n.as_f64() {
-                    if f <= f32::MAX as f64 && f >= f32::MIN as f64 {
-                        std::mem::size_of::<f32>()
-                    } else {
-                        std::mem::size_of::<f64>()
-                    }
-                } else {
-                    0 // ここは適宜調整
-                }
-            }
-            Value::String(s) => std::mem::size_of::<String>() + s.len(),
-            Value::Array(arr) => {
-                std::mem::size_of::<Vec<Value>>() + arr.iter().map(|v| v.size()).sum::<usize>()
-            }
-            Value::Object(obj) => {
-                std::mem::size_of::<serde_json::Map<String, Value>>()
-                    + obj.iter().map(|(k, v)| k.len() + v.size()).sum::<usize>()
+    let response = match message_type {
+        "okay" => {
+            MessageBox::<Okay>::new(message)
+                .title(title)
+                .icon(msg_icon)
+                .show()
+                .unwrap();
+            Some("okay".to_string())
+        }
+        "yesno" => {
+            let result = MessageBox::<YesNo>::new(message)
+                .title(title)
+                .icon(msg_icon)
+                .show()
+                .unwrap();
+            match result {
+                YesNo::Yes => Some("yes".to_string()),
+                YesNo::No => Some("no".to_string()),
             }
         }
-    }
-}
+        "okaycancel" => {
+            let result = MessageBox::<OkayCancel>::new(message)
+                .title(title)
+                .icon(msg_icon)
+                .show()
+                .unwrap();
+            match result {
+                OkayCancel::Okay => Some("okay".to_string()),
+                OkayCancel::Cancel => Some("cancel".to_string()),
+            }
+        }
+        "canceltryagaincontinue" => {
+            let result = MessageBox::<CancelTryAgainContinue>::new(message)
+                .title(title)
+                .icon(msg_icon)
+                .show()
+                .unwrap();
+            match result {
+                CancelTryAgainContinue::Cancel => Some("cancel".to_string()),
+                CancelTryAgainContinue::TryAgain => Some("tryagain".to_string()),
+                CancelTryAgainContinue::Continue => Some("continue".to_string()),
+            }
+        }
+        "retrycancel" => {
+            let result = MessageBox::<RetryCancel>::new(message)
+                .title(title)
+                .icon(msg_icon)
+                .show()
+                .unwrap();
+            match result {
+                RetryCancel::Retry => Some("retry".to_string()),
+                RetryCancel::Cancel => Some("cancel".to_string()),
+            }
+        }
 
+        _ => {
+            MessageBox::<Okay>::new(message)
+                .title(title)
+                .icon(msg_icon)
+                .show()
+                .unwrap();
+            Some("okay".to_string())
+        }
+    };
+
+    response
+}
 
 // メイン実行環境
 #[derive(Debug, Clone, Property)]
@@ -214,6 +244,7 @@ impl Decoder {
     }
     fn get_value_size(&self, v_type: &str, v_value: &Value) -> usize {
         match v_type {
+            "void" | "unit" => 0,
             "i32" => std::mem::size_of::<i32>(),
             "i64" => std::mem::size_of::<i64>(),
             "f32" => std::mem::size_of::<f32>(),
@@ -226,58 +257,6 @@ impl Decoder {
                 }
             }
             _ => serde_json::to_vec(v_value).unwrap().len(),
-        }
-    }
-    fn push_stack_frame(&mut self, func_name: &str) {
-        self.memory_mgr
-            .stack_frames
-            .insert(func_name.to_string(), StackFrame { blocks: Vec::new() });
-    }
-
-    fn pop_stack_frame(&mut self, func_name: &str) {
-        self.memory_mgr.stack_frames.remove(func_name);
-    }
-
-    fn add_to_stack_frame(&mut self, func_name: &str, block: MemoryBlock) {
-        if let Some(frame) = self.memory_mgr.stack_frames.get_mut(func_name) {
-            frame.blocks.push(block);
-        }
-    }
-    // 指定の型の値を確保してUUIDのアドレスを返す
-    fn allocate<T: 'static + Any>(&mut self, value: T) -> Uuid {
-        let id = if let Some(free_id) = self.memory_mgr.free_list.pop() {
-            // 解放済みのブロックがあれば再利用
-            free_id
-        } else {
-            Uuid::new_v4() // 新しいUUIDを生成
-        };
-        let block = MemoryBlock {
-            id,
-            value: Box::new(value),
-        };
-        self.memory_mgr.heap.insert(id, block);
-        id // 割り当てたメモリのIDを返す
-    }
-    // 指定アドレス(UUID)のメモリを開放
-    fn deallocate(&mut self, id: Uuid) {
-        if self.memory_mgr.heap.remove(&id).is_some() {
-            self.memory_mgr.free_list.push(id); // 解放されたメモリブロックをフリーリストに追加
-        }
-    }
-    // 指定のアドレスの値を返す
-    fn get_value<T: 'static + Any>(&self, id: Uuid) -> Option<&T> {
-        self.memory_mgr
-            .heap
-            .get(&id)
-            .and_then(|block| block.value.downcast_ref::<T>()) // IDから値を取得
-    }
-    // 指定のアドレスの値を更新
-    fn update_value<T: 'static + Any>(&mut self, id: Uuid, new_value: T) -> bool {
-        if let Some(block) = self.memory_mgr.heap.get_mut(&id) {
-            block.value = Box::new(new_value); // 新しい値で更新
-            true
-        } else {
-            false // 指定されたIDが見つからなかった場合
         }
     }
     fn infer_type(&self, value: &Value) -> String {
@@ -315,7 +294,6 @@ impl Decoder {
         } else {
             (String::new(), Box::new(Node::default()))
         };
-
         // 型定義が存在するか確認
         if !self.context.type_context.contains_key(expected_type) {
             return Err(compile_error!(
@@ -531,7 +509,7 @@ impl Decoder {
         }
 
         // 配列全体をヒープにコピー
-        self.allocate(array.clone());
+        self.memory_mgr.allocate(array.clone());
         // 結果を返す
         Ok(Value::Array(array.clone()))
     }
@@ -621,7 +599,8 @@ impl Decoder {
                     }
                 }
 
-                self.update_value(variable.address.clone(), variable.value.clone());
+                self.memory_mgr
+                    .update_value(variable.address.clone(), variable.value.clone());
 
                 if self.context.local_context.contains_key(&name) {
                     self.context.local_context.insert(name.clone(), variable);
@@ -660,159 +639,6 @@ impl Decoder {
             ))
         }
     }
-    /*
-    fn show_messagebox(
-        &self,
-        message_type: &str,
-        title: &str,
-        message: &str,
-        icon: Option<&str>,
-    ) -> Option<String> {
-        let msg_icon = match icon {
-            Some("information") => Icon::Information,
-            Some("warning") => Icon::Warning,
-            Some("error") => Icon::Error,
-            _ => return None, // デフォルトはアイコンなし
-        };
-
-        let response = match message_type {
-            "okay" => {
-                MessageBox::<Okay>::new(message)
-                    .title(title)
-                    .icon(msg_icon)
-                    .show()
-                    .unwrap();
-                Some("okay".to_string())
-            }
-            "yesno" => {
-                let result = MessageBox::<YesNo>::new(message)
-                    .title(title)
-                    .icon(msg_icon)
-                    .show()
-                    .unwrap();
-                match result {
-                    YesNo::Yes => Some("yes".to_string()),
-                    YesNo::No => Some("no".to_string()),
-                }
-            }
-            "okaycancel" => {
-                let result = MessageBox::<OkayCancel>::new(message)
-                    .title(title)
-                    .icon(msg_icon)
-                    .show()
-                    .unwrap();
-                match result {
-                    OkayCancel::Okay => Some("okay".to_string()),
-                    OkayCancel::Cancel => Some("cancel".to_string()),
-                }
-            }
-            "canceltryagaincontinue" => {
-                let result = MessageBox::<CancelTryAgainContinue>::new(message)
-                    .title(title)
-                    .icon(msg_icon)
-                    .show()
-                    .unwrap();
-                match result {
-                    CancelTryAgainContinue::Cancel => Some("cancel".to_string()),
-                    CancelTryAgainContinue::TryAgain => Some("tryagain".to_string()),
-                    CancelTryAgainContinue::Continue => Some("continue".to_string()),
-                }
-            }
-            _ => {
-                MessageBox::<Okay>::new(message)
-                    .title(title)
-                    .icon(msg_icon)
-                    .show()
-                    .unwrap();
-                Some("okay".to_string())
-            }
-        };
-
-        response
-    }
-    */
-
-    fn show_messagebox(
-        &self,
-        message_type: &str,
-        title: &str,
-        message: &str,
-        icon: Option<&str>,
-    ) -> Option<String> {
-        let msg_icon = match icon {
-            Some("information") => Icon::Information,
-            Some("warning") => Icon::Warning,
-            Some("error") => Icon::Error,
-            _ => return None, // デフォルトはアイコンなし
-        };
-
-        let response = match message_type {
-            "okay" => {
-                MessageBox::<Okay>::new(message)
-                    .title(title)
-                    .icon(msg_icon)
-                    .show()
-                    .unwrap();
-                Some("okay".to_string())
-            }
-            "yesno" => {
-                let result = MessageBox::<YesNo>::new(message)
-                    .title(title)
-                    .icon(msg_icon)
-                    .show()
-                    .unwrap();
-                match result {
-                    YesNo::Yes => Some("yes".to_string()),
-                    YesNo::No => Some("no".to_string()),
-                }
-            }
-            "okaycancel" => {
-                let result = MessageBox::<OkayCancel>::new(message)
-                    .title(title)
-                    .icon(msg_icon)
-                    .show()
-                    .unwrap();
-                match result {
-                    OkayCancel::Okay => Some("okay".to_string()),
-                    OkayCancel::Cancel => Some("cancel".to_string()),
-                }
-            }
-            "canceltryagaincontinue" => {
-                let result = MessageBox::<CancelTryAgainContinue>::new(message)
-                    .title(title)
-                    .icon(msg_icon)
-                    .show()
-                    .unwrap();
-                match result {
-                    CancelTryAgainContinue::Cancel => Some("cancel".to_string()),
-                    CancelTryAgainContinue::TryAgain => Some("tryagain".to_string()),
-                    CancelTryAgainContinue::Continue => Some("continue".to_string()),
-                }
-            }
-            "retrycancel" => {
-                let result = MessageBox::<RetryCancel>::new(message)
-                    .title(title)
-                    .icon(msg_icon)
-                    .show()
-                    .unwrap();
-                match result {
-                    RetryCancel::Retry => Some("retry".to_string()),
-                    RetryCancel::Cancel => Some("cancel".to_string()),
-                }
-            }
-
-            _ => {
-                MessageBox::<Okay>::new(message)
-                    .title(title)
-                    .icon(msg_icon)
-                    .show()
-                    .unwrap();
-                Some("okay".to_string())
-            }
-        };
-
-        response
-    }
 
     fn eval_call(&mut self, name: &String, args: &Vec<Node>, is_system: &bool) -> R<Value, String> {
         let mut result = Value::Null;
@@ -825,6 +651,17 @@ impl Decoder {
         {
             if *is_system {
                 match name.as_str() {
+                    "str" => {
+                        if args.len() != 1 {
+                            return Err("to_str expects exactly one argument".into());
+                        }
+                        let n = match self.execute_node(&args[0])? {
+                            Value::Number(v) => v,
+                            _ => return Err("to_str expects a string as the file name".into()),
+                        };
+                        let string = n.to_string();
+                        return Ok(serde_json::json!(string));
+                    }
                     "show_msg_box" => {
                         if args.len() != 4 {
                             return Err("show_msg_box expects exactly two arguments".into());
@@ -852,7 +689,7 @@ impl Decoder {
                             _ => None,
                         };
                         let responce =
-                            self.show_messagebox(&message_type, &title, &message, icon.as_deref());
+                            show_messagebox(&message_type, &title, &message, icon.as_deref());
                         return Ok(serde_json::json!(responce));
                     }
                     "write_at_file" => {
@@ -1142,24 +979,24 @@ impl Decoder {
         };
 
         let func_address = variables.address;
-        let func_info = self.get_value::<Value>(func_address).unwrap();
+        let func_info = self.memory_mgr.get_value::<Value>(func_address).unwrap();
         let _args = func_info["args"].clone();
         let _body = func_info["body"].clone();
         let body: Node = serde_json::from_value(_body).unwrap();
         let return_type = func_info["return_type"].clone();
 
         // スタックフレームをプッシュ
-        self.push_stack_frame(func_name);
+        self.memory_mgr.push_stack_frame(func_name);
 
         for (arg, value) in _args.as_array().unwrap().iter().zip(&evaluated_args) {
             let arg_name = arg["name"].as_str().unwrap();
             let arg_type = arg["type"].clone();
-            let index = self.allocate(value.clone());
+            let index = self.memory_mgr.allocate(value.clone());
             let block = MemoryBlock {
                 id: index,
                 value: Box::new(value.clone()),
             };
-            self.add_to_stack_frame(func_name, block);
+            self.memory_mgr.add_to_stack_frame(func_name, block);
             self.context.local_context.insert(
                 arg_name.to_string(),
                 Variable {
@@ -1178,14 +1015,14 @@ impl Decoder {
         };
         let b = _body
             .iter()
-            .filter(|node| node.node_value() != NodeValue::Empty)
+            .filter(|node| node.node_value() != NodeValue::Unknown)
             .collect::<Vec<_>>();
         for body in b {
             result = self.execute_node(&body)?;
         }
 
         // スタックフレームをポップ
-        self.pop_stack_frame(func_name);
+        self.memory_mgr.pop_stack_frame(func_name);
 
         info!(
             "CallFunction: name = {:?},args = {:?},return_value = {:?}",
@@ -1229,7 +1066,7 @@ impl Decoder {
 
         let mut arg_addresses = Vec::new();
 
-        let func_index = self.allocate(func_name.clone());
+        let func_index = self.memory_mgr.allocate(func_name.clone());
 
         for (i, (data_type, arg_name)) in args.iter().enumerate() {
             arg_addresses.push(serde_json::json!({"name": arg_name.clone(),"type": data_type}));
@@ -1241,7 +1078,7 @@ impl Decoder {
             "body": body,
             "return_type": return_type,
         });
-        let func_info_index = self.allocate(func_info.clone());
+        let func_info_index = self.memory_mgr.allocate(func_info.clone());
 
         if *is_system {
             // 関数の情報をグローバルコンテキストに保存
@@ -1325,6 +1162,7 @@ impl Decoder {
         };
 
         self.check_reserved_words(&name, RESERVED_WORDS)?;
+
         let mut v_type = Value::Null;
         let v_value;
         let address;
@@ -1352,26 +1190,19 @@ impl Decoder {
                 ));
             }
 
-            v_type = if let NodeValue::Empty = data_type.node_value() {
-                let _value = self.execute_node(&value)?;
-                v_value = _value.clone(); // ここでv_valueを設定
-                Value::String(self.infer_type(&_value))
-            } else {
-                let v = match data_type.node_value() {
-                    NodeValue::DataType(v_type) => match v_type.node_value() {
-                        NodeValue::Variable(v) => v,
-                        _ => String::new(),
-                    },
+            let v = match data_type.node_value() {
+                NodeValue::DataType(v_type) => match v_type.node_value() {
+                    NodeValue::Variable(v) => v,
                     _ => String::new(),
-                };
-                v_value = if let NodeValue::Empty = value.node_value() {
-                    Value::Number(serde_json::Number::from(0))
-                } else {
-                    let _value = self.execute_node(&value)?;
-                    self.check_type(&_value, v_type.as_str().unwrap_or(""))?
-                };
-                Value::String(v.into())
+                },
+                _ => String::new(),
             };
+            v_value = {
+                let _value = self.execute_node(&value)?;
+                //            self.check_type(&_value, v_type.as_str().unwrap_or(""))?
+                _value.clone()
+            };
+            v_type = Value::String(v.into());
         }
 
         if *is_reference {
@@ -1403,7 +1234,7 @@ impl Decoder {
                         }
                     }
                     _ => {
-                        let _address = self.allocate(v_value.clone());
+                        let _address = self.memory_mgr.allocate(v_value.clone());
                         _address
                     }
                 }
@@ -1426,7 +1257,7 @@ impl Decoder {
                 },
             );
         } else {
-            address = self.allocate(v_value.clone());
+            address = self.memory_mgr.allocate(v_value.clone());
             let context = if *is_local {
                 &mut self.context.local_context
             } else {
@@ -1445,7 +1276,7 @@ impl Decoder {
             );
         }
 
-        info!("VariableDeclaration: name = {:?}, data_type = {:?}, value = {:?}, address = {:?} is_local: {}", name, v_type, v_value, address,is_local);
+        info!("VariableDeclaration: name = {:?}, data_type = {:?}, value = {:?}, address = {:?} is_mutable: {} is_local: {}", name, v_type, v_value, address,is_mutable,is_local);
         let line = self.current_node.clone().unwrap().1.line();
         let column = self.current_node.clone().unwrap().1.column();
         self.context
@@ -1453,6 +1284,7 @@ impl Decoder {
             .insert(name.clone(), (line, column, false));
         Ok(v_value)
     }
+
     fn eval_type_declaration(
         &mut self,
         _type_name: &Box<Node>,
@@ -1513,6 +1345,7 @@ impl Decoder {
             );
 
             let value = self
+                .memory_mgr
                 .get_value::<Value>(index)
                 .expect("Failed to retrieve value");
 
@@ -1531,6 +1364,7 @@ impl Decoder {
             );
 
             let value = self
+                .memory_mgr
                 .get_value::<Value>(index)
                 .expect("Failed to retrieve value");
             Ok(value.clone())
@@ -1575,7 +1409,7 @@ impl Decoder {
 
         let mut arg_addresses = Vec::new();
 
-        let func_index = self.allocate(func_name.clone());
+        let func_index = self.memory_mgr.allocate(func_name.clone());
 
         for (i, (data_type, arg_name)) in args.iter().enumerate() {
             arg_addresses.push(serde_json::json!({"name": arg_name.clone(),"type": data_type}));
@@ -1587,7 +1421,7 @@ impl Decoder {
             "body": body,
             "return_type": return_type,
         });
-        let func_info_index = self.allocate(func_info.clone());
+        let func_info_index = self.memory_mgr.allocate(func_info.clone());
 
         if *is_system {
             // 関数の情報をグローバルコンテキストに保存
@@ -1639,7 +1473,8 @@ impl Decoder {
             .or_else(|| self.context.global_context.get(&var).cloned());
         if let Some(variable) = variable_data {
             let result = left_value.as_i64().unwrap() + 1;
-            self.update_value(variable.address.clone(), result);
+            self.memory_mgr
+                .update_value(variable.address.clone(), result);
             Ok(Value::Number(result.into()))
         } else {
             Ok(Value::Null)
@@ -1663,7 +1498,8 @@ impl Decoder {
             .or_else(|| self.context.global_context.get(&var).cloned());
         if let Some(variable) = variable_data {
             let result = left_value.as_i64().unwrap() - 1;
-            self.update_value(variable.address.clone(), result);
+            self.memory_mgr
+                .update_value(variable.address.clone(), result);
             Ok(Value::Number(result.into()))
         } else {
             Ok(Value::Null)
@@ -1839,7 +1675,7 @@ impl Decoder {
                         // 可変性のチェック
                         if variable.is_mutable {
                             let result = l.as_i64().unwrap() + r.as_i64().unwrap();
-                            self.update_value(
+                            self.memory_mgr.update_value(
                                 variable.address.clone(),
                                 Value::Number(result.into()),
                             );
@@ -1887,7 +1723,7 @@ impl Decoder {
                         if variable.is_mutable {
                             let result = l.as_i64().unwrap() - r.as_i64().unwrap();
 
-                            self.update_value(
+                            self.memory_mgr.update_value(
                                 variable.address.clone(),
                                 Value::Number(result.into()),
                             );
@@ -1928,7 +1764,7 @@ impl Decoder {
                         if variable.is_mutable {
                             let result = l.as_i64().unwrap() * r.as_i64().unwrap();
 
-                            self.update_value(
+                            self.memory_mgr.update_value(
                                 variable.address.clone(),
                                 Value::Number(result.into()),
                             );
@@ -1968,7 +1804,7 @@ impl Decoder {
                     if let Some(variable) = variable_data {
                         if variable.is_mutable {
                             let result = l.as_i64().unwrap() / r.as_i64().unwrap();
-                            self.update_value(
+                            self.memory_mgr.update_value(
                                 variable.address.clone(),
                                 Value::Number(result.into()),
                             );
@@ -2053,79 +1889,6 @@ impl Decoder {
         }
         Ok(result)
     }
-    /*
-        fn eval_while_statement(
-            &mut self,
-            condition: &Box<Node>,
-            body: &Box<Node>,
-        ) -> R<Value, String> {
-            let mut result = Value::Null;
-            loop {
-                let condition_value = self.execute_node(&condition)?;
-                if let Value::Bool(value) = condition_value {
-                    if value {
-                        result = self.execute_node(&body)?;
-                    } else {
-                        break;
-                    }
-                } else {
-                    return Err("Condition must evaluate to a boolean".to_string());
-                }
-            }
-            Ok(result)
-        }
-
-        fn eval_for_statement(
-            &mut self,
-            value: &Box<Node>,
-            iterator: &Box<Node>,
-            body: &Box<Node>,
-        ) -> R<Value, String> {
-            let mut result = Value::Null;
-
-            // イテレータの評価
-            let iter_value = self.execute_node(iterator)?;
-            if let Value::Array(elements) = iter_value {
-                for element in elements {
-                    // ループ変数に値を設定し、メモリを確保
-                    let element_address = self.allocate(element.clone());
-                    let variable = Variable {
-                        data_type: Value::String("auto".to_string()), // 型推論を仮定
-                        value: element.clone(),
-                        address: element_address,
-                        is_mutable: true, // 仮に可変とする
-                        size: element.size(),
-                    };
-                    let var = match value.node_value() {
-                        NodeValue::Variable(v) => v,
-                        _ => String::new(),
-                    };
-                    self.context.local_context.insert(var.clone(), variable);
-
-                    // ループボディの評価
-                    match self.execute_node(body) {
-                        Ok(val) => result = val,
-                        Err(e) => return Err(e),
-                    }
-                }
-            } else {
-                return Err(compile_error!(
-                    "error",
-                    self.current_node.clone().unwrap().1.line(),
-                    self.current_node.clone().unwrap().1.column(),
-                    &self.current_node.clone().unwrap().0,
-                    &self
-                        .file_contents
-                        .get(&self.current_node.clone().unwrap().0)
-                        .unwrap(),
-                    "The iterator is not an array",
-                ));
-            }
-
-            Ok(result)
-        }
-    */
-
     fn eval_while_statement(
         &mut self,
         condition: &Box<Node>,
@@ -2171,9 +1934,9 @@ impl Decoder {
         if let Value::Array(elements) = iter_value {
             for element in elements {
                 // ループ変数に値を設定し、メモリを確保
-                let element_address = self.allocate(element.clone());
+                let element_address = self.memory_mgr.allocate(element.clone());
                 let variable = Variable {
-                    data_type: Value::String("auto".to_string()), // 型推論を仮定
+                    data_type: Value::String("void".to_string()), // 型推論を仮定
                     value: element.clone(),
                     address: element_address,
                     is_mutable: true, // 仮に可変とする
@@ -2239,6 +2002,9 @@ impl Decoder {
         //info!("current_node: {:?}", self.current_node.clone());
 
         match &node_value {
+            NodeValue::Null => {
+                result = Value::Null;
+            }
             NodeValue::Range(start, max) => {
                 let start_value = self.execute_node(start)?;
                 let max_value = self.execute_node(max)?;

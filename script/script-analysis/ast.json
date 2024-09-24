@@ -240,21 +240,6 @@
       "is_statement": true
     }
   ],
-  "main-entry": [
-    {
-      "node_value": {
-        "Call": [
-          "main",
-          [],
-          false
-        ]
-      },
-      "node_next": null,
-      "line": 1,
-      "column": 7,
-      "is_statement": true
-    }
-  ],
   "example/main.sc": [
     {
       "node_value": {
@@ -282,166 +267,273 @@
     },
     {
       "node_value": {
-        "Function": [
-          "main",
-          [],
+        "VariableDeclaration": [
+          {
+            "node_value": {
+              "Variable": "_path"
+            },
+            "node_next": null,
+            "line": 3,
+            "column": 35,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "DataType": {
+                "node_value": "Null",
+                "node_next": null,
+                "line": 3,
+                "column": 7,
+                "is_statement": false
+              }
+            },
+            "node_next": null,
+            "line": 3,
+            "column": 7,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "String": "./test-dir/generate"
+            },
+            "node_next": null,
+            "line": 3,
+            "column": 35,
+            "is_statement": false
+          },
+          false,
+          true,
+          false
+        ]
+      },
+      "node_next": null,
+      "line": 3,
+      "column": 35,
+      "is_statement": true
+    },
+    {
+      "node_value": {
+        "VariableDeclaration": [
+          {
+            "node_value": {
+              "Variable": "content"
+            },
+            "node_next": null,
+            "line": 4,
+            "column": 28,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "DataType": {
+                "node_value": "Null",
+                "node_next": null,
+                "line": 4,
+                "column": 7,
+                "is_statement": false
+              }
+            },
+            "node_next": null,
+            "line": 4,
+            "column": 7,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "String": "あいうえおー 数:"
+            },
+            "node_next": null,
+            "line": 4,
+            "column": 28,
+            "is_statement": false
+          },
+          false,
+          true,
+          false
+        ]
+      },
+      "node_next": null,
+      "line": 4,
+      "column": 28,
+      "is_statement": true
+    },
+    {
+      "node_value": {
+        "SingleComment": [
+          " 5秒ごとにファイルを作成",
+          [
+            6,
+            1
+          ]
+        ]
+      },
+      "node_next": null,
+      "line": 7,
+      "column": 1,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "For": [
+          {
+            "node_value": {
+              "Variable": "i"
+            },
+            "node_next": null,
+            "line": 12,
+            "column": 1,
+            "is_statement": false
+          },
+          {
+            "node_value": {
+              "Range": [
+                {
+                  "node_value": {
+                    "Int": 0
+                  },
+                  "node_next": null,
+                  "line": 7,
+                  "column": 13,
+                  "is_statement": false
+                },
+                {
+                  "node_value": {
+                    "Int": 2
+                  },
+                  "node_next": null,
+                  "line": 7,
+                  "column": 13,
+                  "is_statement": false
+                }
+              ]
+            },
+            "node_next": null,
+            "line": 7,
+            "column": 13,
+            "is_statement": false
+          },
           {
             "node_value": {
               "Block": [
                 {
                   "node_value": {
-                    "SingleComment": [
-                      "l out = @cmd(\"python\",[\"example/capture.py\"]);",
-                      [
-                        6,
-                        3
-                      ]
-                    ]
-                  },
-                  "node_next": null,
-                  "line": 7,
-                  "column": 3,
-                  "is_statement": false
-                },
-                {
-                  "node_value": {
-                    "SingleComment": [
-                      "  out",
-                      [
-                        7,
-                        3
-                      ]
-                    ]
-                  },
-                  "node_next": null,
-                  "line": 8,
-                  "column": 3,
-                  "is_statement": false
-                },
-                {
-                  "node_value": {
-                    "SingleComment": [
-                      "l out = @cmd(\"mpv\",[\"C:/Users/tanukimaru/Downloads/bgm/*.wav\"]);",
-                      [
-                        8,
-                        3
-                      ]
-                    ]
-                  },
-                  "node_next": null,
-                  "line": 9,
-                  "column": 3,
-                  "is_statement": false
-                },
-                {
-                  "node_value": {
                     "VariableDeclaration": [
                       {
                         "node_value": {
-                          "Variable": "f"
+                          "Variable": "ii"
                         },
                         "node_next": null,
-                        "line": 9,
-                        "column": 17,
-                        "is_statement": false
-                      },
-                      {
-                        "node_value": "Empty",
-                        "node_next": null,
-                        "line": 9,
-                        "column": 9,
+                        "line": 8,
+                        "column": 19,
                         "is_statement": false
                       },
                       {
                         "node_value": {
-                          "Bool": true
+                          "DataType": {
+                            "node_value": "Null",
+                            "node_next": null,
+                            "line": 8,
+                            "column": 7,
+                            "is_statement": false
+                          }
                         },
                         "node_next": null,
-                        "line": 9,
-                        "column": 17,
+                        "line": 8,
+                        "column": 7,
                         "is_statement": false
                       },
+                      {
+                        "node_value": {
+                          "Call": [
+                            "str",
+                            [
+                              {
+                                "node_value": {
+                                  "Variable": "i"
+                                },
+                                "node_next": null,
+                                "line": 8,
+                                "column": 18,
+                                "is_statement": false
+                              }
+                            ],
+                            true
+                          ]
+                        },
+                        "node_next": null,
+                        "line": 8,
+                        "column": 19,
+                        "is_statement": true
+                      },
                       true,
-                      true,
+                      false,
                       false
                     ]
                   },
                   "node_next": null,
-                  "line": 9,
-                  "column": 17,
+                  "line": 8,
+                  "column": 19,
                   "is_statement": true
                 },
                 {
                   "node_value": {
-                    "MultiComment": [
-                      [
-                        "while f{\r",
-                        "    l res = @show_msg_box(\"canceltryagaincontinue\", \"question\", \"おおーん？?\",\"warning\");\r",
-                        "    if res == \"continue\"{\r",
-                        "        f = false;\r",
-                        "    }\r",
-                        "  }"
-                      ],
-                      [
-                        10,
-                        3
-                      ]
-                    ]
-                  },
-                  "node_next": null,
-                  "line": 16,
-                  "column": 3,
-                  "is_statement": false
-                },
-                {
-                  "node_value": {
                     "Call": [
-                      "print",
+                      "write_file",
                       [
                         {
                           "node_value": {
-                            "String": "{} {:?}"
+                            "Add": [
+                              {
+                                "node_value": {
+                                  "Variable": "_path"
+                                },
+                                "node_next": null,
+                                "line": 9,
+                                "column": 20,
+                                "is_statement": false
+                              },
+                              {
+                                "node_value": {
+                                  "Variable": "ii"
+                                },
+                                "node_next": null,
+                                "line": 9,
+                                "column": 23,
+                                "is_statement": false
+                              }
+                            ]
                           },
                           "node_next": null,
-                          "line": 16,
-                          "column": 19,
+                          "line": 9,
+                          "column": 23,
                           "is_statement": false
                         },
                         {
                           "node_value": {
-                            "Array": [
+                            "Add": [
                               {
-                                "node_value": "Empty",
+                                "node_value": {
+                                  "Variable": "content"
+                                },
                                 "node_next": null,
-                                "line": 16,
-                                "column": 20,
+                                "line": 9,
+                                "column": 31,
                                 "is_statement": false
                               },
-                              [
-                                {
-                                  "node_value": {
-                                    "Int": 100
-                                  },
-                                  "node_next": null,
-                                  "line": 16,
-                                  "column": 24,
-                                  "is_statement": false
+                              {
+                                "node_value": {
+                                  "Variable": "ii"
                                 },
-                                {
-                                  "node_value": {
-                                    "Int": 3131
-                                  },
-                                  "node_next": null,
-                                  "line": 16,
-                                  "column": 29,
-                                  "is_statement": false
-                                }
-                              ]
+                                "node_next": null,
+                                "line": 9,
+                                "column": 34,
+                                "is_statement": false
+                              }
                             ]
                           },
                           "node_next": null,
-                          "line": 16,
-                          "column": 30,
+                          "line": 9,
+                          "column": 34,
                           "is_statement": false
                         }
                       ],
@@ -449,31 +541,96 @@
                     ]
                   },
                   "node_next": null,
-                  "line": 16,
-                  "column": 31,
+                  "line": 9,
+                  "column": 35,
+                  "is_statement": true
+                },
+                {
+                  "node_value": {
+                    "Call": [
+                      "sleep",
+                      [
+                        {
+                          "node_value": {
+                            "Int": 5
+                          },
+                          "node_next": null,
+                          "line": 10,
+                          "column": 11,
+                          "is_statement": false
+                        }
+                      ],
+                      true
+                    ]
+                  },
+                  "node_next": null,
+                  "line": 10,
+                  "column": 12,
                   "is_statement": true
                 }
               ]
             },
             "node_next": null,
-            "line": 17,
+            "line": 12,
             "column": 1,
             "is_statement": false
-          },
-          {
-            "node_value": "Empty",
-            "node_next": null,
-            "line": 4,
-            "column": 9,
-            "is_statement": false
-          },
-          false
+          }
         ]
       },
       "node_next": null,
-      "line": 17,
+      "line": 12,
       "column": 1,
       "is_statement": false
+    },
+    {
+      "node_value": {
+        "Call": [
+          "show_msg_box",
+          [
+            {
+              "node_value": {
+                "String": "okay"
+              },
+              "node_next": null,
+              "line": 12,
+              "column": 21,
+              "is_statement": false
+            },
+            {
+              "node_value": {
+                "String": "完了ダイアログ"
+              },
+              "node_next": null,
+              "line": 12,
+              "column": 31,
+              "is_statement": false
+            },
+            {
+              "node_value": {
+                "String": "ファイル生成が完了しました。"
+              },
+              "node_next": null,
+              "line": 12,
+              "column": 48,
+              "is_statement": false
+            },
+            {
+              "node_value": {
+                "String": "information"
+              },
+              "node_next": null,
+              "line": 12,
+              "column": 62,
+              "is_statement": false
+            }
+          ],
+          true
+        ]
+      },
+      "node_next": null,
+      "line": 12,
+      "column": 63,
+      "is_statement": true
     }
   ]
 }

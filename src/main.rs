@@ -1,10 +1,11 @@
+mod context;
 mod decoder;
 mod error;
 mod lexer;
-mod parser;
-mod types;
 mod memory_mgr;
-mod context;
+mod parser;
+mod traits;
+mod types;
 use anyhow::{anyhow, Context, Result as R};
 use decoder::*;
 use env_logger;

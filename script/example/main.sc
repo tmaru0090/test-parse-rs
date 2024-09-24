@@ -1,17 +1,12 @@
 // main関数
 @include "./std.sc"
+l mut _path ="./test-dir/generate";
+l mut content = "あいうえおー 数:";
 
-fn main(){
-  
-  //l out = @cmd("python",["example/capture.py"]);
-  //  out
-  //l out = @cmd("mpv",["C:/Users/tanukimaru/Downloads/bgm/*.wav"]);
-  l mut f = true;
-  /*while f{
-    l res = @show_msg_box("canceltryagaincontinue", "question", "おおーん？?","warning");
-    if res == "continue"{
-        f = false;
-    }
-  }*/
-  @print("{} {:?}",[100,3131]);
+// 5秒ごとにファイルを作成
+for i in 0..2{ 
+  let ii = @str(i);
+  @write_file(_path+ii,content+ii);
+  @sleep(5);
 }
+@show_msg_box("okay","完了ダイアログ","ファイル生成が完了しました。","information");

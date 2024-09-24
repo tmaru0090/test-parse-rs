@@ -145,11 +145,13 @@ pub enum NodeValue {
     TypeDeclaration(Box<Node>, Box<Node>), // 型定義(型名,型)
     Array(Box<Node>, Vec<Box<Node>>), // 配列(型名,値)
     StatementEnd,                  // ステートメントの終わり
-    Empty,
+    Null,                          // 何もない値
+    //    Empty,
+    Unknown, // 異常値
 }
 impl Default for NodeValue {
     fn default() -> Self {
-        NodeValue::Empty
+        NodeValue::Null
     }
 }
 pub static RESERVED_WORDS: &[&str] = &[
@@ -157,4 +159,3 @@ pub static RESERVED_WORDS: &[&str] = &[
     "type", "let", "l", "var", "v", "fn", "mut", "loop", "=", "+", "++", "-", "--", "+=", "-=",
     "*", "*=", "/", "/=", "{", "}", "[", "]",
 ];
-
