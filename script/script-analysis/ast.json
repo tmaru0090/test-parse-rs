@@ -457,9 +457,77 @@
         ]
       },
       "node_next": null,
-      "line": 8,
+      "line": 9,
       "column": 1,
       "is_statement": false
+    },
+    {
+      "node_value": {
+        "Function": [
+          "main",
+          [],
+          {
+            "node_value": {
+              "Block": [
+                {
+                  "node_value": {
+                    "Call": [
+                      "play_music",
+                      [
+                        {
+                          "node_value": {
+                            "String": "pokemon-bw-syouri-mokuzen.wav"
+                          },
+                          "node_next": null,
+                          "line": 10,
+                          "column": 48,
+                          "is_statement": false
+                        }
+                      ],
+                      true
+                    ]
+                  },
+                  "node_next": null,
+                  "line": 10,
+                  "column": 49,
+                  "is_statement": true
+                }
+              ]
+            },
+            "node_next": null,
+            "line": 11,
+            "column": 1,
+            "is_statement": false
+          },
+          {
+            "node_value": "Null",
+            "node_next": null,
+            "line": 9,
+            "column": 9,
+            "is_statement": false
+          },
+          false
+        ]
+      },
+      "node_next": null,
+      "line": 11,
+      "column": 1,
+      "is_statement": false
+    }
+  ],
+  "main-entry": [
+    {
+      "node_value": {
+        "Call": [
+          "main",
+          [],
+          false
+        ]
+      },
+      "node_next": null,
+      "line": 1,
+      "column": 7,
+      "is_statement": true
     }
   ]
 }

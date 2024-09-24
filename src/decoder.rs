@@ -2057,28 +2057,32 @@ impl Decoder {
         name: &String,
         members: &Vec<Box<Node>>,
     ) -> R<Value, String> {
-        let mut structs: HashMap<String, Vec<(String, String)>> = HashMap::new();
-        for m in members {
-            let member_name = match m.node_value() {
-                NodeValue::Variable(_, v) => v,
-                _ => String::new(),
-            };
-            let _member_type = match m.node_value() {
-                NodeValue::Variable(v, _) => v,
-                _ => Box::new(Node::default()),
-            };
-            let member_type = match _member_type.node_value() {
-                NodeValue::DataType(v) => match v.node_value() {
+        let mut structs: HashMap<String, serde_json::Value> = HashMap::new();
+
+        let member_map: serde_json::Value = members
+            .iter()
+            .map(|m| {
+                let member_name = match m.node_value() {
                     NodeValue::Variable(_, v) => v,
                     _ => String::new(),
-                },
-                _ => String::new(),
-            };
-            structs
-                .entry(name.clone())
-                .or_insert(Vec::new())
-                .push((member_name, member_type));
-        }
+                };
+                let member_type = match m.node_value() {
+                    NodeValue::Variable(v, _) => match v.node_value() {
+                        NodeValue::DataType(v) => match v.node_value() {
+                            NodeValue::Variable(_, v) => v,
+                            _ => String::new(),
+                        },
+                        _ => String::new(),
+                    },
+                    _ => String::new(),
+                };
+
+                (member_name, serde_json::json!(member_type))
+            })
+            .collect();
+
+        structs.insert(name.clone(), serde_json::json!(member_map));
+
         let value = serde_json::json!(structs);
         let index = self.memory_mgr.allocate(structs.clone());
         let variables = Variable {
@@ -2086,14 +2090,15 @@ impl Decoder {
             data_type: Value::Null,
             address: index,
             is_mutable: false,
-            size: 0,
+            size: value.size(),
         };
         self.context.global_context.insert(name.clone(), variables);
         info!(
-            "StructDefined: name = {:?}, data_type = , value = {:?}, address = {:?}",
+            "StructDefined: name = {:?}, data_type = , value = {:?}, address = {:?} size = {:?}",
             name,
             value.clone(),
-            index
+            index,
+            value.size()
         );
 
         Ok(value.clone())
