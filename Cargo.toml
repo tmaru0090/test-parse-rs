@@ -21,5 +21,6 @@ unicode-segmentation = "1.11.0"
 unicode-width = "0.1.13"
 uuid = { version = "1.10.0", features = ["v4"] }
 whoami = "1.5.2"
+win-msgbox = "0.2.1"
 [features]
 wip = []

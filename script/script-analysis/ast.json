@@ -1,19 +1,4 @@
 {
-  "main-entry": [
-    {
-      "node_value": {
-        "Call": [
-          "main",
-          [],
-          false
-        ]
-      },
-      "node_next": null,
-      "line": 1,
-      "column": 7,
-      "is_statement": true
-    }
-  ],
   "./std.sc": [
     {
       "node_value": {
@@ -255,6 +240,21 @@
       "is_statement": true
     }
   ],
+  "main-entry": [
+    {
+      "node_value": {
+        "Call": [
+          "main",
+          [],
+          false
+        ]
+      },
+      "node_next": null,
+      "line": 1,
+      "column": 7,
+      "is_statement": true
+    }
+  ],
   "example/main.sc": [
     {
       "node_value": {
@@ -290,88 +290,173 @@
               "Block": [
                 {
                   "node_value": {
+                    "SingleComment": [
+                      "l out = @cmd(\"python\",[\"example/capture.py\"]);",
+                      [
+                        6,
+                        3
+                      ]
+                    ]
+                  },
+                  "node_next": null,
+                  "line": 7,
+                  "column": 3,
+                  "is_statement": false
+                },
+                {
+                  "node_value": {
+                    "SingleComment": [
+                      "  out",
+                      [
+                        7,
+                        3
+                      ]
+                    ]
+                  },
+                  "node_next": null,
+                  "line": 8,
+                  "column": 3,
+                  "is_statement": false
+                },
+                {
+                  "node_value": {
+                    "SingleComment": [
+                      "l out = @cmd(\"mpv\",[\"C:/Users/tanukimaru/Downloads/bgm/*.wav\"]);",
+                      [
+                        8,
+                        3
+                      ]
+                    ]
+                  },
+                  "node_next": null,
+                  "line": 9,
+                  "column": 3,
+                  "is_statement": false
+                },
+                {
+                  "node_value": {
                     "VariableDeclaration": [
                       {
                         "node_value": {
-                          "Variable": "out"
+                          "Variable": "f"
                         },
                         "node_next": null,
-                        "line": 5,
-                        "column": 36,
+                        "line": 9,
+                        "column": 17,
                         "is_statement": false
                       },
                       {
                         "node_value": "Empty",
                         "node_next": null,
-                        "line": 5,
-                        "column": 7,
+                        "line": 9,
+                        "column": 9,
                         "is_statement": false
                       },
                       {
                         "node_value": {
-                          "Call": [
-                            "cmd",
-                            [
-                              {
-                                "node_value": {
-                                  "String": "mpv"
-                                },
-                                "node_next": null,
-                                "line": 5,
-                                "column": 23,
-                                "is_statement": false
-                              },
-                              {
-                                "node_value": {
-                                  "Array": [
-                                    {
-                                      "node_value": "Empty",
-                                      "node_next": null,
-                                      "line": 5,
-                                      "column": 24,
-                                      "is_statement": false
-                                    },
-                                    [
-                                      {
-                                        "node_value": {
-                                          "String": "./*.wav"
-                                        },
-                                        "node_next": null,
-                                        "line": 5,
-                                        "column": 34,
-                                        "is_statement": false
-                                      }
-                                    ]
-                                  ]
-                                },
-                                "node_next": null,
-                                "line": 5,
-                                "column": 35,
-                                "is_statement": false
-                              }
-                            ],
-                            true
-                          ]
+                          "Bool": true
                         },
                         "node_next": null,
-                        "line": 5,
-                        "column": 36,
-                        "is_statement": true
+                        "line": 9,
+                        "column": 17,
+                        "is_statement": false
                       },
                       true,
-                      false,
+                      true,
                       false
                     ]
                   },
                   "node_next": null,
-                  "line": 5,
-                  "column": 36,
+                  "line": 9,
+                  "column": 17,
+                  "is_statement": true
+                },
+                {
+                  "node_value": {
+                    "MultiComment": [
+                      [
+                        "while f{\r",
+                        "    l res = @show_msg_box(\"canceltryagaincontinue\", \"question\", \"おおーん？?\",\"warning\");\r",
+                        "    if res == \"continue\"{\r",
+                        "        f = false;\r",
+                        "    }\r",
+                        "  }"
+                      ],
+                      [
+                        10,
+                        3
+                      ]
+                    ]
+                  },
+                  "node_next": null,
+                  "line": 16,
+                  "column": 3,
+                  "is_statement": false
+                },
+                {
+                  "node_value": {
+                    "Call": [
+                      "print",
+                      [
+                        {
+                          "node_value": {
+                            "String": "{} {:?}"
+                          },
+                          "node_next": null,
+                          "line": 16,
+                          "column": 19,
+                          "is_statement": false
+                        },
+                        {
+                          "node_value": {
+                            "Array": [
+                              {
+                                "node_value": "Empty",
+                                "node_next": null,
+                                "line": 16,
+                                "column": 20,
+                                "is_statement": false
+                              },
+                              [
+                                {
+                                  "node_value": {
+                                    "Int": 100
+                                  },
+                                  "node_next": null,
+                                  "line": 16,
+                                  "column": 24,
+                                  "is_statement": false
+                                },
+                                {
+                                  "node_value": {
+                                    "Int": 3131
+                                  },
+                                  "node_next": null,
+                                  "line": 16,
+                                  "column": 29,
+                                  "is_statement": false
+                                }
+                              ]
+                            ]
+                          },
+                          "node_next": null,
+                          "line": 16,
+                          "column": 30,
+                          "is_statement": false
+                        }
+                      ],
+                      true
+                    ]
+                  },
+                  "node_next": null,
+                  "line": 16,
+                  "column": 31,
                   "is_statement": true
                 }
               ]
             },
             "node_next": null,
-            "line": 6,
+            "line": 17,
             "column": 1,
             "is_statement": false
           },
@@ -386,7 +471,7 @@
         ]
       },
       "node_next": null,
-      "line": 6,
+      "line": 17,
       "column": 1,
       "is_statement": false
     }

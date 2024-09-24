@@ -152,3 +152,9 @@ impl Default for NodeValue {
         NodeValue::Empty
     }
 }
+pub static RESERVED_WORDS: &[&str] = &[
+    "if", "else", "while", "for", "break", "continue", "i32", "i64", "f32", "f64", "u32", "u64",
+    "type", "let", "l", "var", "v", "fn", "mut", "loop", "=", "+", "++", "-", "--", "+=", "-=",
+    "*", "*=", "/", "/=", "{", "}", "[", "]",
+];
+

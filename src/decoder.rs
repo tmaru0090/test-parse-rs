@@ -1,11 +1,13 @@
 use crate::compile_error;
 use crate::compile_group_error;
-
+use crate::memory_mgr::*;
 use crate::error::CompilerError;
 use crate::lexer::{Lexer, Token};
 use crate::parser::Node;
 use crate::parser::Parser;
 use crate::types::NodeValue;
+use crate::types::*;
+use crate::context::*;
 use anyhow::Result as R;
 use chrono::{DateTime, Local, Utc};
 use hostname::get;
@@ -19,7 +21,8 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fs::File;
-use std::io::{Read, Write};
+use std::fs::OpenOptions;
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::ops::{Add, Div, Mul, Sub};
 use std::process::{Command, Output};
 use std::thread::sleep;
@@ -28,10 +31,10 @@ use std::time::Instant;
 use std::time::UNIX_EPOCH;
 use uuid::Uuid;
 use whoami;
-static RESERVED_WORDS: &[&str] = &[
-    "if", "else", "while", "for", "break", "continue", "i32", "i64", "f32", "f64", "u32", "u64",
-    "type", "let", "l", "var", "v", "fn", "mut", "loop","=","+","++","-","--","+=","-=","*","*=","/","/=","{","}","[","]"
-];
+use win_msgbox::{
+    AbortRetryIgnore, CancelTryAgainContinue, Icon, MessageBox, Okay, OkayCancel, RetryCancel,
+    YesNo, YesNoCancel,
+};
 
 trait Size {
     fn size(&self) -> usize;
@@ -83,85 +86,7 @@ impl Size for Value {
     }
 }
 
-impl Clone for MemoryBlock {
-    fn clone(&self) -> Self {
-        // クローン処理。今回はidのみクローンし、valueはクローン不可のため新たに初期化
-        MemoryBlock {
-            id: self.id,
-            value: Box::new(()), // クローンできないためデフォルトの空の値を持たせる
-        }
-    }
-}
 
-impl MemoryBlock {
-    // クローン可能な値を持つ場合のみクローンを許可
-    pub fn clone_block(&self) -> Option<MemoryBlock> {
-        if let Some(cloned_value) = self.value.downcast_ref::<String>() {
-            Some(MemoryBlock {
-                id: self.id,
-                value: Box::new(cloned_value.clone()) as Box<dyn Any>,
-            })
-        } else {
-            None // クローンできない場合はNoneを返す
-        }
-    }
-}
-#[derive(Debug)]
-struct MemoryBlock {
-    id: Uuid,
-    value: Box<dyn Any>,
-}
-
-// メモリの管理
-#[derive(Debug, Clone)]
-struct MemoryManager {
-    pub heap: HashMap<Uuid, MemoryBlock>, // ヒープ(アドレス,値)
-    pub free_list: Vec<Uuid>,
-    pub stack_frames: HashMap<String, StackFrame>, // 関数名ごとのスタックフレーム
-}
-#[derive(Debug, Clone)]
-struct StackFrame {
-    blocks: Vec<MemoryBlock>, // スタックフレーム内のメモリブロック
-}
-impl MemoryManager {
-    fn new(heap_size: usize) -> Self {
-        MemoryManager {
-            heap: HashMap::new(),
-            free_list: Vec::new(),
-            stack_frames: HashMap::new(),
-        }
-    }
-}
-
-// 変数情報
-#[derive(Debug, Clone)]
-pub struct Variable {
-    data_type: Value, // 型
-    value: Value,     // 値
-    address: Uuid,    // アドレス
-    is_mutable: bool, // 可変性
-    size: usize,      // サイズ
-}
-// コンテキスト
-#[derive(Debug, Clone, Property)]
-pub struct Context {
-    pub local_context: IndexMap<String, Variable>, // ローカルスコープ
-    pub global_context: IndexMap<String, Variable>, // グローバルスコープ
-    pub type_context: IndexMap<String, String>,    // グローバルス型定義スコープ
-    pub comment_lists: IndexMap<(usize, usize), Vec<String>>, // コメントリスト
-    pub used_context: IndexMap<String, (usize, usize, bool)>, // 参照カウント(変数名,(行数,列数,参照カウント))
-}
-impl Context {
-    fn new() -> Self {
-        Context {
-            local_context: IndexMap::new(),
-            global_context: IndexMap::new(),
-            type_context: IndexMap::new(),
-            comment_lists: IndexMap::new(),
-            used_context: IndexMap::new(),
-        }
-    }
-}
 // メイン実行環境
 #[derive(Debug, Clone, Property)]
 pub struct Decoder {
@@ -735,6 +660,159 @@ impl Decoder {
             ))
         }
     }
+    /*
+    fn show_messagebox(
+        &self,
+        message_type: &str,
+        title: &str,
+        message: &str,
+        icon: Option<&str>,
+    ) -> Option<String> {
+        let msg_icon = match icon {
+            Some("information") => Icon::Information,
+            Some("warning") => Icon::Warning,
+            Some("error") => Icon::Error,
+            _ => return None, // デフォルトはアイコンなし
+        };
+
+        let response = match message_type {
+            "okay" => {
+                MessageBox::<Okay>::new(message)
+                    .title(title)
+                    .icon(msg_icon)
+                    .show()
+                    .unwrap();
+                Some("okay".to_string())
+            }
+            "yesno" => {
+                let result = MessageBox::<YesNo>::new(message)
+                    .title(title)
+                    .icon(msg_icon)
+                    .show()
+                    .unwrap();
+                match result {
+                    YesNo::Yes => Some("yes".to_string()),
+                    YesNo::No => Some("no".to_string()),
+                }
+            }
+            "okaycancel" => {
+                let result = MessageBox::<OkayCancel>::new(message)
+                    .title(title)
+                    .icon(msg_icon)
+                    .show()
+                    .unwrap();
+                match result {
+                    OkayCancel::Okay => Some("okay".to_string()),
+                    OkayCancel::Cancel => Some("cancel".to_string()),
+                }
+            }
+            "canceltryagaincontinue" => {
+                let result = MessageBox::<CancelTryAgainContinue>::new(message)
+                    .title(title)
+                    .icon(msg_icon)
+                    .show()
+                    .unwrap();
+                match result {
+                    CancelTryAgainContinue::Cancel => Some("cancel".to_string()),
+                    CancelTryAgainContinue::TryAgain => Some("tryagain".to_string()),
+                    CancelTryAgainContinue::Continue => Some("continue".to_string()),
+                }
+            }
+            _ => {
+                MessageBox::<Okay>::new(message)
+                    .title(title)
+                    .icon(msg_icon)
+                    .show()
+                    .unwrap();
+                Some("okay".to_string())
+            }
+        };
+
+        response
+    }
+    */
+
+    fn show_messagebox(
+        &self,
+        message_type: &str,
+        title: &str,
+        message: &str,
+        icon: Option<&str>,
+    ) -> Option<String> {
+        let msg_icon = match icon {
+            Some("information") => Icon::Information,
+            Some("warning") => Icon::Warning,
+            Some("error") => Icon::Error,
+            _ => return None, // デフォルトはアイコンなし
+        };
+
+        let response = match message_type {
+            "okay" => {
+                MessageBox::<Okay>::new(message)
+                    .title(title)
+                    .icon(msg_icon)
+                    .show()
+                    .unwrap();
+                Some("okay".to_string())
+            }
+            "yesno" => {
+                let result = MessageBox::<YesNo>::new(message)
+                    .title(title)
+                    .icon(msg_icon)
+                    .show()
+                    .unwrap();
+                match result {
+                    YesNo::Yes => Some("yes".to_string()),
+                    YesNo::No => Some("no".to_string()),
+                }
+            }
+            "okaycancel" => {
+                let result = MessageBox::<OkayCancel>::new(message)
+                    .title(title)
+                    .icon(msg_icon)
+                    .show()
+                    .unwrap();
+                match result {
+                    OkayCancel::Okay => Some("okay".to_string()),
+                    OkayCancel::Cancel => Some("cancel".to_string()),
+                }
+            }
+            "canceltryagaincontinue" => {
+                let result = MessageBox::<CancelTryAgainContinue>::new(message)
+                    .title(title)
+                    .icon(msg_icon)
+                    .show()
+                    .unwrap();
+                match result {
+                    CancelTryAgainContinue::Cancel => Some("cancel".to_string()),
+                    CancelTryAgainContinue::TryAgain => Some("tryagain".to_string()),
+                    CancelTryAgainContinue::Continue => Some("continue".to_string()),
+                }
+            }
+            "retrycancel" => {
+                let result = MessageBox::<RetryCancel>::new(message)
+                    .title(title)
+                    .icon(msg_icon)
+                    .show()
+                    .unwrap();
+                match result {
+                    RetryCancel::Retry => Some("retry".to_string()),
+                    RetryCancel::Cancel => Some("cancel".to_string()),
+                }
+            }
+
+            _ => {
+                MessageBox::<Okay>::new(message)
+                    .title(title)
+                    .icon(msg_icon)
+                    .show()
+                    .unwrap();
+                Some("okay".to_string())
+            }
+        };
+
+        response
+    }
 
     fn eval_call(&mut self, name: &String, args: &Vec<Node>, is_system: &bool) -> R<Value, String> {
         let mut result = Value::Null;
@@ -744,11 +822,138 @@ impl Decoder {
             info!("args: {:?}", evaluated_arg);
             evaluated_args.push(evaluated_arg);
         }
-
-        // #[cfg(feature = "wip")]
         {
             if *is_system {
                 match name.as_str() {
+                    "show_msg_box" => {
+                        if args.len() != 4 {
+                            return Err("show_msg_box expects exactly two arguments".into());
+                        }
+                        let message_type = match self.execute_node(&args[0])? {
+                            Value::String(v) => v,
+                            _ => {
+                                return Err("show_msg_box expects a string as the file name".into())
+                            }
+                        };
+                        let title = match self.execute_node(&args[1])? {
+                            Value::String(v) => v,
+                            _ => {
+                                return Err("show_msg_box expects a string as the file name".into())
+                            }
+                        };
+                        let message = match self.execute_node(&args[2])? {
+                            Value::String(v) => v,
+                            _ => {
+                                return Err("show_msg_box expects a string as the file name".into())
+                            }
+                        };
+                        let icon = match self.execute_node(&args[3])? {
+                            Value::String(v) => Some(v),
+                            _ => None,
+                        };
+                        let responce =
+                            self.show_messagebox(&message_type, &title, &message, icon.as_deref());
+                        return Ok(serde_json::json!(responce));
+                    }
+                    "write_at_file" => {
+                        if args.len() != 3 {
+                            return Err("write_file expects exactly two arguments".into());
+                        }
+                        let file_name = match self.execute_node(&args[0])? {
+                            Value::String(v) => v,
+                            _ => return Err("write_file expects a string as the file name".into()),
+                        };
+                        let insert_str = match self.execute_node(&args[1])? {
+                            Value::String(v) => v,
+                            Value::Array(arr) => arr
+                                .into_iter()
+                                .map(|v| {
+                                    if let Value::String(s) = v {
+                                        Ok::<String, String>(s)
+                                    } else {
+                                        Err("write_file expects an array of strings as the content"
+                                            .into())
+                                    }
+                                })
+                                .collect::<Result<Vec<String>, String>>()?
+                                .join("\n"),
+                            _ => return Err(
+                                "write_file expects a string or an array of strings as the content"
+                                    .into(),
+                            ),
+                        };
+                        let pos = match self.execute_node(&args[2])? {
+                            Value::Number(v) => v.as_u64().unwrap(),
+                            _ => 0,
+                        };
+                        // ファイルを開く
+                        let mut file = OpenOptions::new()
+                            .read(true)
+                            .write(true)
+                            .open(&file_name)
+                            .unwrap();
+
+                        // 既存の内容をすべて読み込む
+                        let mut content = String::new();
+                        file.read_to_string(&mut content).unwrap();
+                        /*
+                                                // 挿入する位置までのバイト数を計算
+                                                let split_index = pos as usize;
+
+                                                // 挿入位置に文字列を挿入
+                                                let (head, tail) = content.split_at(split_index);
+                        */
+
+                        // posバイト目ではなく、pos文字目で分割する
+                        let char_pos = content
+                            .char_indices()
+                            .nth(pos as usize)
+                            .map(|(i, _)| i)
+                            .unwrap_or(content.len());
+
+                        // 挿入位置に文字列を挿入
+                        let (head, tail) = content.split_at(char_pos);
+
+                        let new_content = format!("{}{}{}", head, insert_str, tail);
+
+                        // ファイルの内容を書き換えるためにシークしてから書き込み
+                        file.seek(SeekFrom::Start(0)).unwrap();
+                        file.write_all(new_content.as_bytes()).unwrap();
+
+                        return Ok(Value::Null);
+                    }
+                    "open_recent" => {
+                        if !args.is_empty() {
+                            return Err("open_recent expects no arguments".into());
+                        }
+
+                        // 最近使用したアイテムフォルダのパス
+                        let recent_folder =
+                            std::env::var("APPDATA").unwrap() + r"\Microsoft\Windows\Recent";
+
+                        // フォルダ内のファイルを取得
+                        let paths = std::fs::read_dir(recent_folder)
+                            .unwrap()
+                            .filter_map(Result::ok)
+                            .map(|entry| entry.path())
+                            .collect::<Vec<std::path::PathBuf>>();
+                        let recent_lists = serde_json::json!(paths);
+
+                        return Ok(recent_lists.clone());
+                    }
+
+                    "sleep" => {
+                        if args.len() != 1 {
+                            return Err("sleep expects exactly one argument".into());
+                        }
+                        let duration = match self.execute_node(&args[0])? {
+                            Value::Number(v) => v,
+                            _ => return Err("read_file expects a string as the file name".into()),
+                        };
+                        sleep(std::time::Duration::from_secs(duration.as_u64().unwrap()));
+                        return Ok(Value::Null);
+                    }
+
                     "read_file" => {
                         if args.len() != 1 {
                             return Err("read_file expects exactly one argument".into());
@@ -762,6 +967,7 @@ impl Decoder {
                         file.read_to_string(&mut contents).unwrap();
                         return Ok(Value::String(contents));
                     }
+
                     "write_file" => {
                         if args.len() != 2 {
                             return Err("write_file expects exactly two arguments".into());
@@ -772,7 +978,22 @@ impl Decoder {
                         };
                         let content = match self.execute_node(&args[1])? {
                             Value::String(v) => v,
-                            _ => return Err("write_file expects a string as the content".into()),
+                            Value::Array(arr) => arr
+                                .into_iter()
+                                .map(|v| {
+                                    if let Value::String(s) = v {
+                                        Ok::<String, String>(s)
+                                    } else {
+                                        Err("write_file expects an array of strings as the content"
+                                            .into())
+                                    }
+                                })
+                                .collect::<Result<Vec<String>, String>>()?
+                                .join("\n"),
+                            _ => return Err(
+                                "write_file expects a string or an array of strings as the content"
+                                    .into(),
+                            ),
                         };
                         let mut file = File::create(file_name).unwrap();
                         file.write_all(content.as_bytes()).unwrap();
@@ -781,12 +1002,47 @@ impl Decoder {
                     }
 
                     "print" => {
-                        for arg in args {
-                            let value = self.execute_node(arg)?;
-                            print!("{}", value);
+                        let format = match self.execute_node(&args[0])? {
+                            Value::String(v) => v,
+                            _ => return Err("print expects a string as the format".into()),
+                        };
+                        let args = self.execute_node(&args[1])?;
+
+                        match args {
+                            Value::Array(arr) => {
+                                let mut formatted_args: Vec<String> = arr
+                                    .iter()
+                                    .map(|arg| match arg {
+                                        Value::String(s) => s.clone(),
+                                        Value::Number(n) => n.to_string(),
+                                        Value::Bool(b) => b.to_string(),
+                                        _ => format!("{:?}", arg),
+                                    })
+                                    .collect();
+
+                                let mut formatted_string = format.clone();
+                                for arg in arr {
+                                    if formatted_string.contains("{:?}") {
+                                        formatted_string = formatted_string.replacen(
+                                            "{:?}",
+                                            &format!("{:?}", arg),
+                                            1,
+                                        );
+                                    } else {
+                                        formatted_string = formatted_string.replacen(
+                                            "{}",
+                                            &formatted_args.remove(0),
+                                            1,
+                                        );
+                                    }
+                                }
+                                println!("{}", formatted_string);
+                            }
+                            _ => return Err("print expects an array of arguments".into()),
                         }
                         return Ok(Value::Null);
                     }
+
                     "println" => {
                         for arg in args {
                             let value = self.execute_node(arg)?;

@@ -3,6 +3,8 @@ mod error;
 mod lexer;
 mod parser;
 mod types;
+mod memory_mgr;
+mod context;
 use anyhow::{anyhow, Context, Result as R};
 use decoder::*;
 use env_logger;
