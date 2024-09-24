@@ -1,4 +1,221 @@
 {
+  "example/main.sc": [
+    {
+      "node_value": {
+        "SingleComment": [
+          " main関数",
+          [
+            1,
+            1
+          ]
+        ]
+      },
+      "node_next": null,
+      "line": 2,
+      "column": 1,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "Include": "./std.sc"
+      },
+      "node_next": null,
+      "line": 2,
+      "column": 10,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "Struct": [
+          "Test",
+          [
+            {
+              "node_value": {
+                "Variable": [
+                  {
+                    "node_value": {
+                      "DataType": {
+                        "node_value": {
+                          "Variable": [
+                            {
+                              "node_value": "Null",
+                              "node_next": null,
+                              "line": 5,
+                              "column": 14,
+                              "is_statement": false
+                            },
+                            "i32"
+                          ]
+                        },
+                        "node_next": null,
+                        "line": 5,
+                        "column": 14,
+                        "is_statement": false
+                      }
+                    },
+                    "node_next": null,
+                    "line": 5,
+                    "column": 14,
+                    "is_statement": false
+                  },
+                  "test1"
+                ]
+              },
+              "node_next": null,
+              "line": 5,
+              "column": 14,
+              "is_statement": false
+            },
+            {
+              "node_value": {
+                "Variable": [
+                  {
+                    "node_value": {
+                      "DataType": {
+                        "node_value": {
+                          "Variable": [
+                            {
+                              "node_value": "Null",
+                              "node_next": null,
+                              "line": 6,
+                              "column": 14,
+                              "is_statement": false
+                            },
+                            "i32"
+                          ]
+                        },
+                        "node_next": null,
+                        "line": 6,
+                        "column": 14,
+                        "is_statement": false
+                      }
+                    },
+                    "node_next": null,
+                    "line": 6,
+                    "column": 14,
+                    "is_statement": false
+                  },
+                  "test2"
+                ]
+              },
+              "node_next": null,
+              "line": 6,
+              "column": 14,
+              "is_statement": false
+            },
+            {
+              "node_value": {
+                "Variable": [
+                  {
+                    "node_value": {
+                      "DataType": {
+                        "node_value": {
+                          "Variable": [
+                            {
+                              "node_value": "Null",
+                              "node_next": null,
+                              "line": 7,
+                              "column": 14,
+                              "is_statement": false
+                            },
+                            "i32"
+                          ]
+                        },
+                        "node_next": null,
+                        "line": 7,
+                        "column": 14,
+                        "is_statement": false
+                      }
+                    },
+                    "node_next": null,
+                    "line": 7,
+                    "column": 14,
+                    "is_statement": false
+                  },
+                  "test3"
+                ]
+              },
+              "node_next": null,
+              "line": 7,
+              "column": 14,
+              "is_statement": false
+            }
+          ]
+        ]
+      },
+      "node_next": null,
+      "line": 9,
+      "column": 1,
+      "is_statement": false
+    },
+    {
+      "node_value": {
+        "Function": [
+          "main",
+          [],
+          {
+            "node_value": {
+              "Block": [
+                {
+                  "node_value": {
+                    "MultiComment": [
+                      [
+                        "\r",
+                        "    let path = \"pokemon-bw-syouri-mokuzen.wav\";\r",
+                        "    @show_msg_box(\"okay\",\"音声再生開始ダイアログ\",\"音声再生を始めます filepath: \"+path,\"information\");\r",
+                        "    @play_music(path);\r",
+                        "    @show_msg_box(\"okay\",\"音声再生終了ダイアログ\",\"音声再生が正常に終了しました\",\"information\");\r",
+                        "    @sleep(3);\r"
+                      ],
+                      [
+                        10,
+                        3
+                      ]
+                    ]
+                  },
+                  "node_next": null,
+                  "line": 18,
+                  "column": 1,
+                  "is_statement": false
+                }
+              ]
+            },
+            "node_next": null,
+            "line": 18,
+            "column": 1,
+            "is_statement": false
+          },
+          {
+            "node_value": "Null",
+            "node_next": null,
+            "line": 9,
+            "column": 9,
+            "is_statement": false
+          },
+          false
+        ]
+      },
+      "node_next": null,
+      "line": 18,
+      "column": 1,
+      "is_statement": false
+    }
+  ],
+  "main-entry": [
+    {
+      "node_value": {
+        "Call": [
+          "main",
+          [],
+          false
+        ]
+      },
+      "node_next": null,
+      "line": 1,
+      "column": 7,
+      "is_statement": true
+    }
+  ],
   "./std.sc": [
     {
       "node_value": {
@@ -309,224 +526,6 @@
       "node_next": null,
       "line": 9,
       "column": 19,
-      "is_statement": true
-    }
-  ],
-  "example/main.sc": [
-    {
-      "node_value": {
-        "SingleComment": [
-          " main関数",
-          [
-            1,
-            1
-          ]
-        ]
-      },
-      "node_next": null,
-      "line": 2,
-      "column": 1,
-      "is_statement": false
-    },
-    {
-      "node_value": {
-        "Include": "./std.sc"
-      },
-      "node_next": null,
-      "line": 2,
-      "column": 10,
-      "is_statement": false
-    },
-    {
-      "node_value": {
-        "Struct": [
-          "Test",
-          [
-            {
-              "node_value": {
-                "Variable": [
-                  {
-                    "node_value": {
-                      "DataType": {
-                        "node_value": {
-                          "Variable": [
-                            {
-                              "node_value": "Null",
-                              "node_next": null,
-                              "line": 5,
-                              "column": 14,
-                              "is_statement": false
-                            },
-                            "i32"
-                          ]
-                        },
-                        "node_next": null,
-                        "line": 5,
-                        "column": 14,
-                        "is_statement": false
-                      }
-                    },
-                    "node_next": null,
-                    "line": 5,
-                    "column": 14,
-                    "is_statement": false
-                  },
-                  "test1"
-                ]
-              },
-              "node_next": null,
-              "line": 5,
-              "column": 14,
-              "is_statement": false
-            },
-            {
-              "node_value": {
-                "Variable": [
-                  {
-                    "node_value": {
-                      "DataType": {
-                        "node_value": {
-                          "Variable": [
-                            {
-                              "node_value": "Null",
-                              "node_next": null,
-                              "line": 6,
-                              "column": 14,
-                              "is_statement": false
-                            },
-                            "i32"
-                          ]
-                        },
-                        "node_next": null,
-                        "line": 6,
-                        "column": 14,
-                        "is_statement": false
-                      }
-                    },
-                    "node_next": null,
-                    "line": 6,
-                    "column": 14,
-                    "is_statement": false
-                  },
-                  "test2"
-                ]
-              },
-              "node_next": null,
-              "line": 6,
-              "column": 14,
-              "is_statement": false
-            },
-            {
-              "node_value": {
-                "Variable": [
-                  {
-                    "node_value": {
-                      "DataType": {
-                        "node_value": {
-                          "Variable": [
-                            {
-                              "node_value": "Null",
-                              "node_next": null,
-                              "line": 7,
-                              "column": 14,
-                              "is_statement": false
-                            },
-                            "i32"
-                          ]
-                        },
-                        "node_next": null,
-                        "line": 7,
-                        "column": 14,
-                        "is_statement": false
-                      }
-                    },
-                    "node_next": null,
-                    "line": 7,
-                    "column": 14,
-                    "is_statement": false
-                  },
-                  "test3"
-                ]
-              },
-              "node_next": null,
-              "line": 7,
-              "column": 14,
-              "is_statement": false
-            }
-          ]
-        ]
-      },
-      "node_next": null,
-      "line": 9,
-      "column": 1,
-      "is_statement": false
-    },
-    {
-      "node_value": {
-        "Function": [
-          "main",
-          [],
-          {
-            "node_value": {
-              "Block": [
-                {
-                  "node_value": {
-                    "Call": [
-                      "play_music",
-                      [
-                        {
-                          "node_value": {
-                            "String": "pokemon-bw-syouri-mokuzen.wav"
-                          },
-                          "node_next": null,
-                          "line": 10,
-                          "column": 48,
-                          "is_statement": false
-                        }
-                      ],
-                      true
-                    ]
-                  },
-                  "node_next": null,
-                  "line": 10,
-                  "column": 49,
-                  "is_statement": true
-                }
-              ]
-            },
-            "node_next": null,
-            "line": 11,
-            "column": 1,
-            "is_statement": false
-          },
-          {
-            "node_value": "Null",
-            "node_next": null,
-            "line": 9,
-            "column": 9,
-            "is_statement": false
-          },
-          false
-        ]
-      },
-      "node_next": null,
-      "line": 11,
-      "column": 1,
-      "is_statement": false
-    }
-  ],
-  "main-entry": [
-    {
-      "node_value": {
-        "Call": [
-          "main",
-          [],
-          false
-        ]
-      },
-      "node_next": null,
-      "line": 1,
-      "column": 7,
       "is_statement": true
     }
   ]

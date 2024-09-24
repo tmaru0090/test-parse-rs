@@ -132,6 +132,7 @@ pub enum NodeValue {
     Bool(bool),                     // 真偽値(ブーリアン値)
     Unit(()),                       // Unit値(Void型)
     Struct(String, Vec<Box<Node>>), // 構造体定義(構造体名,メンバリスト)
+    
     Function(String, Vec<(Box<Node>, String)>, Box<Node>, Box<Node>, bool), // 関数定義(関数名,(引数の型,引数名リスト),ボディ,戻り値,戻り値の型,システム関数フラグ)
     CallBackFunction(String, Vec<(Box<Node>, String)>, Box<Node>, Box<Node>, bool), // 関数定義(関数名,(引数の型,引数名リスト),ボディ,戻り値の型,システム関数フラグ)
 

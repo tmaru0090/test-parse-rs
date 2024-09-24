@@ -2084,20 +2084,18 @@ impl Decoder {
         structs.insert(name.clone(), serde_json::json!(member_map));
 
         let value = serde_json::json!(structs);
-        let index = self.memory_mgr.allocate(structs.clone());
         let variables = Variable {
             value: value.clone(),
             data_type: Value::Null,
-            address: index,
+            address: Uuid::nil(),
             is_mutable: false,
             size: value.size(),
         };
         self.context.global_context.insert(name.clone(), variables);
         info!(
-            "StructDefined: name = {:?}, data_type = , value = {:?}, address = {:?} size = {:?}",
+            "StructDefined: name = {:?}, data_type = , value = {:?}, size = {:?}",
             name,
             value.clone(),
-            index,
             value.size()
         );
 

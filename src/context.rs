@@ -10,6 +10,7 @@ pub struct Variable {
     pub is_mutable: bool, // 可変性
     pub size: usize,      // サイズ
 }
+
 // コンテキスト
 #[derive(Debug, Clone)]
 pub struct Context {
