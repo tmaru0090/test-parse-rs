@@ -1200,22 +1200,40 @@ impl<'a> Parser<'a> {
         let mut member: Vec<Box<Node>> = Vec::new();
 
         self.next_token(); // var
-        self.next_token(); // {
-                           //panic!("{:?}",self.current_token());
-        while self.current_token().unwrap().token_type() != TokenType::RightCurlyBrace {
-            let member_value = self.expr()?;
-            member.push(member_value);
-            if self.current_token().unwrap().token_type() == TokenType::Conma {
-                self.next_token();
+        if self.current_token().unwrap().token_type() == TokenType::LeftCurlyBrace {
+            self.next_token(); // {
+                               //panic!("{:?}",self.current_token());
+            while self.current_token().unwrap().token_type() != TokenType::RightCurlyBrace {
+                let member_value = self.expr()?;
+                member.push(member_value);
+                if self.current_token().unwrap().token_type() == TokenType::Conma {
+                    self.next_token();
+                }
             }
+            self.next_token(); // }
+            Ok(Box::new(Node::new(
+                NodeValue::Struct(var.clone(), member.clone()),
+                None,
+                self.current_token().unwrap().line(),
+                self.current_token().unwrap().column(),
+            )))
+        } else {
+            if self.current_token().unwrap().token_type() == TokenType::Semi {
+                self.is_statement = true;
+            }
+            Ok(Box::new(Node::new(
+                NodeValue::Struct(
+                    var.clone(),
+                    vec![Parser::<'a>::new_null(
+                        self.current_token().unwrap().line(),
+                        self.current_token().unwrap().column(),
+                    )],
+                ),
+                None,
+                self.current_token().unwrap().line(),
+                self.current_token().unwrap().column(),
+            )))
         }
-        self.next_token(); // }
-        Ok(Box::new(Node::new(
-            NodeValue::Struct(var.clone(), member.clone()),
-            None,
-            self.current_token().unwrap().line(),
-            self.current_token().unwrap().column(),
-        )))
     }
     fn parse_single_statement(&mut self) -> Option<R<Box<Node>, String>> {
         let result = if self.current_token().unwrap().token_value() == "callback" {

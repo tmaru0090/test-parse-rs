@@ -123,6 +123,8 @@ fn show_messagebox(
 #[derive(Debug, Clone, Property)]
 pub struct Decoder {
     #[property(get)]
+    ast_mod: IndexMap<String, Vec<Option<Box<Node>>>>, // モジュールごとのAST(モジュール名,アクセス可能なNodeのベクター)
+    #[property(get)]
     ast_map: IndexMap<String, Vec<Box<Node>>>, // ASTのリスト(ファイル名,Nodeのベクター)
     #[property(get)]
     memory_mgr: MemoryManager, // メモリーマネージャー
@@ -218,6 +220,7 @@ impl Decoder {
         info!("nodes: {:?}", nodes.clone());
         ast_map.insert(file_name.to_string(), nodes.clone());
         Ok(Decoder {
+            ast_mod: IndexMap::new(),
             ast_map,
             memory_mgr: MemoryManager::new(1024 * 1024),
             file_contents: IndexMap::new(),
@@ -232,6 +235,7 @@ impl Decoder {
     }
     pub fn new() -> Self {
         Self {
+            ast_mod: IndexMap::new(),
             ast_map: IndexMap::new(),
             memory_mgr: MemoryManager::new(1024 * 1024),
             file_contents: IndexMap::new(),

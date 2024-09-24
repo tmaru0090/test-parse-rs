@@ -852,6 +852,28 @@ impl Lexer {
                         ));
                     }
                 }
+            } else if c == ':' {
+                chars.next();
+                self.column += 1;
+                if let Some(&next_char) = chars.peek() {
+                    if next_char == ':' {
+                        tokens.push(Token::new(
+                            "::".to_string(),
+                            TokenType::ScopeResolution,
+                            start_line,
+                            start_column,
+                        ));
+                        self.column += 1;
+                        chars.next();
+                    } else {
+                        tokens.push(Token::new(
+                            ":".to_string(),
+                            TokenType::Colon,
+                            start_line,
+                            start_column,
+                        ));
+                    }
+                }
             } else if self.is_symbol(c) {
                 let token_type = match c {
                     '(' => TokenType::LeftParen,
@@ -864,7 +886,6 @@ impl Lexer {
                     '=' => TokenType::Equals,
                     '@' => TokenType::AtSign,
                     ';' => TokenType::Semi,
-                    ':' => TokenType::Colon,
                     _ => {
                         return Err(compile_error!(
                             "error",

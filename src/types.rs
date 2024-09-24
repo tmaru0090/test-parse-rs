@@ -61,6 +61,7 @@ pub enum TokenType {
     RightArrow,                                // ->
     Eof,                                       // EOF
     Range,                                     // ..
+    ScopeResolution,                           // ::
 }
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub enum NodeValue {
@@ -132,7 +133,7 @@ pub enum NodeValue {
     Bool(bool),                     // 真偽値(ブーリアン値)
     Unit(()),                       // Unit値(Void型)
     Struct(String, Vec<Box<Node>>), // 構造体定義(構造体名,メンバリスト)
-    
+    Impl(String, Vec<Box<Node>>),   // 構造体実装(定義済み構造体名,メンバ関数リスト)
     Function(String, Vec<(Box<Node>, String)>, Box<Node>, Box<Node>, bool), // 関数定義(関数名,(引数の型,引数名リスト),ボディ,戻り値,戻り値の型,システム関数フラグ)
     CallBackFunction(String, Vec<(Box<Node>, String)>, Box<Node>, Box<Node>, bool), // 関数定義(関数名,(引数の型,引数名リスト),ボディ,戻り値の型,システム関数フラグ)
 
@@ -142,7 +143,10 @@ pub enum NodeValue {
     Return(Box<Node>),             // リターン
     MultiComment(Vec<String>, (usize, usize)), // 複数コメント
     SingleComment(String, (usize, usize)), // 単一コメント
-    Include(String),               // ファイル名
+    Include(String),               // ファイルの全体コピー(ファイル名)
+    Mod(String),                   // モジュール宣言(モジュール名)
+    ModDeclaration(String, Vec<Box<Node>>), // モジュール定義(モジュール名,ボディ)
+    Use(String, Box<Node>),        // モジュールのインポート(モジュール名,インポートモジュール)
     TypeDeclaration(Box<Node>, Box<Node>), // 型定義(型名,型)
     Array(Box<Node>, Vec<Box<Node>>), // 配列(型名,値)
     Null,                          // 何もない値
@@ -156,7 +160,8 @@ impl Default for NodeValue {
 pub static RESERVED_WORDS: &[&str] = &[
     "if", "else", "while", "for", "break", "continue", "i32", "i64", "f32", "f64", "u32", "u64",
     "type", "let", "l", "var", "v", "fn", "mut", "loop", "=", "+", "++", "-", "--", "+=", "-=",
-    "*", "*=", "/", "/=", "{", "}", "[", "]",
+    "*", "*=", "/", "/=", "{", "}", "[", "]", "mod", "use", "bool", "struct", "enum", "%", "&",
+    "&=", "|", "|=", "^", "~", "^=",
 ];
 
 pub enum DataType {
