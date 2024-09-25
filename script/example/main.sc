@@ -1,3 +1,4 @@
-fn test(){
-    @exit(1);
+fn main(){
+        let test = 0;
+        test = 1000;
 }

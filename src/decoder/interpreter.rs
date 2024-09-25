@@ -476,7 +476,7 @@ impl Decoder {
             // ノードを評価
             result = self.execute_node(b)?;
             // return 文が評価された場合、ブロックの評価を終了
-            if let NodeValue::ControlFlow(ControlFlow::Return(_)) = b.value {
+            if let NodeValue::ControlFlow(ControlFlow::Return(_)) = b.value() {
                 break;
             }
         }
@@ -2038,8 +2038,8 @@ impl Decoder {
         //info!("global_contexts: {:?}", self.context.global_context.clone());
         //info!("local_contexts: {:?}", self.context.local_context.clone());
         //info!("used_context: {:?}", self.context.used_context.clone());
-        //info!("current_node: {:?}", self.current_node.clone());
-        info!("current_node: {:?}", node.clone());
+        info!("current_node: {:?}", self.current_node.clone());
+        //info!("current_node: {:?}", node.clone());
         match &node.value {
             NodeValue::Null => {
                 result = Value::Null;
