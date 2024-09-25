@@ -62,6 +62,7 @@ fn main() -> R<(), String> {
         }
         Err(e) => eprintln!("{}", e),
     }
+    /*
     /*テスト用*/
     #[cfg(any(feature = "full", feature = "lexer"))]
     {
@@ -74,7 +75,7 @@ fn main() -> R<(), String> {
 
             info!("nodes: {:?}", nodes.clone());
         }
-    }
+    }*/
 
     Ok(())
 }
