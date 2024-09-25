@@ -2,10 +2,10 @@ use crate::compile_error;
 use crate::compile_group_error;
 use crate::context::*;
 use crate::error::CompilerError;
-use crate::lexer::{Lexer, Token};
+use crate::lexer::tokenizer::{Lexer, Token};
 use crate::memory_mgr::*;
-use crate::parser::Node;
-use crate::parser::Parser;
+use crate::parser::syntax::Node;
+use crate::parser::syntax::Parser;
 use crate::traits::Size;
 use crate::types::NodeValue;
 use crate::types::*;
@@ -296,7 +296,7 @@ impl Decoder {
 
     fn check_type(&self, value: &Value, expected_type: &str) -> R<Value, String> {
         let (file_name, node) = if let Some((file_name, node)) = self.current_node.clone() {
-            (file_name, node)
+            (file_name.to_string(), node)
         } else {
             (String::new(), Box::new(Node::default()))
         };
@@ -501,7 +501,7 @@ impl Decoder {
 
     fn eval_array(&mut self, data_type: &Box<Node>, values: &Vec<Box<Node>>) -> R<Value, String> {
         // 型を評価
-        let v_type = match data_type.node_value() {
+        let v_type = match data_type.value() {
             NodeValue::DataType(d) => self.execute_node(&d)?,
             _ => Value::Null,
         };
@@ -544,7 +544,7 @@ impl Decoder {
             ));
         }
 
-        let name = match var_name.node_value() {
+        let name = match var_name.value() {
             NodeValue::Variable(_, v) => v,
             _ => String::new(),
         };
@@ -651,339 +651,7 @@ impl Decoder {
             info!("args: {:?}", evaluated_arg);
             evaluated_args.push(evaluated_arg);
         }
-        {
-            if *is_system {
-                match name.as_str() {
-                    "play_music" => {
-                        if args.len() != 1 {
-                            return Err("play_music expects exactly one argument".into());
-                        }
-                        let file_path = match self.execute_node(&args[0])? {
-                            Value::String(v) => v,
-                            _ => {
-                                return Err("show_msg_box expects a string as the file name".into())
-                            }
-                        };
-                        // 出力ストリームを作成
-                        let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-                        // 音楽ファイルを読み込む
-                        let file = File::open(file_path).unwrap();
-                        let source = rodio::Decoder::new(BufReader::new(file)).unwrap();
-                        // 音楽の長さを取得
-                        let duration = source.total_duration().unwrap();
 
-                        // 音楽を再生
-                        stream_handle.play_raw(source.convert_samples()).unwrap();
-
-                        // 音楽が再生される間、プログラムを終了させない
-                        std::thread::sleep(duration);
-                        return Ok(Value::Null);
-                    }
-                    "str" => {
-                        if args.len() != 1 {
-                            return Err("to_str expects exactly one argument".into());
-                        }
-                        let n = match self.execute_node(&args[0])? {
-                            Value::Number(v) => v,
-                            _ => return Err("to_str expects a string as the file name".into()),
-                        };
-                        let string = n.to_string();
-                        return Ok(serde_json::json!(string));
-                    }
-                    "show_msg_box" => {
-                        if args.len() != 4 {
-                            return Err("show_msg_box expects exactly two arguments".into());
-                        }
-                        let message_type = match self.execute_node(&args[0])? {
-                            Value::String(v) => v,
-                            _ => {
-                                return Err("show_msg_box expects a string as the file name".into())
-                            }
-                        };
-                        let title = match self.execute_node(&args[1])? {
-                            Value::String(v) => v,
-                            _ => {
-                                return Err("show_msg_box expects a string as the file name".into())
-                            }
-                        };
-                        let message = match self.execute_node(&args[2])? {
-                            Value::String(v) => v,
-                            _ => {
-                                return Err("show_msg_box expects a string as the file name".into())
-                            }
-                        };
-                        let icon = match self.execute_node(&args[3])? {
-                            Value::String(v) => Some(v),
-                            _ => None,
-                        };
-                        let responce =
-                            show_messagebox(&message_type, &title, &message, icon.as_deref());
-                        return Ok(serde_json::json!(responce));
-                    }
-                    "write_at_file" => {
-                        if args.len() != 3 {
-                            return Err("write_file expects exactly two arguments".into());
-                        }
-                        let file_name = match self.execute_node(&args[0])? {
-                            Value::String(v) => v,
-                            _ => return Err("write_file expects a string as the file name".into()),
-                        };
-                        let insert_str = match self.execute_node(&args[1])? {
-                            Value::String(v) => v,
-                            Value::Array(arr) => arr
-                                .into_iter()
-                                .map(|v| {
-                                    if let Value::String(s) = v {
-                                        Ok::<String, String>(s)
-                                    } else {
-                                        Err("write_file expects an array of strings as the content"
-                                            .into())
-                                    }
-                                })
-                                .collect::<Result<Vec<String>, String>>()?
-                                .join("\n"),
-                            _ => return Err(
-                                "write_file expects a string or an array of strings as the content"
-                                    .into(),
-                            ),
-                        };
-                        let pos = match self.execute_node(&args[2])? {
-                            Value::Number(v) => v.as_u64().unwrap(),
-                            _ => 0,
-                        };
-                        // ファイルを開く
-                        let mut file = OpenOptions::new()
-                            .read(true)
-                            .write(true)
-                            .open(&file_name)
-                            .unwrap();
-
-                        // 既存の内容をすべて読み込む
-                        let mut content = String::new();
-                        file.read_to_string(&mut content).unwrap();
-                        /*
-                                                // 挿入する位置までのバイト数を計算
-                                                let split_index = pos as usize;
-
-                                                // 挿入位置に文字列を挿入
-                                                let (head, tail) = content.split_at(split_index);
-                        */
-
-                        // posバイト目ではなく、pos文字目で分割する
-                        let char_pos = content
-                            .char_indices()
-                            .nth(pos as usize)
-                            .map(|(i, _)| i)
-                            .unwrap_or(content.len());
-
-                        // 挿入位置に文字列を挿入
-                        let (head, tail) = content.split_at(char_pos);
-
-                        let new_content = format!("{}{}{}", head, insert_str, tail);
-
-                        // ファイルの内容を書き換えるためにシークしてから書き込み
-                        file.seek(SeekFrom::Start(0)).unwrap();
-                        file.write_all(new_content.as_bytes()).unwrap();
-
-                        return Ok(Value::Null);
-                    }
-                    "open_recent" => {
-                        if !args.is_empty() {
-                            return Err("open_recent expects no arguments".into());
-                        }
-
-                        // 最近使用したアイテムフォルダのパス
-                        let recent_folder =
-                            std::env::var("APPDATA").unwrap() + r"\Microsoft\Windows\Recent";
-
-                        // フォルダ内のファイルを取得
-                        let paths = std::fs::read_dir(recent_folder)
-                            .unwrap()
-                            .filter_map(Result::ok)
-                            .map(|entry| entry.path())
-                            .collect::<Vec<std::path::PathBuf>>();
-                        let recent_lists = serde_json::json!(paths);
-
-                        return Ok(recent_lists.clone());
-                    }
-
-                    "sleep" => {
-                        if args.len() != 1 {
-                            return Err("sleep expects exactly one argument".into());
-                        }
-                        let duration = match self.execute_node(&args[0])? {
-                            Value::Number(v) => v,
-                            _ => return Err("read_file expects a string as the file name".into()),
-                        };
-                        sleep(std::time::Duration::from_secs(duration.as_u64().unwrap()));
-                        return Ok(Value::Null);
-                    }
-
-                    "read_file" => {
-                        if args.len() != 1 {
-                            return Err("read_file expects exactly one argument".into());
-                        }
-                        let file_name = match self.execute_node(&args[0])? {
-                            Value::String(v) => v,
-                            _ => return Err("read_file expects a string as the file name".into()),
-                        };
-                        let mut file = File::open(file_name).unwrap();
-                        let mut contents = String::new();
-                        file.read_to_string(&mut contents).unwrap();
-                        return Ok(Value::String(contents));
-                    }
-
-                    "write_file" => {
-                        if args.len() != 2 {
-                            return Err("write_file expects exactly two arguments".into());
-                        }
-                        let file_name = match self.execute_node(&args[0])? {
-                            Value::String(v) => v,
-                            _ => return Err("write_file expects a string as the file name".into()),
-                        };
-                        let content = match self.execute_node(&args[1])? {
-                            Value::String(v) => v,
-                            Value::Array(arr) => arr
-                                .into_iter()
-                                .map(|v| {
-                                    if let Value::String(s) = v {
-                                        Ok::<String, String>(s)
-                                    } else {
-                                        Err("write_file expects an array of strings as the content"
-                                            .into())
-                                    }
-                                })
-                                .collect::<Result<Vec<String>, String>>()?
-                                .join("\n"),
-                            _ => return Err(
-                                "write_file expects a string or an array of strings as the content"
-                                    .into(),
-                            ),
-                        };
-                        let mut file = File::create(file_name).unwrap();
-                        file.write_all(content.as_bytes()).unwrap();
-
-                        return Ok(Value::Null);
-                    }
-
-                    "print" => {
-                        let format = match self.execute_node(&args[0])? {
-                            Value::String(v) => v,
-                            _ => return Err("print expects a string as the format".into()),
-                        };
-                        let args = self.execute_node(&args[1])?;
-
-                        match args {
-                            Value::Array(arr) => {
-                                let mut formatted_args: Vec<String> = arr
-                                    .iter()
-                                    .map(|arg| match arg {
-                                        Value::String(s) => s.clone(),
-                                        Value::Number(n) => n.to_string(),
-                                        Value::Bool(b) => b.to_string(),
-                                        _ => format!("{:?}", arg),
-                                    })
-                                    .collect();
-
-                                let mut formatted_string = format.clone();
-                                for arg in arr {
-                                    if formatted_string.contains("{:?}") {
-                                        formatted_string = formatted_string.replacen(
-                                            "{:?}",
-                                            &format!("{:?}", arg),
-                                            1,
-                                        );
-                                    } else {
-                                        formatted_string = formatted_string.replacen(
-                                            "{}",
-                                            &formatted_args.remove(0),
-                                            1,
-                                        );
-                                    }
-                                }
-                                println!("{}", formatted_string);
-                            }
-                            _ => return Err("print expects an array of arguments".into()),
-                        }
-                        return Ok(Value::Null);
-                    }
-
-                    "println" => {
-                        for arg in args {
-                            let value = self.execute_node(arg)?;
-                            print!("{}", value);
-                        }
-                        println!();
-                        return Ok(Value::Null);
-                    }
-                    "exit" => {
-                        if args.len() != 1 {
-                            return Err("exit expects exactly one argument".into());
-                        }
-                        let status = match self.execute_node(&args[0])? {
-                            Value::Number(n) => {
-                                n.as_i64().ok_or("exit expects a positive integer")?
-                            }
-                            _ => return Err("exit expects a number as the status".into()),
-                        };
-                        std::process::exit(status.try_into().unwrap());
-
-                        return Ok(Value::Null);
-                    }
-                    "args" => {
-                        if !args.is_empty() {
-                            return Err("args expects no arguments".into());
-                        }
-                        let args: Vec<String> = std::env::args().collect();
-                        let value: Value =
-                            Value::Array(args.into_iter().map(Value::String).collect());
-                        return Ok(value);
-                    }
-                    "cmd" => {
-                        if evaluated_args.len() < 1 {
-                            return Err("cmd expects at least one argument".into());
-                        }
-                        let command = match &evaluated_args[0] {
-                            Value::String(v) => v.clone(),
-                            _ => return Err("cmd expects the first argument to be a string".into()),
-                        };
-                        let command_args =
-                            if evaluated_args.len() > 1 {
-                                match &evaluated_args[1] {
-                                    Value::Array(v) => v
-                                        .iter()
-                                        .filter_map(|item| {
-                                            if let Value::String(s) = item {
-                                                Some(s.clone())
-                                            } else {
-                                                None
-                                            }
-                                        })
-                                        .collect(),
-                                    _ => return Err(
-                                        "cmd expects the second argument to be an array of strings"
-                                            .into(),
-                                    ),
-                                }
-                            } else {
-                                Vec::new()
-                            };
-                        let output = Command::new(command)
-                            .args(&command_args)
-                            .output()
-                            .expect("外部コマンドの実行に失敗しました");
-                        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-                        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-                        return Ok(Value::Array(vec![
-                            Value::String(stdout),
-                            Value::String(stderr),
-                        ]));
-                    }
-                    // 他のシステム関数の処理...
-                    _ => return Err(format!("Unknown function: {}", name)),
-                }
-            }
-        }
         let func_name = name;
         let variables = {
             let global_context = &self.context.global_context;
@@ -1037,16 +705,17 @@ impl Decoder {
             );
         }
 
-        let _body = match body.clone().node_value() {
+        let _body = match body.clone().value() {
             NodeValue::Block(v) => v,
             _ => vec![],
         };
         let b = _body
             .iter()
-            .filter(|node| node.node_value() != NodeValue::Unknown)
+            .filter(|node| node.value() != NodeValue::Unknown)
             .collect::<Vec<_>>();
         for body in b {
             result = self.execute_node(&body)?;
+            if let NodeValue::Return(ret) = body.value() {}
         }
 
         // スタックフレームをポップ
@@ -1184,7 +853,7 @@ impl Decoder {
         }
 
         //info!("is_reference: {:?}", is_reference);
-        let name = match var_name.node_value() {
+        let name = match var_name.value() {
             NodeValue::Variable(_, v) => v,
             _ => String::new(),
         };
@@ -1218,8 +887,8 @@ impl Decoder {
                 ));
             }
 
-            let v = match data_type.node_value() {
-                NodeValue::DataType(v_type) => match v_type.node_value() {
+            let v = match data_type.value() {
+                NodeValue::DataType(v_type) => match v_type.value() {
                     NodeValue::Variable(_, v) => v,
                     _ => String::new(),
                 },
@@ -1242,7 +911,7 @@ impl Decoder {
                     &mut self.context.global_context
                 };
 
-                match value.node_value() {
+                match value.value() {
                     NodeValue::Variable(_, v) => {
                         if let Some(variable) = context.get(&v) {
                             variable.address
@@ -1318,7 +987,7 @@ impl Decoder {
         _type_name: &Box<Node>,
         _type: &Box<Node>,
     ) -> R<Value, String> {
-        let name = match _type_name.node_value() {
+        let name = match _type_name.value() {
             NodeValue::Variable(_, v) => v,
             _ => String::new(),
         };
@@ -1336,7 +1005,7 @@ impl Decoder {
                 name
             ));
         }
-        let v_type = match _type.node_value() {
+        let v_type = match _type.value() {
             NodeValue::String(v) => v,
             _ => String::new(),
         };
@@ -1488,7 +1157,7 @@ impl Decoder {
             Value::Number(v) => v,
             _ => serde_json::Number::from(-1),
         };
-        let var = match lhs.node_value() {
+        let var = match lhs.value() {
             NodeValue::Variable(_, v) => v,
             _ => String::new(),
         };
@@ -1513,7 +1182,7 @@ impl Decoder {
             Value::Number(v) => v,
             _ => serde_json::Number::from(-1),
         };
-        let var = match lhs.node_value() {
+        let var = match lhs.value() {
             NodeValue::Variable(_, v) => v,
             _ => String::new(),
         };
@@ -1540,12 +1209,12 @@ impl Decoder {
         | NodeValue::BitOr(left, right)
         | NodeValue::BitXor(left, right)
         | NodeValue::ShiftLeft(left, right)
-        | NodeValue::ShiftRight(left, right) = &node.node_value()
+        | NodeValue::ShiftRight(left, right) = &node.value()
         {
             let left_value = self.execute_node(left)?;
             let right_value = self.execute_node(right)?;
 
-            match (&node.node_value(), left_value, right_value) {
+            match (&node.value(), left_value, right_value) {
                 // ビットAND (&)
                 (NodeValue::BitAnd(_, _), Value::Number(l), Value::Number(r)) => {
                     let l_i64 = l.as_i64().ok_or("Failed to convert left number to i64")?;
@@ -1590,12 +1259,12 @@ impl Decoder {
         | NodeValue::Lt(left, right)
         | NodeValue::Gt(left, right)
         | NodeValue::Le(left, right)
-        | NodeValue::Ge(left, right) = &node.node_value()
+        | NodeValue::Ge(left, right) = &node.value()
         {
             let left_value = self.execute_node(left)?;
             let right_value = self.execute_node(right)?;
 
-            match (&node.node_value(), left_value, right_value) {
+            match (&node.value(), left_value, right_value) {
                 // 等しい (==)
                 (NodeValue::Eq(_, _), Value::Number(l), Value::Number(r)) => {
                     let l_f64 = l.as_f64().ok_or("Failed to convert left number to f64")?;
@@ -1654,12 +1323,12 @@ impl Decoder {
         | NodeValue::AddAssign(lhs, rhs)
         | NodeValue::SubAssign(lhs, rhs)
         | NodeValue::MulAssign(lhs, rhs)
-        | NodeValue::DivAssign(lhs, rhs) = &node.node_value()
+        | NodeValue::DivAssign(lhs, rhs) = &node.value()
         {
             let left_value = self.execute_node(lhs)?;
             let right_value = self.execute_node(rhs)?;
 
-            match (&node.node_value(), left_value.clone(), right_value.clone()) {
+            match (&node.value(), left_value.clone(), right_value.clone()) {
                 (NodeValue::Add(_, _), Value::Number(l), Value::Number(r)) => {
                     if l.is_i64() && r.is_i64() {
                         let result = l.as_i64().unwrap() + r.as_i64().unwrap();
@@ -1737,7 +1406,7 @@ impl Decoder {
                 }
 
                 (NodeValue::AddAssign(_, _), Value::Number(l), Value::Number(r)) => {
-                    let var = match lhs.node_value() {
+                    let var = match lhs.value() {
                         NodeValue::Variable(_, v) => v,
                         _ => String::new(),
                     };
@@ -1784,7 +1453,7 @@ impl Decoder {
                 }
 
                 (NodeValue::SubAssign(_, _), Value::Number(l), Value::Number(r)) => {
-                    let var = match lhs.node_value() {
+                    let var = match lhs.value() {
                         NodeValue::Variable(_, v) => v,
                         _ => String::new(),
                     };
@@ -1826,7 +1495,7 @@ impl Decoder {
                 }
 
                 (NodeValue::MulAssign(_, _), Value::Number(l), Value::Number(r)) => {
-                    let var = match lhs.node_value() {
+                    let var = match lhs.value() {
                         NodeValue::Variable(_, v) => v,
                         _ => String::new(),
                     };
@@ -1867,7 +1536,7 @@ impl Decoder {
                 }
 
                 (NodeValue::DivAssign(_, _), Value::Number(l), Value::Number(r)) => {
-                    let var = match lhs.node_value() {
+                    let var = match lhs.value() {
                         NodeValue::Variable(_, v) => v,
                         _ => String::new(),
                     };
@@ -1931,8 +1600,8 @@ impl Decoder {
         if let Value::Bool(value) = condition_result {
             if value {
                 result = self.execute_node(&body)?;
-            } else if let Some(ref next_node) = condition.node_next() {
-                match next_node.node_value() {
+            } else if let Some(ref next_node) = condition.next() {
+                match next_node.value() {
                     NodeValue::If(ref next_condition, ref next_body) => {
                         result = self.eval_if_statement(next_condition, next_body)?;
                     }
@@ -2006,7 +1675,7 @@ impl Decoder {
                     is_mutable: true, // 仮に可変とする
                     size: element.size(),
                 };
-                let var = match value.node_value() {
+                let var = match value.value() {
                     NodeValue::Variable(_, v) => v,
                     _ => String::new(),
                 };
@@ -2043,7 +1712,7 @@ impl Decoder {
         Ok(result)
     }
     fn eval_primitive_type(&mut self, node: &Node) -> R<Value, String> {
-        match &node.node_value() {
+        match &node.value() {
             NodeValue::Int(number) => Ok(Value::Number((*number).into())),
             NodeValue::Float(number) => {
                 let n = Number::from_f64(*number).unwrap();
@@ -2066,13 +1735,13 @@ impl Decoder {
         let member_map: serde_json::Value = members
             .iter()
             .map(|m| {
-                let member_name = match m.node_value() {
+                let member_name = match m.value() {
                     NodeValue::Variable(_, v) => v,
                     _ => String::new(),
                 };
-                let member_type = match m.node_value() {
-                    NodeValue::Variable(v, _) => match v.node_value() {
-                        NodeValue::DataType(v) => match v.node_value() {
+                let member_type = match m.value() {
+                    NodeValue::Variable(v, _) => match v.value() {
+                        NodeValue::DataType(v) => match v.value() {
                             NodeValue::Variable(_, v) => v,
                             _ => String::new(),
                         },
@@ -2107,8 +1776,13 @@ impl Decoder {
     }
     // ノードを評価
     fn execute_node(&mut self, node: &Node) -> R<Value, String> {
+        let original_node = self.current_node.clone();
+        self.current_node = Some((
+            self.current_node.as_ref().unwrap().0.clone(),
+            Box::new(node.clone()),
+        ));
         let mut result = Value::Null;
-        let node_value = node.clone().node_value();
+        let node_value = node.clone().value();
 
         //info!("global_contexts: {:?}", self.context.global_context.clone());
         //info!("local_contexts: {:?}", self.context.local_context.clone());
@@ -2260,10 +1934,11 @@ impl Decoder {
                         .get(&self.current_node.clone().unwrap().0)
                         .unwrap(),
                     "Unknown node value: {:?}",
-                    node.node_value()
+                    node.value()
                 ));
             }
         }
+        self.current_node = original_node;
         Ok(result)
     }
 }

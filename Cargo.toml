@@ -24,4 +24,7 @@ uuid = { version = "1.10.0", features = ["v4"] }
 whoami = "1.5.2"
 win-msgbox = "0.2.1"
 [features]
-wip = []
+full = ["parser","lexer","decoder"]
+lexer = []
+parser = []
+decoder = []

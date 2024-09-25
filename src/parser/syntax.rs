@@ -1,6 +1,6 @@
 use crate::compile_error;
 use crate::error::*;
-use crate::lexer::Token;
+use crate::lexer::tokenizer::Token;
 use crate::types::{NodeValue, TokenType};
 use anyhow::{anyhow, Context, Result as R};
 use log::{error, info, warn};
@@ -10,9 +10,9 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, PartialEq, Clone, Property, Serialize, Deserialize)]
 pub struct Node {
     #[property(get)]
-    node_value: NodeValue,
+    value: NodeValue,
     #[property(get)]
-    node_next: Option<Box<Node>>,
+    next: Option<Box<Node>>,
     #[property(get)]
     line: usize,
     #[property(get)]
@@ -24,8 +24,8 @@ pub struct Node {
 impl Default for Node {
     fn default() -> Self {
         Node {
-            node_value: NodeValue::default(),
-            node_next: None,
+            value: NodeValue::default(),
+            next: None,
             line: 0,
             column: 0,
             is_statement: false,
@@ -34,15 +34,10 @@ impl Default for Node {
 }
 
 impl Node {
-    pub fn new(
-        node_value: NodeValue,
-        node_next: Option<Box<Node>>,
-        line: usize,
-        column: usize,
-    ) -> Self {
+    pub fn new(value: NodeValue, next: Option<Box<Node>>, line: usize, column: usize) -> Self {
         Node {
-            node_value,
-            node_next,
+            value,
+            next,
             line,
             column,
             is_statement: false,
@@ -314,8 +309,8 @@ impl<'a> Parser<'a> {
             self.is_statement = true;
         }
         Ok(Box::new(Node {
-            node_value: NodeValue::Call(token.token_value().clone(), args, is_system),
-            node_next: None,
+            value: NodeValue::Call(token.token_value().clone(), args, is_system),
+            next: None,
             line: self.current_token().unwrap().line(),
             column: self.current_token().unwrap().column(),
             is_statement: self.is_statement,
@@ -356,7 +351,7 @@ impl<'a> Parser<'a> {
                         self.current_token().unwrap().column(),
                     ));
                 }
-                let arg_name = match arg.node_value() {
+                let arg_name = match arg.value() {
                     NodeValue::Variable(_, ref name) => name.clone(),
                     _ => return Err("Invalid argument name".to_string()),
                 };
@@ -411,7 +406,7 @@ impl<'a> Parser<'a> {
                     self.current_token().unwrap().column(),
                 ));
             }
-            let arg_name = match arg.node_value() {
+            let arg_name = match arg.value() {
                 NodeValue::Variable(_, ref name) => name.clone(),
                 _ => return Err("Invalid argument name".to_string()),
             };
@@ -528,8 +523,8 @@ impl<'a> Parser<'a> {
         let body = self.parse_block()?; // ブロックの解析
 
         let mut if_node = Node {
-            node_value: NodeValue::If(Box::new(*condition), Box::new(*body)),
-            node_next: None,
+            value: NodeValue::If(Box::new(*condition), Box::new(*body)),
+            next: None,
             line: self.current_token().unwrap().line(),
             column: self.current_token().unwrap().column(),
             is_statement: true,
@@ -544,19 +539,19 @@ impl<'a> Parser<'a> {
                         // 'else if' の処理
                         self.next_token(); // 'if' をスキップ
                         let else_if_node = self.parse_if_statement()?;
-                        if_node.node_next = Some(else_if_node);
+                        if_node.next = Some(else_if_node);
                     } else {
                         // 'else' の処理
                         self.next_token(); // { をスキップ
                         let else_body = self.parse_block()?;
                         let else_node = Node {
-                            node_value: NodeValue::Else(Box::new(*else_body)),
-                            node_next: None,
+                            value: NodeValue::Else(Box::new(*else_body)),
+                            next: None,
                             line: self.current_token().unwrap().line(),
                             column: self.current_token().unwrap().column(),
                             is_statement: true,
                         };
-                        if_node.node_next = Some(Box::new(else_node));
+                        if_node.next = Some(Box::new(else_node));
                     }
                 }
             }
@@ -901,7 +896,7 @@ impl<'a> Parser<'a> {
         self.next_token(); // value
         let value_node = self.expr()?;
         Ok(Box::new(Node {
-            node_value: NodeValue::TypeDeclaration(
+            value: NodeValue::TypeDeclaration(
                 Box::new(Node::new(
                     NodeValue::Variable(
                         Parser::<'a>::new_null(
@@ -916,7 +911,7 @@ impl<'a> Parser<'a> {
                 )),
                 value_node,
             ),
-            node_next: None,
+            next: None,
             line: self.current_token().unwrap().line(),
             column: self.current_token().unwrap().column(),
             is_statement: self.is_statement,
@@ -967,7 +962,7 @@ impl<'a> Parser<'a> {
                 }
             }
             return Ok(Box::new(Node {
-                node_value: NodeValue::VariableDeclaration(
+                value: NodeValue::VariableDeclaration(
                     Box::new(Node::new(
                         NodeValue::Variable(
                             Parser::<'a>::new_null(
@@ -986,7 +981,7 @@ impl<'a> Parser<'a> {
                     is_mutable,
                     false,
                 ),
-                node_next: None,
+                next: None,
                 line: self.current_token().unwrap().line(),
                 column: self.current_token().unwrap().column(),
                 is_statement: self.is_statement,
@@ -1014,7 +1009,7 @@ impl<'a> Parser<'a> {
                 }
             }
             return Ok(Box::new(Node {
-                node_value: NodeValue::VariableDeclaration(
+                value: NodeValue::VariableDeclaration(
                     Box::new(Node::new(
                         NodeValue::Variable(
                             Parser::<'a>::new_null(
@@ -1033,7 +1028,7 @@ impl<'a> Parser<'a> {
                     is_mutable,
                     false,
                 ),
-                node_next: None,
+                next: None,
                 line: self.current_token().unwrap().line(),
                 column: self.current_token().unwrap().column(),
                 is_statement: self.is_statement,
@@ -1066,7 +1061,7 @@ impl<'a> Parser<'a> {
             }
         }
         Ok(Box::new(Node {
-            node_value: NodeValue::VariableDeclaration(
+            value: NodeValue::VariableDeclaration(
                 Box::new(Node::new(
                     NodeValue::Variable(
                         Parser::<'a>::new_null(
@@ -1085,7 +1080,7 @@ impl<'a> Parser<'a> {
                 is_mutable,
                 is_reference,
             ),
-            node_next: None,
+            next: None,
             line: self.current_token().unwrap().line(),
             column: self.current_token().unwrap().column(),
             is_statement: self.is_statement,
@@ -1117,7 +1112,7 @@ impl<'a> Parser<'a> {
 
             value_node = self.expr()?;
             Ok(Box::new(Node {
-                node_value: NodeValue::Assign(
+                value: NodeValue::Assign(
                     Box::new(Node::new(
                         NodeValue::Variable(
                             Parser::<'a>::new_null(
@@ -1133,7 +1128,7 @@ impl<'a> Parser<'a> {
                     value_node,
                     index,
                 ),
-                node_next: None,
+                next: None,
                 line: self.current_token().unwrap().line(),
                 column: self.current_token().unwrap().column(),
                 is_statement: self.is_statement,
@@ -1144,7 +1139,7 @@ impl<'a> Parser<'a> {
             value_node = self.expr()?;
 
             Ok(Box::new(Node {
-                node_value: NodeValue::Assign(
+                value: NodeValue::Assign(
                     Box::new(Node::new(
                         NodeValue::Variable(
                             Parser::<'a>::new_null(
@@ -1160,7 +1155,7 @@ impl<'a> Parser<'a> {
                     value_node,
                     index,
                 ),
-                node_next: None,
+                next: None,
                 line: self.current_token().unwrap().line(),
                 column: self.current_token().unwrap().column(),
                 is_statement: self.is_statement,
@@ -1173,8 +1168,8 @@ impl<'a> Parser<'a> {
         ret_value = self.expr()?;
 
         Ok(Box::new(Node {
-            node_value: NodeValue::Return(ret_value),
-            node_next: None,
+            value: NodeValue::Return(ret_value),
+            next: None,
             line: self.current_token().unwrap().line(),
             column: self.current_token().unwrap().column(),
             is_statement: self.is_statement,
