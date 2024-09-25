@@ -4,7 +4,7 @@ pub static RESERVED_WORDS: &[&str] = &[
     "*", "*=", "/", "/=", "{", "}", "[", "]", "mod", "use", "bool", "struct", "enum", "%", "&",
     "&=", "|", "|=", "^", "~", "^=",
 ];
-/*
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -75,6 +75,7 @@ pub enum ControlFlow {
     Loop(Box<Node>),
     While(Box<Node>, Box<Node>),
     For(Box<Node>, Box<Node>, Box<Node>),
+    Return(Box<Node>),
     Break,
     Continue,
 }
@@ -111,6 +112,7 @@ pub enum Operator {
     BitXorAssign(Box<Node>, Box<Node>),
     ShiftLeftAssign(Box<Node>, Box<Node>),
     ShiftRightAssign(Box<Node>, Box<Node>),
+    Range(Box<Node>, Box<Node>),
 }
 
 #[cfg(any(feature = "full", feature = "parser"))]
@@ -132,6 +134,7 @@ pub enum Declaration {
     Function(String, Vec<(Box<Node>, String)>, Box<Node>, Box<Node>, bool),
     CallBackFunction(String, Vec<(Box<Node>, String)>, Box<Node>, Box<Node>, bool),
     Type(Box<Node>, Box<Node>),
+    Array(Box<Node>, Vec<Box<Node>>), // 配列(型名,値)
 }
 
 #[cfg(any(feature = "full", feature = "parser"))]
@@ -145,14 +148,13 @@ pub enum NodeValue {
     Block(Vec<Box<Node>>),
     Variable(Box<Node>, String),
     Call(String, Vec<Node>, bool),
-    Return(Box<Node>),
     MultiComment(Vec<String>, (usize, usize)),
     SingleComment(String, (usize, usize)),
     Include(String),
     Mod(String),
     ModDeclaration(String, Vec<Box<Node>>),
     Use(String, Box<Node>),
-    Array(Box<Node>, Vec<Box<Node>>),
+    EndStatement,
     Null,
     Unknown,
 }
@@ -163,8 +165,20 @@ impl Default for NodeValue {
         NodeValue::Null
     }
 }
-*/
 
+impl From<Box<Node>> for DataType {
+    fn from(node: Box<Node>) -> Self {
+        match *node {
+            Node {
+                value: NodeValue::Variable(_, ref name),
+                ..
+            } => DataType::String(name.clone()),
+            _ => DataType::Unit(()), // 他のケースに対するデフォルト処理
+        }
+    }
+}
+
+/*
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 #[cfg(any(feature = "full", feature = "parser"))]
@@ -329,4 +343,4 @@ impl Default for NodeValue {
         NodeValue::Null
     }
 }
-
+*/
