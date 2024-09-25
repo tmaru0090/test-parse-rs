@@ -20,6 +20,30 @@ pub struct Node {
     #[property(get)]
     pub is_statement: bool,
 }
+pub struct NodeIter<'a> {
+    current: Option<&'a Node>,
+}
+
+impl<'a> Iterator for NodeIter<'a> {
+    type Item = &'a Node;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(node) = self.current {
+            self.current = node.next.as_deref();
+            Some(node)
+        } else {
+            None
+        }
+    }
+}
+
+impl Node {
+    pub fn iter(&self) -> NodeIter {
+        NodeIter {
+            current: Some(self),
+        }
+    }
+}
 impl Default for Node {
     fn default() -> Self {
         Node {

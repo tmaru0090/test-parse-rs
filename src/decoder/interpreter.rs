@@ -421,35 +421,33 @@ impl Decoder {
             let content = std::fs::read_to_string(file_name.clone()).map_err(|e| e.to_string())?;
             self.file_contents.insert(file_name.clone(), content);
 
-            let mut current_node = node.clone();
-            while let Some(next_node) = current_node.next.clone() {
-                self.current_node = Some((file_name.clone(), current_node.clone()));
+            // Nodeのイテレータを使用してノードを処理
+            for current_node in node.iter() {
+                self.current_node = Some((file_name.clone(), Box::new(current_node.clone())));
                 if let NodeValue::EndStatement = current_node.value {
-                    current_node = next_node;
                     continue;
                 }
-                value = self.execute_node(&current_node)?;
-                current_node = next_node;
+                value = self.execute_node(current_node)?;
             }
+
+            // 最後のノードも評価する（イテレータ内で自動処理されるため不要）
         }
 
         // メインエントリーが定義されていたら実行
         if self.entry_func.0 {
             self.add_ast_from_text("main-entry", &format!("{}();", self.entry_func.1))?;
             if let Some((_, value_node)) = self.ast_map.clone().iter().last() {
-                let mut current_node = value_node.clone();
-                while let Some(next_node) = current_node.next.clone() {
+                for current_node in value_node.iter() {
                     if let NodeValue::EndStatement = current_node.value {
-                        current_node = next_node;
                         continue;
                     }
-                    value = self.execute_node(&current_node)?;
-                    current_node = next_node;
+                    value = self.execute_node(current_node)?;
                 }
             }
         }
 
         self.current_node = original_node;
+
         if self.generated_ast_file {
             // ディレクトリが存在しない場合は作成
             std::fs::create_dir_all("./script-analysis").map_err(|e| e.to_string())?;
@@ -459,6 +457,7 @@ impl Decoder {
             let ast_json = serde_json::to_string_pretty(&ast_map).map_err(|e| e.to_string())?;
             std::fs::write("./script-analysis/ast.json", ast_json).map_err(|e| e.to_string())?;
         }
+
         if let Some(start) = start_time {
             let duration = start.elapsed();
             // 秒とナノ秒を取得
@@ -469,14 +468,21 @@ impl Decoder {
         Ok(value)
     }
 
-    fn eval_block(&mut self, block: &Vec<Box<Node>>) -> R<Value, String> {
+    fn eval_block(&mut self, block: &Vec<Box<Node>>) -> Result<Value, String> {
         let mut result = Value::Null;
         let initial_local_context = self.context.local_context.clone(); // 現在のローカルコンテキストを保存
+
         for b in block {
-            info!("local_context: {:?}", self.context.local_context.clone());
+            // ノードを評価
             result = self.execute_node(b)?;
+            // return 文が評価された場合、ブロックの評価を終了
+            if let NodeValue::ControlFlow(ControlFlow::Return(_)) = b.value {
+                break;
+            }
         }
-        self.context.local_context = initial_local_context; // ブロックの処理が終わったらローカルコンテキストを元に戻す
+
+        // ブロックの処理が終わったらローカルコンテキストを元に戻す
+        self.context.local_context = initial_local_context;
         Ok(result)
     }
     fn eval_include(&mut self, file_name: &String) -> Result<Value, String> {
@@ -486,6 +492,11 @@ impl Decoder {
         let mut result = Value::Null;
         let mut current_node = node.clone();
         while let Some(next_node) = current_node.next.clone() {
+            if let NodeValue::EndStatement = current_node.value {
+                current_node = next_node;
+                continue;
+            }
+
             result = self.execute_node(&current_node)?;
             current_node = next_node;
         }
@@ -1067,11 +1078,17 @@ impl Decoder {
         };
         let b = _body
             .iter()
-            .filter(|node| node.value() != NodeValue::Unknown)
+            .filter(|node| node.value() != NodeValue::EndStatement)
             .collect::<Vec<_>>();
+
+        //let new_vec: Vec<Box<Node>> = b.iter().map(|x| (*x).clone()).collect();
+        //result = self.eval_block(&new_vec)?;
+
         for body in b {
             result = self.execute_node(&body)?;
-            if let NodeValue::ControlFlow(ControlFlow::Return(ret)) = body.value() {}
+            if let NodeValue::ControlFlow(ControlFlow::Return(ret)) = body.value() {
+                break;
+            }
         }
 
         // スタックフレームをポップ
@@ -1095,6 +1112,7 @@ impl Decoder {
         is_system: &bool,
     ) -> R<Value, String> {
         let func_name = name; // すでに String 型なのでそのまま使う
+        info!("{:?}", func_name.clone());
         if func_name == "main" || func_name == "Main" {
             self.entry_func.0 = true;
             self.entry_func.1 = func_name.clone();
@@ -2021,11 +2039,15 @@ impl Decoder {
         //info!("local_contexts: {:?}", self.context.local_context.clone());
         //info!("used_context: {:?}", self.context.used_context.clone());
         //info!("current_node: {:?}", self.current_node.clone());
-
+        info!("current_node: {:?}", node.clone());
         match &node.value {
             NodeValue::Null => {
                 result = Value::Null;
             }
+            NodeValue::Block(block) => {
+                result = self.eval_block(&block)?;
+            }
+
             NodeValue::Declaration(Declaration::Struct(name, members)) => {
                 result = self.eval_struct_statement(name, &members)?;
             }
@@ -2089,9 +2111,7 @@ impl Decoder {
                 self.eval_single_comment(&content, &(*line, *column))?;
                 return Ok(result);
             }
-            NodeValue::Block(block) => {
-                result = self.eval_block(&block)?;
-            }
+
             NodeValue::Assign(var_name, value, index) => {
                 result = self.eval_assign(&node.clone(), &var_name, &value, &index)?;
             }

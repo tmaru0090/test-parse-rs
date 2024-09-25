@@ -2,189 +2,193 @@
   "example/main.sc": {
     "value": {
       "Declaration": {
-        "Variable": [
+        "Function": [
+          "test",
+          [],
           {
             "value": {
-              "Variable": [
+              "Block": [
                 {
-                  "value": "Null",
-                  "next": null,
-                  "line": 1,
+                  "value": {
+                    "Call": [
+                      "exit",
+                      [
+                        {
+                          "value": {
+                            "DataType": {
+                              "Int": 1
+                            }
+                          },
+                          "next": null,
+                          "line": 2,
+                          "column": 12,
+                          "is_statement": false
+                        }
+                      ],
+                      true
+                    ]
+                  },
+                  "next": {
+                    "value": "EndStatement",
+                    "next": null,
+                    "line": 3,
+                    "column": 1,
+                    "is_statement": false
+                  },
+                  "line": 2,
                   "column": 13,
-                  "is_statement": false
-                },
-                "a"
+                  "is_statement": true
+                }
               ]
             },
             "next": null,
-            "line": 1,
-            "column": 13,
+            "line": 4,
+            "column": 1,
             "is_statement": false
           },
           {
-            "value": {
-              "DataType": {
-                "Unit": null
-              }
-            },
+            "value": "Null",
             "next": null,
             "line": 1,
-            "column": 5,
+            "column": 9,
             "is_statement": false
           },
-          {
-            "value": {
-              "DataType": {
-                "Int": 1000
-              }
-            },
-            "next": null,
-            "line": 1,
-            "column": 13,
-            "is_statement": false
-          },
-          false,
-          false,
           false
         ]
       }
     },
     "next": {
-      "value": "EndStatement",
-      "next": {
-        "value": {
-          "Declaration": {
-            "Variable": [
-              {
-                "value": {
-                  "Variable": [
-                    {
-                      "value": "Null",
-                      "next": null,
-                      "line": 4,
-                      "column": 15,
-                      "is_statement": false
-                    },
-                    "b"
-                  ]
-                },
-                "next": null,
-                "line": 4,
-                "column": 15,
-                "is_statement": false
-              },
-              {
-                "value": {
-                  "DataType": {
-                    "Unit": null
-                  }
-                },
-                "next": null,
-                "line": 4,
-                "column": 7,
-                "is_statement": false
-              },
-              {
-                "value": {
-                  "DataType": {
-                    "Int": 1919
-                  }
-                },
-                "next": null,
-                "line": 4,
-                "column": 15,
-                "is_statement": false
-              },
-              false,
-              false,
-              false
-            ]
-          }
-        },
-        "next": {
-          "value": "EndStatement",
-          "next": {
-            "value": {
-              "Declaration": {
-                "Variable": [
+      "value": {
+        "Declaration": {
+          "Function": [
+            "main",
+            [],
+            {
+              "value": {
+                "Block": [
                   {
                     "value": {
-                      "Variable": [
-                        {
-                          "value": "Null",
-                          "next": null,
-                          "line": 5,
-                          "column": 12,
-                          "is_statement": false
-                        },
-                        "c"
-                      ]
-                    },
-                    "next": null,
-                    "line": 5,
-                    "column": 12,
-                    "is_statement": false
-                  },
-                  {
-                    "value": {
-                      "DataType": {
-                        "Unit": null
+                      "Declaration": {
+                        "Variable": [
+                          {
+                            "value": {
+                              "Variable": [
+                                {
+                                  "value": "Null",
+                                  "next": null,
+                                  "line": 5,
+                                  "column": 11,
+                                  "is_statement": false
+                                },
+                                "a"
+                              ]
+                            },
+                            "next": null,
+                            "line": 5,
+                            "column": 11,
+                            "is_statement": false
+                          },
+                          {
+                            "value": {
+                              "DataType": {
+                                "Unit": null
+                              }
+                            },
+                            "next": null,
+                            "line": 5,
+                            "column": 7,
+                            "is_statement": false
+                          },
+                          {
+                            "value": {
+                              "DataType": {
+                                "Int": 0
+                              }
+                            },
+                            "next": null,
+                            "line": 5,
+                            "column": 11,
+                            "is_statement": false
+                          },
+                          true,
+                          false,
+                          false
+                        ]
                       }
                     },
-                    "next": null,
-                    "line": 5,
-                    "column": 7,
-                    "is_statement": false
-                  },
-                  {
-                    "value": {
-                      "Variable": [
-                        {
-                          "value": "Null",
+                    "next": {
+                      "value": "EndStatement",
+                      "next": {
+                        "value": {
+                          "Call": [
+                            "test",
+                            [],
+                            false
+                          ]
+                        },
+                        "next": {
+                          "value": "EndStatement",
                           "next": null,
-                          "line": 5,
-                          "column": 12,
+                          "line": 7,
+                          "column": 1,
                           "is_statement": false
                         },
-                        "a"
-                      ]
+                        "line": 6,
+                        "column": 9,
+                        "is_statement": true
+                      },
+                      "line": 6,
+                      "column": 3,
+                      "is_statement": false
                     },
-                    "next": null,
                     "line": 5,
-                    "column": 12,
-                    "is_statement": false
-                  },
-                  false,
-                  false,
-                  false
+                    "column": 11,
+                    "is_statement": true
+                  }
                 ]
-              }
-            },
-            "next": {
-              "value": "EndStatement",
+              },
               "next": null,
-              "line": 5,
-              "column": 12,
+              "line": 7,
+              "column": 1,
               "is_statement": false
             },
-            "line": 5,
-            "column": 12,
-            "is_statement": true
-          },
-          "line": 5,
-          "column": 3,
-          "is_statement": false
-        },
-        "line": 4,
-        "column": 15,
-        "is_statement": true
+            {
+              "value": "Null",
+              "next": null,
+              "line": 4,
+              "column": 9,
+              "is_statement": false
+            },
+            false
+          ]
+        }
       },
-      "line": 4,
-      "column": 3,
+      "next": null,
+      "line": 7,
+      "column": 1,
+      "is_statement": false
+    },
+    "line": 4,
+    "column": 1,
+    "is_statement": false
+  },
+  "main-entry": {
+    "value": {
+      "Call": [
+        "main",
+        [],
+        false
+      ]
+    },
+    "next": {
+      "value": "EndStatement",
+      "next": null,
+      "line": 1,
+      "column": 7,
       "is_statement": false
     },
     "line": 1,
-    "column": 13,
+    "column": 7,
     "is_statement": true
   }
 }
