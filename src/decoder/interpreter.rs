@@ -493,17 +493,11 @@ impl Decoder {
     fn eval_include(&mut self, file_name: &String) -> Result<Value, String> {
         self.add_first_ast_from_file(file_name)?;
         let ast_map = self.ast_map.clone();
-        let node = ast_map.get(file_name).unwrap();
+        let _node = ast_map.get(file_name).unwrap();
         let mut result = Value::Null;
-        let mut current_node = node.clone();
-        while let Some(next_node) = current_node.next.clone() {
-            if let NodeValue::EndStatement = current_node.value {
-                current_node = next_node;
-                continue;
-            }
-
-            result = self.execute_node(&current_node)?;
-            current_node = next_node;
+        let mut current_node = _node.clone();
+        for node in current_node.iter() {
+            result = self.execute_node(&node)?;
         }
         Ok(result)
     }
@@ -1110,7 +1104,7 @@ impl Decoder {
         is_system: &bool,
     ) -> R<Value, String> {
         let func_name = name; // すでに String 型なのでそのまま使う
-     //   info!("{:?}", func_name.clone());
+                              //   info!("{:?}", func_name.clone());
         if func_name == "main" || func_name == "Main" {
             self.entry_func.0 = true;
             self.entry_func.1 = func_name.clone();
