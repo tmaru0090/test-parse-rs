@@ -172,28 +172,58 @@ impl Decoder {
     }
 
     fn generate_html_from_comments(&mut self) -> String {
-        // HTMLのヘッダーとボディの開始タグ
         let mut html = String::from(
-            "<!DOCTYPE html>\n<html>\n<head>\n<title>Comments</title>\n</head>\n<body>\n",
-        );
+        "<!DOCTYPE html>\n<html>\n<head>\n<title>Comments</title>\n<style>\n\
+        body { font-family: Arial, sans-serif; }\n\
+        .comment-container { margin: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }\n\
+        .comment { margin-bottom: 5px; padding: 5px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; }\n\
+        .comment-link { color: #007bff; text-decoration: none; }\n\
+        .comment-link:hover { text-decoration: underline; }\n\
+        .hidden { display: none; }\n\
+        </style>\n</head>\n<body>\n",
+    );
+
+        html.push_str("<div id=\"comments\">\n");
 
         // コメントを行ごとに処理
         for ((line, column), comments) in &self.context.comment_lists {
+            // 行番号と列番号をリンクとして表示
+            html.push_str(&format!(
+            "<div class=\"comment-container\">\n\
+            <a href=\"#\" class=\"comment-link\" onclick=\"toggleComments({},{})\">Line {} Column {}</a>\n",
+            line, column, line, column
+        ));
+
             // 各コメントをHTMLの要素として追加
+            html.push_str("<div id=\"comments-");
+            html.push_str(&format!("{:02}-{:02}\" class=\"hidden\">", line, column));
             for comment in comments {
-                // 行番号と列番号を使ってHTML要素に情報を埋め込む
-                html.push_str(&format!(
-                    "<div class=\"comment\" data-line=\"{}\" data-column=\"{}\">{}</div>\n",
-                    line, column, comment
-                ));
+                html.push_str(&format!("<div class=\"comment\">{}</div>\n", comment));
             }
+            html.push_str("</div>\n</div>\n");
         }
 
-        // HTMLのボディとフッターの終了タグ
+        html.push_str("</div>\n");
+
+        // JavaScriptでコメント表示を制御
+        html.push_str(
+        "<script>\n\
+        function toggleComments(line, column) {\n\
+            var commentsDiv = document.getElementById('comments-' + String(line).padStart(2, '0') + '-' + String(column).padStart(2, '0'));\n\
+            if (commentsDiv.style.display === 'none' || commentsDiv.style.display === '') {\n\
+                commentsDiv.style.display = 'block';\n\
+            } else {\n\
+                commentsDiv.style.display = 'none';\n\
+            }\n\
+        }\n\
+        </script>\n"
+    );
+
         html.push_str("</body>\n</html>");
 
         html
     }
+
     // 現在のASTのマップの先頭に指定スクリプトのASTを追加
     pub fn add_first_ast_from_file(&mut self, file_name: &str) -> R<&mut Self, String> {
         let content = std::fs::read_to_string(file_name).map_err(|e| e.to_string())?;

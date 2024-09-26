@@ -2,18 +2,46 @@
 <html>
 <head>
 <title>Comments</title>
+<style>
+body { font-family: Arial, sans-serif; }
+.comment-container { margin: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+.comment { margin-bottom: 5px; padding: 5px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; }
+.comment-link { color: #007bff; text-decoration: none; }
+.comment-link:hover { text-decoration: underline; }
+.hidden { display: none; }
+</style>
 </head>
 <body>
-<div class="comment" data-line="1" data-column="1"> フィボナッチ</div>
-<div class="comment" data-line="2" data-column="1"></div>
-<div class="comment" data-line="2" data-column="1">type i32 = i32;</div>
-<div class="comment" data-line="2" data-column="1">type f32 = f32;</div>
-<div class="comment" data-line="2" data-column="1">type i64 = i64;</div>
-<div class="comment" data-line="2" data-column="1">type f64 = f64;</div>
-<div class="comment" data-line="2" data-column="1">type string = string;</div>
-<div class="comment" data-line="2" data-column="1">type array = array<T>;</div>
-<div class="comment" data-line="2" data-column="1">type bool = bool;</div>
-<div class="comment" data-line="2" data-column="1">struct Vector;</div>
-<div class="comment" data-line="2" data-column="1">struct HashMap;</div>
+<div id="comments">
+<div class="comment-container">
+<a href="#" class="comment-link" onclick="toggleComments(1,1)">Line 1 Column 1</a>
+<div id="comments-01-01" class="hidden"><div class="comment"> フィボナッチ</div>
+</div>
+</div>
+<div class="comment-container">
+<a href="#" class="comment-link" onclick="toggleComments(2,1)">Line 2 Column 1</a>
+<div id="comments-02-01" class="hidden"><div class="comment"></div>
+<div class="comment">type i32 = i32;</div>
+<div class="comment">type f32 = f32;</div>
+<div class="comment">type i64 = i64;</div>
+<div class="comment">type f64 = f64;</div>
+<div class="comment">type string = string;</div>
+<div class="comment">type array = array<T>;</div>
+<div class="comment">type bool = bool;</div>
+<div class="comment">struct Vector;</div>
+<div class="comment">struct HashMap;</div>
+</div>
+</div>
+</div>
+<script>
+function toggleComments(line, column) {
+var commentsDiv = document.getElementById('comments-' + String(line).padStart(2, '0') + '-' + String(column).padStart(2, '0'));
+if (commentsDiv.style.display === 'none' || commentsDiv.style.display === '') {
+commentsDiv.style.display = 'block';
+} else {
+commentsDiv.style.display = 'none';
+}
+}
+</script>
 </body>
 </html>

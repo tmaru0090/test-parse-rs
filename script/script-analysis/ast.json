@@ -1,560 +1,4 @@
 {
-  "std.sc": {
-    "value": {
-      "SingleComment": [
-        " std.script",
-        [
-          1,
-          1
-        ]
-      ]
-    },
-    "next": {
-      "value": {
-        "MultiComment": [
-          [
-            "\r",
-            "type i32 = i32;\r",
-            "type f32 = f32;\r",
-            "type i64 = i64;\r",
-            "type f64 = f64;\r",
-            "type string = string;\r",
-            "type array = array<T>;\r",
-            "type bool = bool;\r",
-            "struct Vector;\r",
-            "struct HashMap;\r"
-          ],
-          [
-            2,
-            1
-          ]
-        ]
-      },
-      "next": {
-        "value": {
-          "Declaration": {
-            "Type": [
-              {
-                "value": {
-                  "Variable": [
-                    {
-                      "value": "Null",
-                      "next": null,
-                      "line": 13,
-                      "column": 17,
-                      "is_statement": false
-                    },
-                    "i32"
-                  ]
-                },
-                "next": null,
-                "line": 13,
-                "column": 17,
-                "is_statement": false
-              },
-              {
-                "value": {
-                  "DataType": {
-                    "String": "i32"
-                  }
-                },
-                "next": null,
-                "line": 13,
-                "column": 17,
-                "is_statement": false
-              }
-            ]
-          }
-        },
-        "next": {
-          "value": "EndStatement",
-          "next": {
-            "value": {
-              "Declaration": {
-                "Type": [
-                  {
-                    "value": {
-                      "Variable": [
-                        {
-                          "value": "Null",
-                          "next": null,
-                          "line": 14,
-                          "column": 17,
-                          "is_statement": false
-                        },
-                        "f32"
-                      ]
-                    },
-                    "next": null,
-                    "line": 14,
-                    "column": 17,
-                    "is_statement": false
-                  },
-                  {
-                    "value": {
-                      "DataType": {
-                        "String": "f32"
-                      }
-                    },
-                    "next": null,
-                    "line": 14,
-                    "column": 17,
-                    "is_statement": false
-                  }
-                ]
-              }
-            },
-            "next": {
-              "value": "EndStatement",
-              "next": {
-                "value": {
-                  "Declaration": {
-                    "Type": [
-                      {
-                        "value": {
-                          "Variable": [
-                            {
-                              "value": "Null",
-                              "next": null,
-                              "line": 15,
-                              "column": 17,
-                              "is_statement": false
-                            },
-                            "i64"
-                          ]
-                        },
-                        "next": null,
-                        "line": 15,
-                        "column": 17,
-                        "is_statement": false
-                      },
-                      {
-                        "value": {
-                          "DataType": {
-                            "String": "i64"
-                          }
-                        },
-                        "next": null,
-                        "line": 15,
-                        "column": 17,
-                        "is_statement": false
-                      }
-                    ]
-                  }
-                },
-                "next": {
-                  "value": "EndStatement",
-                  "next": {
-                    "value": {
-                      "Declaration": {
-                        "Type": [
-                          {
-                            "value": {
-                              "Variable": [
-                                {
-                                  "value": "Null",
-                                  "next": null,
-                                  "line": 16,
-                                  "column": 17,
-                                  "is_statement": false
-                                },
-                                "f64"
-                              ]
-                            },
-                            "next": null,
-                            "line": 16,
-                            "column": 17,
-                            "is_statement": false
-                          },
-                          {
-                            "value": {
-                              "DataType": {
-                                "String": "f64"
-                              }
-                            },
-                            "next": null,
-                            "line": 16,
-                            "column": 17,
-                            "is_statement": false
-                          }
-                        ]
-                      }
-                    },
-                    "next": {
-                      "value": "EndStatement",
-                      "next": {
-                        "value": {
-                          "Declaration": {
-                            "Type": [
-                              {
-                                "value": {
-                                  "Variable": [
-                                    {
-                                      "value": "Null",
-                                      "next": null,
-                                      "line": 17,
-                                      "column": 23,
-                                      "is_statement": false
-                                    },
-                                    "string"
-                                  ]
-                                },
-                                "next": null,
-                                "line": 17,
-                                "column": 23,
-                                "is_statement": false
-                              },
-                              {
-                                "value": {
-                                  "DataType": {
-                                    "String": "string"
-                                  }
-                                },
-                                "next": null,
-                                "line": 17,
-                                "column": 23,
-                                "is_statement": false
-                              }
-                            ]
-                          }
-                        },
-                        "next": {
-                          "value": "EndStatement",
-                          "next": {
-                            "value": {
-                              "Declaration": {
-                                "Type": [
-                                  {
-                                    "value": {
-                                      "Variable": [
-                                        {
-                                          "value": "Null",
-                                          "next": null,
-                                          "line": 18,
-                                          "column": 19,
-                                          "is_statement": false
-                                        },
-                                        "void"
-                                      ]
-                                    },
-                                    "next": null,
-                                    "line": 18,
-                                    "column": 19,
-                                    "is_statement": false
-                                  },
-                                  {
-                                    "value": {
-                                      "DataType": {
-                                        "String": "unit"
-                                      }
-                                    },
-                                    "next": null,
-                                    "line": 18,
-                                    "column": 19,
-                                    "is_statement": false
-                                  }
-                                ]
-                              }
-                            },
-                            "next": {
-                              "value": "EndStatement",
-                              "next": {
-                                "value": {
-                                  "Declaration": {
-                                    "Type": [
-                                      {
-                                        "value": {
-                                          "Variable": [
-                                            {
-                                              "value": "Null",
-                                              "next": null,
-                                              "line": 19,
-                                              "column": 21,
-                                              "is_statement": false
-                                            },
-                                            "array"
-                                          ]
-                                        },
-                                        "next": null,
-                                        "line": 19,
-                                        "column": 21,
-                                        "is_statement": false
-                                      },
-                                      {
-                                        "value": {
-                                          "DataType": {
-                                            "String": "array"
-                                          }
-                                        },
-                                        "next": null,
-                                        "line": 19,
-                                        "column": 21,
-                                        "is_statement": false
-                                      }
-                                    ]
-                                  }
-                                },
-                                "next": {
-                                  "value": "EndStatement",
-                                  "next": {
-                                    "value": {
-                                      "Declaration": {
-                                        "Type": [
-                                          {
-                                            "value": {
-                                              "Variable": [
-                                                {
-                                                  "value": "Null",
-                                                  "next": null,
-                                                  "line": 20,
-                                                  "column": 19,
-                                                  "is_statement": false
-                                                },
-                                                "bool"
-                                              ]
-                                            },
-                                            "next": null,
-                                            "line": 20,
-                                            "column": 19,
-                                            "is_statement": false
-                                          },
-                                          {
-                                            "value": {
-                                              "DataType": {
-                                                "String": "bool"
-                                              }
-                                            },
-                                            "next": null,
-                                            "line": 20,
-                                            "column": 19,
-                                            "is_statement": false
-                                          }
-                                        ]
-                                      }
-                                    },
-                                    "next": {
-                                      "value": "EndStatement",
-                                      "next": {
-                                        "value": {
-                                          "Declaration": {
-                                            "Struct": [
-                                              "Vector",
-                                              [
-                                                {
-                                                  "value": "Null",
-                                                  "next": null,
-                                                  "line": 21,
-                                                  "column": 14,
-                                                  "is_statement": false
-                                                }
-                                              ]
-                                            ]
-                                          }
-                                        },
-                                        "next": {
-                                          "value": "EndStatement",
-                                          "next": {
-                                            "value": {
-                                              "Declaration": {
-                                                "Struct": [
-                                                  "HashMap",
-                                                  [
-                                                    {
-                                                      "value": "Null",
-                                                      "next": null,
-                                                      "line": 22,
-                                                      "column": 15,
-                                                      "is_statement": false
-                                                    }
-                                                  ]
-                                                ]
-                                              }
-                                            },
-                                            "next": {
-                                              "value": "EndStatement",
-                                              "next": {
-                                                "value": {
-                                                  "Variable": [
-                                                    {
-                                                      "value": "Null",
-                                                      "next": null,
-                                                      "line": 23,
-                                                      "column": 8,
-                                                      "is_statement": false
-                                                    },
-                                                    "sturct"
-                                                  ]
-                                                },
-                                                "next": {
-                                                  "value": {
-                                                    "Variable": [
-                                                      {
-                                                        "value": "Null",
-                                                        "next": null,
-                                                        "line": 23,
-                                                        "column": 10,
-                                                        "is_statement": false
-                                                      },
-                                                      "IO"
-                                                    ]
-                                                  },
-                                                  "next": {
-                                                    "value": "EndStatement",
-                                                    "next": {
-                                                      "value": {
-                                                        "Declaration": {
-                                                          "Struct": [
-                                                            "File",
-                                                            [
-                                                              {
-                                                                "value": "Null",
-                                                                "next": null,
-                                                                "line": 24,
-                                                                "column": 12,
-                                                                "is_statement": false
-                                                              }
-                                                            ]
-                                                          ]
-                                                        }
-                                                      },
-                                                      "next": {
-                                                        "value": "EndStatement",
-                                                        "next": {
-                                                          "value": {
-                                                            "Declaration": {
-                                                              "Struct": [
-                                                                "Memory",
-                                                                [
-                                                                  {
-                                                                    "value": "Null",
-                                                                    "next": null,
-                                                                    "line": 25,
-                                                                    "column": 14,
-                                                                    "is_statement": false
-                                                                  }
-                                                                ]
-                                                              ]
-                                                            }
-                                                          },
-                                                          "next": {
-                                                            "value": "EndStatement",
-                                                            "next": null,
-                                                            "line": 25,
-                                                            "column": 14,
-                                                            "is_statement": false
-                                                          },
-                                                          "line": 25,
-                                                          "column": 14,
-                                                          "is_statement": false
-                                                        },
-                                                        "line": 25,
-                                                        "column": 1,
-                                                        "is_statement": false
-                                                      },
-                                                      "line": 24,
-                                                      "column": 12,
-                                                      "is_statement": false
-                                                    },
-                                                    "line": 24,
-                                                    "column": 1,
-                                                    "is_statement": false
-                                                  },
-                                                  "line": 23,
-                                                  "column": 10,
-                                                  "is_statement": false
-                                                },
-                                                "line": 23,
-                                                "column": 8,
-                                                "is_statement": false
-                                              },
-                                              "line": 23,
-                                              "column": 1,
-                                              "is_statement": false
-                                            },
-                                            "line": 22,
-                                            "column": 15,
-                                            "is_statement": false
-                                          },
-                                          "line": 22,
-                                          "column": 1,
-                                          "is_statement": false
-                                        },
-                                        "line": 21,
-                                        "column": 14,
-                                        "is_statement": false
-                                      },
-                                      "line": 21,
-                                      "column": 1,
-                                      "is_statement": false
-                                    },
-                                    "line": 20,
-                                    "column": 19,
-                                    "is_statement": true
-                                  },
-                                  "line": 20,
-                                  "column": 1,
-                                  "is_statement": false
-                                },
-                                "line": 19,
-                                "column": 21,
-                                "is_statement": true
-                              },
-                              "line": 19,
-                              "column": 1,
-                              "is_statement": false
-                            },
-                            "line": 18,
-                            "column": 19,
-                            "is_statement": true
-                          },
-                          "line": 18,
-                          "column": 1,
-                          "is_statement": false
-                        },
-                        "line": 17,
-                        "column": 23,
-                        "is_statement": true
-                      },
-                      "line": 17,
-                      "column": 1,
-                      "is_statement": false
-                    },
-                    "line": 16,
-                    "column": 17,
-                    "is_statement": true
-                  },
-                  "line": 16,
-                  "column": 1,
-                  "is_statement": false
-                },
-                "line": 15,
-                "column": 17,
-                "is_statement": true
-              },
-              "line": 15,
-              "column": 1,
-              "is_statement": false
-            },
-            "line": 14,
-            "column": 17,
-            "is_statement": true
-          },
-          "line": 14,
-          "column": 1,
-          "is_statement": false
-        },
-        "line": 13,
-        "column": 17,
-        "is_statement": false
-      },
-      "line": 13,
-      "column": 1,
-      "is_statement": false
-    },
-    "line": 2,
-    "column": 1,
-    "is_statement": false
-  },
   "example/main.sc": {
     "value": {
       "Include": "std.sc"
@@ -1445,6 +889,562 @@
       },
       "next": null,
       "line": 11,
+      "column": 1,
+      "is_statement": false
+    },
+    "line": 2,
+    "column": 1,
+    "is_statement": false
+  },
+  "std.sc": {
+    "value": {
+      "SingleComment": [
+        " std.script",
+        [
+          1,
+          1
+        ]
+      ]
+    },
+    "next": {
+      "value": {
+        "MultiComment": [
+          [
+            "\r",
+            "type i32 = i32;\r",
+            "type f32 = f32;\r",
+            "type i64 = i64;\r",
+            "type f64 = f64;\r",
+            "type string = string;\r",
+            "type array = array<T>;\r",
+            "type bool = bool;\r",
+            "struct Vector;\r",
+            "struct HashMap;\r"
+          ],
+          [
+            2,
+            1
+          ]
+        ]
+      },
+      "next": {
+        "value": {
+          "Declaration": {
+            "Type": [
+              {
+                "value": {
+                  "Variable": [
+                    {
+                      "value": "Null",
+                      "next": null,
+                      "line": 13,
+                      "column": 17,
+                      "is_statement": false
+                    },
+                    "i32"
+                  ]
+                },
+                "next": null,
+                "line": 13,
+                "column": 17,
+                "is_statement": false
+              },
+              {
+                "value": {
+                  "DataType": {
+                    "String": "i32"
+                  }
+                },
+                "next": null,
+                "line": 13,
+                "column": 17,
+                "is_statement": false
+              }
+            ]
+          }
+        },
+        "next": {
+          "value": "EndStatement",
+          "next": {
+            "value": {
+              "Declaration": {
+                "Type": [
+                  {
+                    "value": {
+                      "Variable": [
+                        {
+                          "value": "Null",
+                          "next": null,
+                          "line": 14,
+                          "column": 17,
+                          "is_statement": false
+                        },
+                        "f32"
+                      ]
+                    },
+                    "next": null,
+                    "line": 14,
+                    "column": 17,
+                    "is_statement": false
+                  },
+                  {
+                    "value": {
+                      "DataType": {
+                        "String": "f32"
+                      }
+                    },
+                    "next": null,
+                    "line": 14,
+                    "column": 17,
+                    "is_statement": false
+                  }
+                ]
+              }
+            },
+            "next": {
+              "value": "EndStatement",
+              "next": {
+                "value": {
+                  "Declaration": {
+                    "Type": [
+                      {
+                        "value": {
+                          "Variable": [
+                            {
+                              "value": "Null",
+                              "next": null,
+                              "line": 15,
+                              "column": 17,
+                              "is_statement": false
+                            },
+                            "i64"
+                          ]
+                        },
+                        "next": null,
+                        "line": 15,
+                        "column": 17,
+                        "is_statement": false
+                      },
+                      {
+                        "value": {
+                          "DataType": {
+                            "String": "i64"
+                          }
+                        },
+                        "next": null,
+                        "line": 15,
+                        "column": 17,
+                        "is_statement": false
+                      }
+                    ]
+                  }
+                },
+                "next": {
+                  "value": "EndStatement",
+                  "next": {
+                    "value": {
+                      "Declaration": {
+                        "Type": [
+                          {
+                            "value": {
+                              "Variable": [
+                                {
+                                  "value": "Null",
+                                  "next": null,
+                                  "line": 16,
+                                  "column": 17,
+                                  "is_statement": false
+                                },
+                                "f64"
+                              ]
+                            },
+                            "next": null,
+                            "line": 16,
+                            "column": 17,
+                            "is_statement": false
+                          },
+                          {
+                            "value": {
+                              "DataType": {
+                                "String": "f64"
+                              }
+                            },
+                            "next": null,
+                            "line": 16,
+                            "column": 17,
+                            "is_statement": false
+                          }
+                        ]
+                      }
+                    },
+                    "next": {
+                      "value": "EndStatement",
+                      "next": {
+                        "value": {
+                          "Declaration": {
+                            "Type": [
+                              {
+                                "value": {
+                                  "Variable": [
+                                    {
+                                      "value": "Null",
+                                      "next": null,
+                                      "line": 17,
+                                      "column": 23,
+                                      "is_statement": false
+                                    },
+                                    "string"
+                                  ]
+                                },
+                                "next": null,
+                                "line": 17,
+                                "column": 23,
+                                "is_statement": false
+                              },
+                              {
+                                "value": {
+                                  "DataType": {
+                                    "String": "string"
+                                  }
+                                },
+                                "next": null,
+                                "line": 17,
+                                "column": 23,
+                                "is_statement": false
+                              }
+                            ]
+                          }
+                        },
+                        "next": {
+                          "value": "EndStatement",
+                          "next": {
+                            "value": {
+                              "Declaration": {
+                                "Type": [
+                                  {
+                                    "value": {
+                                      "Variable": [
+                                        {
+                                          "value": "Null",
+                                          "next": null,
+                                          "line": 18,
+                                          "column": 19,
+                                          "is_statement": false
+                                        },
+                                        "void"
+                                      ]
+                                    },
+                                    "next": null,
+                                    "line": 18,
+                                    "column": 19,
+                                    "is_statement": false
+                                  },
+                                  {
+                                    "value": {
+                                      "DataType": {
+                                        "String": "unit"
+                                      }
+                                    },
+                                    "next": null,
+                                    "line": 18,
+                                    "column": 19,
+                                    "is_statement": false
+                                  }
+                                ]
+                              }
+                            },
+                            "next": {
+                              "value": "EndStatement",
+                              "next": {
+                                "value": {
+                                  "Declaration": {
+                                    "Type": [
+                                      {
+                                        "value": {
+                                          "Variable": [
+                                            {
+                                              "value": "Null",
+                                              "next": null,
+                                              "line": 19,
+                                              "column": 21,
+                                              "is_statement": false
+                                            },
+                                            "array"
+                                          ]
+                                        },
+                                        "next": null,
+                                        "line": 19,
+                                        "column": 21,
+                                        "is_statement": false
+                                      },
+                                      {
+                                        "value": {
+                                          "DataType": {
+                                            "String": "array"
+                                          }
+                                        },
+                                        "next": null,
+                                        "line": 19,
+                                        "column": 21,
+                                        "is_statement": false
+                                      }
+                                    ]
+                                  }
+                                },
+                                "next": {
+                                  "value": "EndStatement",
+                                  "next": {
+                                    "value": {
+                                      "Declaration": {
+                                        "Type": [
+                                          {
+                                            "value": {
+                                              "Variable": [
+                                                {
+                                                  "value": "Null",
+                                                  "next": null,
+                                                  "line": 20,
+                                                  "column": 19,
+                                                  "is_statement": false
+                                                },
+                                                "bool"
+                                              ]
+                                            },
+                                            "next": null,
+                                            "line": 20,
+                                            "column": 19,
+                                            "is_statement": false
+                                          },
+                                          {
+                                            "value": {
+                                              "DataType": {
+                                                "String": "bool"
+                                              }
+                                            },
+                                            "next": null,
+                                            "line": 20,
+                                            "column": 19,
+                                            "is_statement": false
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "next": {
+                                      "value": "EndStatement",
+                                      "next": {
+                                        "value": {
+                                          "Declaration": {
+                                            "Struct": [
+                                              "Vector",
+                                              [
+                                                {
+                                                  "value": "Null",
+                                                  "next": null,
+                                                  "line": 21,
+                                                  "column": 14,
+                                                  "is_statement": false
+                                                }
+                                              ]
+                                            ]
+                                          }
+                                        },
+                                        "next": {
+                                          "value": "EndStatement",
+                                          "next": {
+                                            "value": {
+                                              "Declaration": {
+                                                "Struct": [
+                                                  "HashMap",
+                                                  [
+                                                    {
+                                                      "value": "Null",
+                                                      "next": null,
+                                                      "line": 22,
+                                                      "column": 15,
+                                                      "is_statement": false
+                                                    }
+                                                  ]
+                                                ]
+                                              }
+                                            },
+                                            "next": {
+                                              "value": "EndStatement",
+                                              "next": {
+                                                "value": {
+                                                  "Variable": [
+                                                    {
+                                                      "value": "Null",
+                                                      "next": null,
+                                                      "line": 23,
+                                                      "column": 8,
+                                                      "is_statement": false
+                                                    },
+                                                    "sturct"
+                                                  ]
+                                                },
+                                                "next": {
+                                                  "value": {
+                                                    "Variable": [
+                                                      {
+                                                        "value": "Null",
+                                                        "next": null,
+                                                        "line": 23,
+                                                        "column": 10,
+                                                        "is_statement": false
+                                                      },
+                                                      "IO"
+                                                    ]
+                                                  },
+                                                  "next": {
+                                                    "value": "EndStatement",
+                                                    "next": {
+                                                      "value": {
+                                                        "Declaration": {
+                                                          "Struct": [
+                                                            "File",
+                                                            [
+                                                              {
+                                                                "value": "Null",
+                                                                "next": null,
+                                                                "line": 24,
+                                                                "column": 12,
+                                                                "is_statement": false
+                                                              }
+                                                            ]
+                                                          ]
+                                                        }
+                                                      },
+                                                      "next": {
+                                                        "value": "EndStatement",
+                                                        "next": {
+                                                          "value": {
+                                                            "Declaration": {
+                                                              "Struct": [
+                                                                "Memory",
+                                                                [
+                                                                  {
+                                                                    "value": "Null",
+                                                                    "next": null,
+                                                                    "line": 25,
+                                                                    "column": 14,
+                                                                    "is_statement": false
+                                                                  }
+                                                                ]
+                                                              ]
+                                                            }
+                                                          },
+                                                          "next": {
+                                                            "value": "EndStatement",
+                                                            "next": null,
+                                                            "line": 25,
+                                                            "column": 14,
+                                                            "is_statement": false
+                                                          },
+                                                          "line": 25,
+                                                          "column": 14,
+                                                          "is_statement": false
+                                                        },
+                                                        "line": 25,
+                                                        "column": 1,
+                                                        "is_statement": false
+                                                      },
+                                                      "line": 24,
+                                                      "column": 12,
+                                                      "is_statement": false
+                                                    },
+                                                    "line": 24,
+                                                    "column": 1,
+                                                    "is_statement": false
+                                                  },
+                                                  "line": 23,
+                                                  "column": 10,
+                                                  "is_statement": false
+                                                },
+                                                "line": 23,
+                                                "column": 8,
+                                                "is_statement": false
+                                              },
+                                              "line": 23,
+                                              "column": 1,
+                                              "is_statement": false
+                                            },
+                                            "line": 22,
+                                            "column": 15,
+                                            "is_statement": false
+                                          },
+                                          "line": 22,
+                                          "column": 1,
+                                          "is_statement": false
+                                        },
+                                        "line": 21,
+                                        "column": 14,
+                                        "is_statement": false
+                                      },
+                                      "line": 21,
+                                      "column": 1,
+                                      "is_statement": false
+                                    },
+                                    "line": 20,
+                                    "column": 19,
+                                    "is_statement": true
+                                  },
+                                  "line": 20,
+                                  "column": 1,
+                                  "is_statement": false
+                                },
+                                "line": 19,
+                                "column": 21,
+                                "is_statement": true
+                              },
+                              "line": 19,
+                              "column": 1,
+                              "is_statement": false
+                            },
+                            "line": 18,
+                            "column": 19,
+                            "is_statement": true
+                          },
+                          "line": 18,
+                          "column": 1,
+                          "is_statement": false
+                        },
+                        "line": 17,
+                        "column": 23,
+                        "is_statement": true
+                      },
+                      "line": 17,
+                      "column": 1,
+                      "is_statement": false
+                    },
+                    "line": 16,
+                    "column": 17,
+                    "is_statement": true
+                  },
+                  "line": 16,
+                  "column": 1,
+                  "is_statement": false
+                },
+                "line": 15,
+                "column": 17,
+                "is_statement": true
+              },
+              "line": 15,
+              "column": 1,
+              "is_statement": false
+            },
+            "line": 14,
+            "column": 17,
+            "is_statement": true
+          },
+          "line": 14,
+          "column": 1,
+          "is_statement": false
+        },
+        "line": 13,
+        "column": 17,
+        "is_statement": false
+      },
+      "line": 13,
       "column": 1,
       "is_statement": false
     },
