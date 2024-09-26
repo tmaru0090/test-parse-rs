@@ -687,6 +687,32 @@ impl Decoder {
         {
             if *is_system {
                 match name.as_str() {
+                    "list_files" => {
+                        if args.len() != 1 {
+                            return Err("list_files expects exactly one argument".into());
+                        }
+
+                        let dir = match self.execute_node(&args[0])? {
+                            Value::String(v) => v,
+                            _ => return Err("list_files expects a string as the file name".into()),
+                        };
+
+                        let mut paths = Vec::new(); // ファイルパスを格納するベクタ
+                                                    // ディレクトリの内容を読み込み
+                        if let Ok(entries) = std::fs::read_dir(&dir) {
+                            for entry in entries {
+                                if let Ok(entry) = entry {
+                                    let path = entry.path();
+                                    if path.is_file() {
+                                        // ファイルのみを対象とする場合
+                                        paths.push(path.to_string_lossy().into_owned());
+                                    }
+                                }
+                            }
+                        }
+                        let value = serde_json::json!(paths);
+                        return Ok(value);
+                    }
                     "play_music" => {
                         if args.len() != 1 {
                             return Err("play_music expects exactly one argument".into());
