@@ -171,8 +171,8 @@ impl Decoder {
         self
     }
 
-    fn generate_html_from_comments(&mut self) -> String {
-        let mut html = String::from(
+fn generate_html_from_comments(&mut self) -> String {
+    let mut html = String::from(
         "<!DOCTYPE html>\n<html>\n<head>\n<title>Comments</title>\n<style>\n\
         body { font-family: Arial, sans-serif; }\n\
         .comment-container { margin: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }\n\
@@ -180,49 +180,81 @@ impl Decoder {
         .comment-link { color: #007bff; text-decoration: none; }\n\
         .comment-link:hover { text-decoration: underline; }\n\
         .hidden { display: none; }\n\
+        .slide { overflow: hidden; transition: max-height 0.3s ease-out; }\n\
+        .slide.show { max-height: 500px; }\n\
+        .slide.hide { max-height: 0; }\n\
+        #search-box { margin: 20px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; width: 300px; }\n\
+        .highlight { background-color: #e3f2fd; border: 1px solid #039be5; border-radius: 2px; }\n\
         </style>\n</head>\n<body>\n",
     );
 
-        html.push_str("<div id=\"comments\">\n");
+    // 検索ボックスの追加
+    html.push_str(
+        "<div id=\"search-container\">\n\
+        <input type=\"text\" id=\"search-box\" placeholder=\"Search comments...\"></input>\n\
+        </div>\n",
+    );
 
-        // コメントを行ごとに処理
-        for ((line, column), comments) in &self.context.comment_lists {
-            // 行番号と列番号をリンクとして表示
-            html.push_str(&format!(
+    html.push_str("<div id=\"comments\">\n");
+
+    // コメントを行ごとに処理
+    for ((line, column), comments) in &self.context.comment_lists {
+        // 行番号と列番号をリンクとして表示
+        html.push_str(&format!(
             "<div class=\"comment-container\">\n\
             <a href=\"#\" class=\"comment-link\" onclick=\"toggleComments({},{})\">Line {} Column {}</a>\n",
             line, column, line, column
         ));
 
-            // 各コメントをHTMLの要素として追加
-            html.push_str("<div id=\"comments-");
-            html.push_str(&format!("{:02}-{:02}\" class=\"hidden\">", line, column));
-            for comment in comments {
-                html.push_str(&format!("<div class=\"comment\">{}</div>\n", comment));
-            }
-            html.push_str("</div>\n</div>\n");
+        // 各コメントをHTMLの要素として追加
+        html.push_str("<div id=\"comments-");
+        html.push_str(&format!("{:02}-{:02}\" class=\"slide hide\">", line, column));
+        for comment in comments {
+            html.push_str(&format!("<div class=\"comment\" data-comment=\"{}\">{}</div>\n", comment, comment));
         }
+        html.push_str("</div>\n</div>\n");
+    }
 
-        html.push_str("</div>\n");
+    html.push_str("</div>\n");
 
-        // JavaScriptでコメント表示を制御
-        html.push_str(
+    // JavaScriptでコメント表示を制御と検索機能の追加
+    html.push_str(
         "<script>\n\
         function toggleComments(line, column) {\n\
             var commentsDiv = document.getElementById('comments-' + String(line).padStart(2, '0') + '-' + String(column).padStart(2, '0'));\n\
-            if (commentsDiv.style.display === 'none' || commentsDiv.style.display === '') {\n\
-                commentsDiv.style.display = 'block';\n\
+            if (commentsDiv.classList.contains('hide')) {\n\
+                commentsDiv.classList.remove('hide');\n\
+                commentsDiv.classList.add('show');\n\
             } else {\n\
-                commentsDiv.style.display = 'none';\n\
+                commentsDiv.classList.remove('show');\n\
+                commentsDiv.classList.add('hide');\n\
             }\n\
         }\n\
+        document.getElementById('search-box').addEventListener('input', function() {\n\
+            var searchValue = this.value.toLowerCase();\n\
+            var comments = document.querySelectorAll('.comment');\n\
+            comments.forEach(function(comment) {\n\
+                var commentText = comment.textContent.toLowerCase();\n\
+                var highlightedText = commentText;\n\
+                if (searchValue && commentText.includes(searchValue)) {\n\
+                    var regex = new RegExp('(' + searchValue + ')', 'gi');\n\
+                    highlightedText = commentText.replace(regex, '<span class=\"highlight\">$1</span>');\n\
+                    comment.innerHTML = highlightedText;\n\
+                } else {\n\
+                    comment.innerHTML = commentText;\n\
+                }\n\
+                comment.style.display = commentText.includes(searchValue) ? '' : 'none';\n\
+            });\n\
+        });\n\
         </script>\n"
     );
 
-        html.push_str("</body>\n</html>");
+    html.push_str("</body>\n</html>");
 
-        html
-    }
+    html
+}
+    
+
 
     // 現在のASTのマップの先頭に指定スクリプトのASTを追加
     pub fn add_first_ast_from_file(&mut self, file_name: &str) -> R<&mut Self, String> {

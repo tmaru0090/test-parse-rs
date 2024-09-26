@@ -1,527 +1,22 @@
 {
-  "example/main.sc": {
+  "main-entry": {
     "value": {
-      "Include": "std.sc"
+      "Call": [
+        "main",
+        [],
+        false
+      ]
     },
     "next": {
-      "value": {
-        "Include": "example/test.sc"
-      },
-      "next": {
-        "value": {
-          "Declaration": {
-            "Function": [
-              "music_play_lists",
-              [
-                [
-                  {
-                    "value": "Null",
-                    "next": null,
-                    "line": 4,
-                    "column": 26,
-                    "is_statement": false
-                  },
-                  "paths"
-                ],
-                [
-                  {
-                    "value": "Null",
-                    "next": null,
-                    "line": 4,
-                    "column": 37,
-                    "is_statement": false
-                  },
-                  "sleep_time"
-                ]
-              ],
-              {
-                "value": {
-                  "Block": [
-                    {
-                      "value": {
-                        "ControlFlow": {
-                          "For": [
-                            {
-                              "value": {
-                                "Variable": [
-                                  {
-                                    "value": "Null",
-                                    "next": null,
-                                    "line": 9,
-                                    "column": 1,
-                                    "is_statement": false
-                                  },
-                                  "path"
-                                ]
-                              },
-                              "next": null,
-                              "line": 9,
-                              "column": 1,
-                              "is_statement": false
-                            },
-                            {
-                              "value": {
-                                "Variable": [
-                                  {
-                                    "value": "Null",
-                                    "next": null,
-                                    "line": 5,
-                                    "column": 17,
-                                    "is_statement": false
-                                  },
-                                  "paths"
-                                ]
-                              },
-                              "next": null,
-                              "line": 5,
-                              "column": 17,
-                              "is_statement": false
-                            },
-                            {
-                              "value": {
-                                "Block": [
-                                  {
-                                    "value": {
-                                      "Call": [
-                                        "play_music",
-                                        [
-                                          {
-                                            "value": {
-                                              "Variable": [
-                                                {
-                                                  "value": "Null",
-                                                  "next": null,
-                                                  "line": 6,
-                                                  "column": 25,
-                                                  "is_statement": false
-                                                },
-                                                "path"
-                                              ]
-                                            },
-                                            "next": null,
-                                            "line": 6,
-                                            "column": 25,
-                                            "is_statement": false
-                                          }
-                                        ],
-                                        true
-                                      ]
-                                    },
-                                    "next": {
-                                      "value": "EndStatement",
-                                      "next": {
-                                        "value": {
-                                          "Call": [
-                                            "sleep",
-                                            [
-                                              {
-                                                "value": {
-                                                  "Variable": [
-                                                    {
-                                                      "value": "Null",
-                                                      "next": null,
-                                                      "line": 7,
-                                                      "column": 26,
-                                                      "is_statement": false
-                                                    },
-                                                    "sleep_time"
-                                                  ]
-                                                },
-                                                "next": null,
-                                                "line": 7,
-                                                "column": 26,
-                                                "is_statement": false
-                                              }
-                                            ],
-                                            true
-                                          ]
-                                        },
-                                        "next": {
-                                          "value": "EndStatement",
-                                          "next": null,
-                                          "line": 8,
-                                          "column": 5,
-                                          "is_statement": false
-                                        },
-                                        "line": 7,
-                                        "column": 27,
-                                        "is_statement": true
-                                      },
-                                      "line": 7,
-                                      "column": 9,
-                                      "is_statement": false
-                                    },
-                                    "line": 6,
-                                    "column": 26,
-                                    "is_statement": true
-                                  }
-                                ]
-                              },
-                              "next": null,
-                              "line": 9,
-                              "column": 1,
-                              "is_statement": false
-                            }
-                          ]
-                        }
-                      },
-                      "next": null,
-                      "line": 9,
-                      "column": 1,
-                      "is_statement": false
-                    }
-                  ]
-                },
-                "next": null,
-                "line": 10,
-                "column": 1,
-                "is_statement": false
-              },
-              {
-                "value": "Null",
-                "next": null,
-                "line": 4,
-                "column": 21,
-                "is_statement": false
-              },
-              false
-            ]
-          }
-        },
-        "next": {
-          "value": {
-            "Declaration": {
-              "Function": [
-                "main",
-                [],
-                {
-                  "value": {
-                    "Block": [
-                      {
-                        "value": {
-                          "Declaration": {
-                            "Variable": [
-                              {
-                                "value": {
-                                  "Variable": [
-                                    {
-                                      "value": "Null",
-                                      "next": null,
-                                      "line": 31,
-                                      "column": 73,
-                                      "is_statement": false
-                                    },
-                                    "paths"
-                                  ]
-                                },
-                                "next": null,
-                                "line": 31,
-                                "column": 73,
-                                "is_statement": false
-                              },
-                              {
-                                "value": {
-                                  "DataType": {
-                                    "Unit": null
-                                  }
-                                },
-                                "next": null,
-                                "line": 11,
-                                "column": 9,
-                                "is_statement": false
-                              },
-                              {
-                                "value": {
-                                  "Declaration": {
-                                    "Array": [
-                                      {
-                                        "value": "Null",
-                                        "next": null,
-                                        "line": 11,
-                                        "column": 17,
-                                        "is_statement": false
-                                      },
-                                      [
-                                        {
-                                          "value": {
-                                            "DataType": {
-                                              "String": "C:/Users/tanukimaru/Downloads/sounds/dewprism-forest.wav"
-                                            }
-                                          },
-                                          "next": null,
-                                          "line": 12,
-                                          "column": 75,
-                                          "is_statement": false
-                                        },
-                                        {
-                                          "value": {
-                                            "DataType": {
-                                              "String": "C:/Users/tanukimaru/Downloads/sounds/dewprism-town.wav"
-                                            }
-                                          },
-                                          "next": null,
-                                          "line": 13,
-                                          "column": 73,
-                                          "is_statement": false
-                                        },
-                                        {
-                                          "value": {
-                                            "DataType": {
-                                              "String": "C:/Users/tanukimaru/Downloads/sounds/kisida-keizai.wav"
-                                            }
-                                          },
-                                          "next": null,
-                                          "line": 14,
-                                          "column": 73,
-                                          "is_statement": false
-                                        },
-                                        {
-                                          "value": {
-                                            "DataType": {
-                                              "String": "C:/Users/tanukimaru/Downloads/sounds/maou_bgm_healing15.mp3"
-                                            }
-                                          },
-                                          "next": null,
-                                          "line": 15,
-                                          "column": 78,
-                                          "is_statement": false
-                                        },
-                                        {
-                                          "value": {
-                                            "DataType": {
-                                              "String": "C:/Users/tanukimaru/Downloads/sounds/pokemon-bw-densetu.wav"
-                                            }
-                                          },
-                                          "next": null,
-                                          "line": 16,
-                                          "column": 78,
-                                          "is_statement": false
-                                        },
-                                        {
-                                          "value": {
-                                            "DataType": {
-                                              "String": "C:/Users/tanukimaru/Downloads/sounds/pokemon-bw-end.mp3"
-                                            }
-                                          },
-                                          "next": null,
-                                          "line": 17,
-                                          "column": 74,
-                                          "is_statement": false
-                                        },
-                                        {
-                                          "value": {
-                                            "DataType": {
-                                              "String": "C:/Users/tanukimaru/Downloads/sounds/pokemon-bw-end.wav"
-                                            }
-                                          },
-                                          "next": null,
-                                          "line": 18,
-                                          "column": 74,
-                                          "is_statement": false
-                                        },
-                                        {
-                                          "value": {
-                                            "DataType": {
-                                              "String": "C:/Users/tanukimaru/Downloads/sounds/pokemon-bw-sentou-zimu.wav"
-                                            }
-                                          },
-                                          "next": null,
-                                          "line": 19,
-                                          "column": 82,
-                                          "is_statement": false
-                                        },
-                                        {
-                                          "value": {
-                                            "DataType": {
-                                              "String": "C:/Users/tanukimaru/Downloads/sounds/pokemon-bw-syouri-mokuzen.wav"
-                                            }
-                                          },
-                                          "next": null,
-                                          "line": 20,
-                                          "column": 85,
-                                          "is_statement": false
-                                        },
-                                        {
-                                          "value": {
-                                            "DataType": {
-                                              "String": "C:/Users/tanukimaru/Downloads/sounds/pokemon-bw-t-sentou.wav"
-                                            }
-                                          },
-                                          "next": null,
-                                          "line": 21,
-                                          "column": 79,
-                                          "is_statement": false
-                                        },
-                                        {
-                                          "value": {
-                                            "DataType": {
-                                              "String": "C:/Users/tanukimaru/Downloads/sounds/pokemon-bw-title.wav"
-                                            }
-                                          },
-                                          "next": null,
-                                          "line": 22,
-                                          "column": 76,
-                                          "is_statement": false
-                                        },
-                                        {
-                                          "value": {
-                                            "DataType": {
-                                              "String": "C:/Users/tanukimaru/Downloads/sounds/pokemon-bw-y-sentou.wav"
-                                            }
-                                          },
-                                          "next": null,
-                                          "line": 23,
-                                          "column": 79,
-                                          "is_statement": false
-                                        },
-                                        {
-                                          "value": {
-                                            "DataType": {
-                                              "String": "C:/Users/tanukimaru/Downloads/sounds/pokemon-bw2-op.wav"
-                                            }
-                                          },
-                                          "next": null,
-                                          "line": 24,
-                                          "column": 74,
-                                          "is_statement": false
-                                        },
-                                        {
-                                          "value": {
-                                            "DataType": {
-                                              "String": "C:/Users/tanukimaru/Downloads/sounds/pokemon-bw2-title.wav"
-                                            }
-                                          },
-                                          "next": null,
-                                          "line": 25,
-                                          "column": 77,
-                                          "is_statement": false
-                                        },
-                                        {
-                                          "value": {
-                                            "DataType": {
-                                              "String": "C:/Users/tanukimaru/Downloads/sounds/ryokugan.wav"
-                                            }
-                                          },
-                                          "next": null,
-                                          "line": 26,
-                                          "column": 68,
-                                          "is_statement": false
-                                        },
-                                        {
-                                          "value": {
-                                            "DataType": {
-                                              "String": "C:/Users/tanukimaru/Downloads/sounds/th3_05.mp3"
-                                            }
-                                          },
-                                          "next": null,
-                                          "line": 27,
-                                          "column": 66,
-                                          "is_statement": false
-                                        },
-                                        {
-                                          "value": {
-                                            "DataType": {
-                                              "String": "C:/Users/tanukimaru/Downloads/sounds/write-san-end (1).wav"
-                                            }
-                                          },
-                                          "next": null,
-                                          "line": 28,
-                                          "column": 77,
-                                          "is_statement": false
-                                        },
-                                        {
-                                          "value": {
-                                            "DataType": {
-                                              "String": "C:/Users/tanukimaru/Downloads/sounds/write-san-end (2).wav"
-                                            }
-                                          },
-                                          "next": null,
-                                          "line": 29,
-                                          "column": 77,
-                                          "is_statement": false
-                                        },
-                                        {
-                                          "value": {
-                                            "DataType": {
-                                              "String": "C:/Users/tanukimaru/Downloads/sounds/write-san-end.wav"
-                                            }
-                                          },
-                                          "next": null,
-                                          "line": 30,
-                                          "column": 73,
-                                          "is_statement": false
-                                        },
-                                        {
-                                          "value": {
-                                            "DataType": {
-                                              "String": "C:/Users/tanukimaru/Downloads/sounds/繧ｫ繝ｼ繧ｽ繝ｫ遘ｻ蜍・.mp3"
-                                            }
-                                          },
-                                          "next": null,
-                                          "line": 31,
-                                          "column": 72,
-                                          "is_statement": false
-                                        }
-                                      ]
-                                    ]
-                                  }
-                                },
-                                "next": null,
-                                "line": 31,
-                                "column": 73,
-                                "is_statement": false
-                              },
-                              true,
-                              false,
-                              false
-                            ]
-                          }
-                        },
-                        "next": {
-                          "value": "EndStatement",
-                          "next": null,
-                          "line": 34,
-                          "column": 1,
-                          "is_statement": false
-                        },
-                        "line": 31,
-                        "column": 73,
-                        "is_statement": true
-                      }
-                    ]
-                  },
-                  "next": null,
-                  "line": 34,
-                  "column": 1,
-                  "is_statement": false
-                },
-                {
-                  "value": "Null",
-                  "next": null,
-                  "line": 10,
-                  "column": 9,
-                  "is_statement": false
-                },
-                false
-              ]
-            }
-          },
-          "next": null,
-          "line": 34,
-          "column": 1,
-          "is_statement": false
-        },
-        "line": 10,
-        "column": 1,
-        "is_statement": false
-      },
-      "line": 2,
-      "column": 10,
+      "value": "EndStatement",
+      "next": null,
+      "line": 1,
+      "column": 7,
       "is_statement": false
     },
     "line": 1,
-    "column": 10,
-    "is_statement": false
+    "column": 7,
+    "is_statement": true
   },
   "example/test.sc": {
     "value": {
@@ -1452,23 +947,528 @@
     "column": 1,
     "is_statement": false
   },
-  "main-entry": {
+  "example/main.sc": {
     "value": {
-      "Call": [
-        "main",
-        [],
-        false
-      ]
+      "Include": "std.sc"
     },
     "next": {
-      "value": "EndStatement",
-      "next": null,
-      "line": 1,
-      "column": 7,
+      "value": {
+        "Include": "example/test.sc"
+      },
+      "next": {
+        "value": {
+          "Declaration": {
+            "Function": [
+              "music_play_lists",
+              [
+                [
+                  {
+                    "value": "Null",
+                    "next": null,
+                    "line": 4,
+                    "column": 26,
+                    "is_statement": false
+                  },
+                  "paths"
+                ],
+                [
+                  {
+                    "value": "Null",
+                    "next": null,
+                    "line": 4,
+                    "column": 37,
+                    "is_statement": false
+                  },
+                  "sleep_time"
+                ]
+              ],
+              {
+                "value": {
+                  "Block": [
+                    {
+                      "value": {
+                        "ControlFlow": {
+                          "For": [
+                            {
+                              "value": {
+                                "Variable": [
+                                  {
+                                    "value": "Null",
+                                    "next": null,
+                                    "line": 9,
+                                    "column": 1,
+                                    "is_statement": false
+                                  },
+                                  "path"
+                                ]
+                              },
+                              "next": null,
+                              "line": 9,
+                              "column": 1,
+                              "is_statement": false
+                            },
+                            {
+                              "value": {
+                                "Variable": [
+                                  {
+                                    "value": "Null",
+                                    "next": null,
+                                    "line": 5,
+                                    "column": 17,
+                                    "is_statement": false
+                                  },
+                                  "paths"
+                                ]
+                              },
+                              "next": null,
+                              "line": 5,
+                              "column": 17,
+                              "is_statement": false
+                            },
+                            {
+                              "value": {
+                                "Block": [
+                                  {
+                                    "value": {
+                                      "Call": [
+                                        "play_music",
+                                        [
+                                          {
+                                            "value": {
+                                              "Variable": [
+                                                {
+                                                  "value": "Null",
+                                                  "next": null,
+                                                  "line": 6,
+                                                  "column": 25,
+                                                  "is_statement": false
+                                                },
+                                                "path"
+                                              ]
+                                            },
+                                            "next": null,
+                                            "line": 6,
+                                            "column": 25,
+                                            "is_statement": false
+                                          }
+                                        ],
+                                        true
+                                      ]
+                                    },
+                                    "next": {
+                                      "value": "EndStatement",
+                                      "next": {
+                                        "value": {
+                                          "Call": [
+                                            "sleep",
+                                            [
+                                              {
+                                                "value": {
+                                                  "Variable": [
+                                                    {
+                                                      "value": "Null",
+                                                      "next": null,
+                                                      "line": 7,
+                                                      "column": 26,
+                                                      "is_statement": false
+                                                    },
+                                                    "sleep_time"
+                                                  ]
+                                                },
+                                                "next": null,
+                                                "line": 7,
+                                                "column": 26,
+                                                "is_statement": false
+                                              }
+                                            ],
+                                            true
+                                          ]
+                                        },
+                                        "next": {
+                                          "value": "EndStatement",
+                                          "next": null,
+                                          "line": 8,
+                                          "column": 5,
+                                          "is_statement": false
+                                        },
+                                        "line": 7,
+                                        "column": 27,
+                                        "is_statement": true
+                                      },
+                                      "line": 7,
+                                      "column": 9,
+                                      "is_statement": false
+                                    },
+                                    "line": 6,
+                                    "column": 26,
+                                    "is_statement": true
+                                  }
+                                ]
+                              },
+                              "next": null,
+                              "line": 9,
+                              "column": 1,
+                              "is_statement": false
+                            }
+                          ]
+                        }
+                      },
+                      "next": null,
+                      "line": 9,
+                      "column": 1,
+                      "is_statement": false
+                    }
+                  ]
+                },
+                "next": null,
+                "line": 10,
+                "column": 1,
+                "is_statement": false
+              },
+              {
+                "value": "Null",
+                "next": null,
+                "line": 4,
+                "column": 21,
+                "is_statement": false
+              },
+              false
+            ]
+          }
+        },
+        "next": {
+          "value": {
+            "Declaration": {
+              "Function": [
+                "main",
+                [],
+                {
+                  "value": {
+                    "Block": [
+                      {
+                        "value": {
+                          "Declaration": {
+                            "Variable": [
+                              {
+                                "value": {
+                                  "Variable": [
+                                    {
+                                      "value": "Null",
+                                      "next": null,
+                                      "line": 31,
+                                      "column": 73,
+                                      "is_statement": false
+                                    },
+                                    "paths"
+                                  ]
+                                },
+                                "next": null,
+                                "line": 31,
+                                "column": 73,
+                                "is_statement": false
+                              },
+                              {
+                                "value": {
+                                  "DataType": {
+                                    "Unit": null
+                                  }
+                                },
+                                "next": null,
+                                "line": 11,
+                                "column": 9,
+                                "is_statement": false
+                              },
+                              {
+                                "value": {
+                                  "Declaration": {
+                                    "Array": [
+                                      {
+                                        "value": "Null",
+                                        "next": null,
+                                        "line": 11,
+                                        "column": 17,
+                                        "is_statement": false
+                                      },
+                                      [
+                                        {
+                                          "value": {
+                                            "DataType": {
+                                              "String": "C:/Users/tanukimaru/Downloads/sounds/dewprism-forest.wav"
+                                            }
+                                          },
+                                          "next": null,
+                                          "line": 12,
+                                          "column": 75,
+                                          "is_statement": false
+                                        },
+                                        {
+                                          "value": {
+                                            "DataType": {
+                                              "String": "C:/Users/tanukimaru/Downloads/sounds/dewprism-town.wav"
+                                            }
+                                          },
+                                          "next": null,
+                                          "line": 13,
+                                          "column": 73,
+                                          "is_statement": false
+                                        },
+                                        {
+                                          "value": {
+                                            "DataType": {
+                                              "String": "C:/Users/tanukimaru/Downloads/sounds/kisida-keizai.wav"
+                                            }
+                                          },
+                                          "next": null,
+                                          "line": 14,
+                                          "column": 73,
+                                          "is_statement": false
+                                        },
+                                        {
+                                          "value": {
+                                            "DataType": {
+                                              "String": "C:/Users/tanukimaru/Downloads/sounds/maou_bgm_healing15.mp3"
+                                            }
+                                          },
+                                          "next": null,
+                                          "line": 15,
+                                          "column": 78,
+                                          "is_statement": false
+                                        },
+                                        {
+                                          "value": {
+                                            "DataType": {
+                                              "String": "C:/Users/tanukimaru/Downloads/sounds/pokemon-bw-densetu.wav"
+                                            }
+                                          },
+                                          "next": null,
+                                          "line": 16,
+                                          "column": 78,
+                                          "is_statement": false
+                                        },
+                                        {
+                                          "value": {
+                                            "DataType": {
+                                              "String": "C:/Users/tanukimaru/Downloads/sounds/pokemon-bw-end.mp3"
+                                            }
+                                          },
+                                          "next": null,
+                                          "line": 17,
+                                          "column": 74,
+                                          "is_statement": false
+                                        },
+                                        {
+                                          "value": {
+                                            "DataType": {
+                                              "String": "C:/Users/tanukimaru/Downloads/sounds/pokemon-bw-end.wav"
+                                            }
+                                          },
+                                          "next": null,
+                                          "line": 18,
+                                          "column": 74,
+                                          "is_statement": false
+                                        },
+                                        {
+                                          "value": {
+                                            "DataType": {
+                                              "String": "C:/Users/tanukimaru/Downloads/sounds/pokemon-bw-sentou-zimu.wav"
+                                            }
+                                          },
+                                          "next": null,
+                                          "line": 19,
+                                          "column": 82,
+                                          "is_statement": false
+                                        },
+                                        {
+                                          "value": {
+                                            "DataType": {
+                                              "String": "C:/Users/tanukimaru/Downloads/sounds/pokemon-bw-syouri-mokuzen.wav"
+                                            }
+                                          },
+                                          "next": null,
+                                          "line": 20,
+                                          "column": 85,
+                                          "is_statement": false
+                                        },
+                                        {
+                                          "value": {
+                                            "DataType": {
+                                              "String": "C:/Users/tanukimaru/Downloads/sounds/pokemon-bw-t-sentou.wav"
+                                            }
+                                          },
+                                          "next": null,
+                                          "line": 21,
+                                          "column": 79,
+                                          "is_statement": false
+                                        },
+                                        {
+                                          "value": {
+                                            "DataType": {
+                                              "String": "C:/Users/tanukimaru/Downloads/sounds/pokemon-bw-title.wav"
+                                            }
+                                          },
+                                          "next": null,
+                                          "line": 22,
+                                          "column": 76,
+                                          "is_statement": false
+                                        },
+                                        {
+                                          "value": {
+                                            "DataType": {
+                                              "String": "C:/Users/tanukimaru/Downloads/sounds/pokemon-bw-y-sentou.wav"
+                                            }
+                                          },
+                                          "next": null,
+                                          "line": 23,
+                                          "column": 79,
+                                          "is_statement": false
+                                        },
+                                        {
+                                          "value": {
+                                            "DataType": {
+                                              "String": "C:/Users/tanukimaru/Downloads/sounds/pokemon-bw2-op.wav"
+                                            }
+                                          },
+                                          "next": null,
+                                          "line": 24,
+                                          "column": 74,
+                                          "is_statement": false
+                                        },
+                                        {
+                                          "value": {
+                                            "DataType": {
+                                              "String": "C:/Users/tanukimaru/Downloads/sounds/pokemon-bw2-title.wav"
+                                            }
+                                          },
+                                          "next": null,
+                                          "line": 25,
+                                          "column": 77,
+                                          "is_statement": false
+                                        },
+                                        {
+                                          "value": {
+                                            "DataType": {
+                                              "String": "C:/Users/tanukimaru/Downloads/sounds/ryokugan.wav"
+                                            }
+                                          },
+                                          "next": null,
+                                          "line": 26,
+                                          "column": 68,
+                                          "is_statement": false
+                                        },
+                                        {
+                                          "value": {
+                                            "DataType": {
+                                              "String": "C:/Users/tanukimaru/Downloads/sounds/th3_05.mp3"
+                                            }
+                                          },
+                                          "next": null,
+                                          "line": 27,
+                                          "column": 66,
+                                          "is_statement": false
+                                        },
+                                        {
+                                          "value": {
+                                            "DataType": {
+                                              "String": "C:/Users/tanukimaru/Downloads/sounds/write-san-end (1).wav"
+                                            }
+                                          },
+                                          "next": null,
+                                          "line": 28,
+                                          "column": 77,
+                                          "is_statement": false
+                                        },
+                                        {
+                                          "value": {
+                                            "DataType": {
+                                              "String": "C:/Users/tanukimaru/Downloads/sounds/write-san-end (2).wav"
+                                            }
+                                          },
+                                          "next": null,
+                                          "line": 29,
+                                          "column": 77,
+                                          "is_statement": false
+                                        },
+                                        {
+                                          "value": {
+                                            "DataType": {
+                                              "String": "C:/Users/tanukimaru/Downloads/sounds/write-san-end.wav"
+                                            }
+                                          },
+                                          "next": null,
+                                          "line": 30,
+                                          "column": 73,
+                                          "is_statement": false
+                                        },
+                                        {
+                                          "value": {
+                                            "DataType": {
+                                              "String": "C:/Users/tanukimaru/Downloads/sounds/繧ｫ繝ｼ繧ｽ繝ｫ遘ｻ蜍・.mp3"
+                                            }
+                                          },
+                                          "next": null,
+                                          "line": 31,
+                                          "column": 72,
+                                          "is_statement": false
+                                        }
+                                      ]
+                                    ]
+                                  }
+                                },
+                                "next": null,
+                                "line": 31,
+                                "column": 73,
+                                "is_statement": false
+                              },
+                              true,
+                              false,
+                              false
+                            ]
+                          }
+                        },
+                        "next": {
+                          "value": "EndStatement",
+                          "next": null,
+                          "line": 34,
+                          "column": 1,
+                          "is_statement": false
+                        },
+                        "line": 31,
+                        "column": 73,
+                        "is_statement": true
+                      }
+                    ]
+                  },
+                  "next": null,
+                  "line": 34,
+                  "column": 1,
+                  "is_statement": false
+                },
+                {
+                  "value": "Null",
+                  "next": null,
+                  "line": 10,
+                  "column": 9,
+                  "is_statement": false
+                },
+                false
+              ]
+            }
+          },
+          "next": null,
+          "line": 34,
+          "column": 1,
+          "is_statement": false
+        },
+        "line": 10,
+        "column": 1,
+        "is_statement": false
+      },
+      "line": 2,
+      "column": 10,
       "is_statement": false
     },
     "line": 1,
-    "column": 7,
-    "is_statement": true
+    "column": 10,
+    "is_statement": false
   }
 }

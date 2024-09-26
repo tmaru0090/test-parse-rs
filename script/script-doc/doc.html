@@ -9,39 +9,65 @@ body { font-family: Arial, sans-serif; }
 .comment-link { color: #007bff; text-decoration: none; }
 .comment-link:hover { text-decoration: underline; }
 .hidden { display: none; }
+.slide { overflow: hidden; transition: max-height 0.3s ease-out; }
+.slide.show { max-height: 500px; }
+.slide.hide { max-height: 0; }
+#search-box { margin: 20px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; width: 300px; }
+.highlight { background-color: #e3f2fd; border: 1px solid #039be5; border-radius: 2px; }
 </style>
 </head>
 <body>
+<div id="search-container">
+<input type="text" id="search-box" placeholder="Search comments..."></input>
+</div>
 <div id="comments">
 <div class="comment-container">
 <a href="#" class="comment-link" onclick="toggleComments(1,1)">Line 1 Column 1</a>
-<div id="comments-01-01" class="hidden"><div class="comment"> フィボナッチ</div>
+<div id="comments-01-01" class="slide hide"><div class="comment" data-comment=" フィボナッチ"> フィボナッチ</div>
 </div>
 </div>
 <div class="comment-container">
 <a href="#" class="comment-link" onclick="toggleComments(2,1)">Line 2 Column 1</a>
-<div id="comments-02-01" class="hidden"><div class="comment"></div>
-<div class="comment">type i32 = i32;</div>
-<div class="comment">type f32 = f32;</div>
-<div class="comment">type i64 = i64;</div>
-<div class="comment">type f64 = f64;</div>
-<div class="comment">type string = string;</div>
-<div class="comment">type array = array<T>;</div>
-<div class="comment">type bool = bool;</div>
-<div class="comment">struct Vector;</div>
-<div class="comment">struct HashMap;</div>
+<div id="comments-02-01" class="slide hide"><div class="comment" data-comment=""></div>
+<div class="comment" data-comment="type i32 = i32;">type i32 = i32;</div>
+<div class="comment" data-comment="type f32 = f32;">type f32 = f32;</div>
+<div class="comment" data-comment="type i64 = i64;">type i64 = i64;</div>
+<div class="comment" data-comment="type f64 = f64;">type f64 = f64;</div>
+<div class="comment" data-comment="type string = string;">type string = string;</div>
+<div class="comment" data-comment="type array = array<T>;">type array = array<T>;</div>
+<div class="comment" data-comment="type bool = bool;">type bool = bool;</div>
+<div class="comment" data-comment="struct Vector;">struct Vector;</div>
+<div class="comment" data-comment="struct HashMap;">struct HashMap;</div>
 </div>
 </div>
 </div>
 <script>
 function toggleComments(line, column) {
 var commentsDiv = document.getElementById('comments-' + String(line).padStart(2, '0') + '-' + String(column).padStart(2, '0'));
-if (commentsDiv.style.display === 'none' || commentsDiv.style.display === '') {
-commentsDiv.style.display = 'block';
+if (commentsDiv.classList.contains('hide')) {
+commentsDiv.classList.remove('hide');
+commentsDiv.classList.add('show');
 } else {
-commentsDiv.style.display = 'none';
+commentsDiv.classList.remove('show');
+commentsDiv.classList.add('hide');
 }
 }
+document.getElementById('search-box').addEventListener('input', function() {
+var searchValue = this.value.toLowerCase();
+var comments = document.querySelectorAll('.comment');
+comments.forEach(function(comment) {
+var commentText = comment.textContent.toLowerCase();
+var highlightedText = commentText;
+if (searchValue && commentText.includes(searchValue)) {
+var regex = new RegExp('(' + searchValue + ')', 'gi');
+highlightedText = commentText.replace(regex, '<span class="highlight">$1</span>');
+comment.innerHTML = highlightedText;
+} else {
+comment.innerHTML = commentText;
+}
+comment.style.display = commentText.includes(searchValue) ? '' : 'none';
+});
+});
 </script>
 </body>
 </html>
