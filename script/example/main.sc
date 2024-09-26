@@ -1,5 +1,6 @@
 @include "std.sc"
 @include "example/test.sc"
+
 fn music_play_lists(paths,sleep_time){
     for path in paths{
         @play_music(path);
@@ -28,7 +29,4 @@ fn main(){
                 "C:/Users/tanukimaru/Downloads/sounds/write-san-end (2).wav",
                 "C:/Users/tanukimaru/Downloads/sounds/write-san-end.wav",
                 "C:/Users/tanukimaru/Downloads/sounds/繧ｫ繝ｼ繧ｽ繝ｫ遘ｻ蜍・.mp3"];
-   
-    music_play_lists(paths,4);
-    
 }
