@@ -148,9 +148,16 @@ pub struct Decoder {
     decode_time: f32, // 実行時間
 
     #[property(get)]
+    generated_doc: bool,
+    #[property(get)]
     entry_func: (bool, String), // main関数の有無(フラグ,見つかった関数名(main|Main))
 }
 impl Decoder {
+    pub fn generate_doc(&mut self, flag: bool) -> &mut Self {
+        self.generated_doc = flag;
+        self
+    }
+
     pub fn measured_decode_time(&mut self, flag: bool) -> &mut Self {
         self.measure_decode_time = flag;
         self
@@ -162,6 +169,30 @@ impl Decoder {
     pub fn generate_error_log_file(&mut self, flag: bool) -> &mut Self {
         self.generated_error_log_file = flag;
         self
+    }
+
+    fn generate_html_from_comments(&mut self) -> String {
+        // HTMLのヘッダーとボディの開始タグ
+        let mut html = String::from(
+            "<!DOCTYPE html>\n<html>\n<head>\n<title>Comments</title>\n</head>\n<body>\n",
+        );
+
+        // コメントを行ごとに処理
+        for ((line, column), comments) in &self.context.comment_lists {
+            // 各コメントをHTMLの要素として追加
+            for comment in comments {
+                // 行番号と列番号を使ってHTML要素に情報を埋め込む
+                html.push_str(&format!(
+                    "<div class=\"comment\" data-line=\"{}\" data-column=\"{}\">{}</div>\n",
+                    line, column, comment
+                ));
+            }
+        }
+
+        // HTMLのボディとフッターの終了タグ
+        html.push_str("</body>\n</html>");
+
+        html
     }
     // 現在のASTのマップの先頭に指定スクリプトのASTを追加
     pub fn add_first_ast_from_file(&mut self, file_name: &str) -> R<&mut Self, String> {
@@ -221,30 +252,32 @@ impl Decoder {
         //info!("nodes: {:?}", nodes.clone());
         ast_map.insert(file_name.to_string(), nodes.clone());
         Ok(Decoder {
+            generated_doc: false,
             ast_mod: IndexMap::new(),
             ast_map,
             memory_mgr: MemoryManager::new(1024 * 1024),
             file_contents: IndexMap::new(),
             current_node: None,
             context: Context::new(),
-            generated_ast_file: true,
-            generated_error_log_file: true,
-            measure_decode_time: true,
+            generated_ast_file: false,
+            generated_error_log_file: false,
+            measure_decode_time: false,
             decode_time: 0.0,
             entry_func: (false, String::new()),
         })
     }
     pub fn new() -> Self {
         Self {
+            generated_doc: false,
             ast_mod: IndexMap::new(),
             ast_map: IndexMap::new(),
             memory_mgr: MemoryManager::new(1024 * 1024),
             file_contents: IndexMap::new(),
             current_node: None,
             context: Context::new(),
-            generated_ast_file: true,
-            generated_error_log_file: true,
-            measure_decode_time: true,
+            generated_ast_file: false,
+            generated_error_log_file: false,
+            measure_decode_time: false,
             decode_time: 0.0,
             entry_func: (false, String::new()),
         }
@@ -456,7 +489,11 @@ impl Decoder {
             let ast_json = serde_json::to_string_pretty(&ast_map).map_err(|e| e.to_string())?;
             std::fs::write("./script-analysis/ast.json", ast_json).map_err(|e| e.to_string())?;
         }
-
+        if self.generated_doc {
+            let html_doc = self.generate_html_from_comments();
+            std::fs::create_dir_all("./script-doc").map_err(|e| e.to_string())?;
+            std::fs::write("./script-doc/doc.html", html_doc).map_err(|e| e.to_string())?;
+        }
         if let Some(start) = start_time {
             let duration = start.elapsed();
             // 秒とナノ秒を取得
