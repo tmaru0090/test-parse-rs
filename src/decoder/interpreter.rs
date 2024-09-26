@@ -214,11 +214,11 @@ impl Decoder {
 
         let tokens = Lexer::from_tokenize(file_name, file_content.clone())?;
 
-        info!("tokens: {:?}", tokens.clone());
+        //info!("tokens: {:?}", tokens.clone());
 
         let nodes = Parser::from_parse(&tokens, file_name, file_content.clone())?;
 
-        info!("nodes: {:?}", nodes.clone());
+        //info!("nodes: {:?}", nodes.clone());
         ast_map.insert(file_name.to_string(), nodes.clone());
         Ok(Decoder {
             ast_mod: IndexMap::new(),
@@ -429,7 +429,6 @@ impl Decoder {
                 }
                 value = self.execute_node(current_node)?;
             }
-
             // 最後のノードも評価する（イテレータ内で自動処理されるため不要）
         }
 
@@ -472,12 +471,18 @@ impl Decoder {
         let mut result = Value::Null;
         let initial_local_context = self.context.local_context.clone(); // 現在のローカルコンテキストを保存
 
-        for b in block {
-            // ノードを評価
-            result = self.execute_node(b)?;
-            // return 文が評価された場合、ブロックの評価を終了
-            if let NodeValue::ControlFlow(ControlFlow::Return(_)) = b.value() {
-                break;
+        for _b in block {
+            for b in _b.iter() {
+                // ノードを評価
+                result = self.execute_node(b)?;
+                // return 文が評価された場合、ブロックの評価を終了
+                if let NodeValue::ControlFlow(ControlFlow::Return(_)) = b.value() {
+                    break;
+                }
+                // EndStatementがある場合に処理を中断していないか確認
+                if let NodeValue::EndStatement = b.value() {
+                    continue; // EndStatementは単なる区切りなので、次のノードの評価を続行
+                }
             }
         }
 
@@ -591,7 +596,7 @@ impl Decoder {
         if let Some(mut variable) = variable_data {
             if variable.is_mutable {
                 let new_value = self.execute_node(&value)?;
-                self.check_type(&new_value, variable.data_type.as_str().unwrap_or(""))?;
+                //self.check_type(&new_value, variable.data_type.as_str().unwrap_or(""))?;
 
                 match &mut variable.value {
                     Value::Array(ref mut array) => {
@@ -1078,18 +1083,11 @@ impl Decoder {
         };
         let b = _body
             .iter()
-            .filter(|node| node.value() != NodeValue::EndStatement)
+            .filter(|node| node.value() != NodeValue::Unknown)
             .collect::<Vec<_>>();
 
-        //let new_vec: Vec<Box<Node>> = b.iter().map(|x| (*x).clone()).collect();
-        //result = self.eval_block(&new_vec)?;
-
-        for body in b {
-            result = self.execute_node(&body)?;
-            if let NodeValue::ControlFlow(ControlFlow::Return(ret)) = body.value() {
-                break;
-            }
-        }
+        let new_vec: Vec<Box<Node>> = b.iter().map(|x| (*x).clone()).collect();
+        result = self.eval_block(&new_vec)?;
 
         // スタックフレームをポップ
         self.memory_mgr.pop_stack_frame(func_name);
@@ -1112,7 +1110,7 @@ impl Decoder {
         is_system: &bool,
     ) -> R<Value, String> {
         let func_name = name; // すでに String 型なのでそのまま使う
-        info!("{:?}", func_name.clone());
+     //   info!("{:?}", func_name.clone());
         if func_name == "main" || func_name == "Main" {
             self.entry_func.0 = true;
             self.entry_func.1 = func_name.clone();
@@ -2038,9 +2036,12 @@ impl Decoder {
         //info!("global_contexts: {:?}", self.context.global_context.clone());
         //info!("local_contexts: {:?}", self.context.local_context.clone());
         //info!("used_context: {:?}", self.context.used_context.clone());
-        info!("current_node: {:?}", self.current_node.clone());
+        //info!("current_node: {:?}", self.current_node.clone());
         //info!("current_node: {:?}", node.clone());
         match &node.value {
+            NodeValue::EndStatement => {
+                result = Value::Null;
+            }
             NodeValue::Null => {
                 result = Value::Null;
             }
@@ -2194,7 +2195,6 @@ impl Decoder {
                 ));
             }
         }
-
         self.current_node = original_node;
         Ok(result)
     }

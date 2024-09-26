@@ -1,4 +1,6 @@
+@include "std.sc"
 fn main(){
-        let test = 0;
-        test = 1000;
+  let a = 1999;
+  let mut bb = a;
+  bb = a;
 }
