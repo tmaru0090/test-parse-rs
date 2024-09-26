@@ -14,9 +14,16 @@ body { font-family: Arial, sans-serif; }
 .slide.hide { max-height: 0; }
 #search-box { margin: 20px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; width: 300px; }
 .highlight { background-color: #e3f2fd; border: 1px solid #039be5; border-radius: 2px; }
+.dark-mode { background-color: #333; color: #ddd; }
+.dark-mode .comment { background-color: #444; border: 1px solid #555; }
+.dark-mode .comment-link { color: #82b1ff; }
+.pagination { margin: 20px; }
+.pagination a { margin: 0 5px; text-decoration: none; color: #007bff; }
+.pagination a.active { font-weight: bold; }
 </style>
 </head>
 <body>
+<button onclick="toggleDarkMode()">Toggle Dark Mode</button>
 <div id="search-container">
 <input type="text" id="search-box" placeholder="Search comments..."></input>
 </div>
@@ -40,6 +47,11 @@ body { font-family: Arial, sans-serif; }
 <div class="comment" data-comment="struct HashMap;">struct HashMap;</div>
 </div>
 </div>
+<div class="pagination">
+<a href="#" class="active">1</a>
+<a href="#">2</a>
+<a href="#">3</a>
+<!-- Add more pages as needed -->
 </div>
 <script>
 function toggleComments(line, column) {
@@ -68,6 +80,9 @@ comment.innerHTML = commentText;
 comment.style.display = commentText.includes(searchValue) ? '' : 'none';
 });
 });
+function toggleDarkMode() {
+document.body.classList.toggle('dark-mode');
+}
 </script>
 </body>
 </html>

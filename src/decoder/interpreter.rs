@@ -185,12 +185,19 @@ fn generate_html_from_comments(&mut self) -> String {
         .slide.hide { max-height: 0; }\n\
         #search-box { margin: 20px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; width: 300px; }\n\
         .highlight { background-color: #e3f2fd; border: 1px solid #039be5; border-radius: 2px; }\n\
+        .dark-mode { background-color: #333; color: #ddd; }\n\
+        .dark-mode .comment { background-color: #444; border: 1px solid #555; }\n\
+        .dark-mode .comment-link { color: #82b1ff; }\n\
+        .pagination { margin: 20px; }\n\
+        .pagination a { margin: 0 5px; text-decoration: none; color: #007bff; }\n\
+        .pagination a.active { font-weight: bold; }\n\
         </style>\n</head>\n<body>\n",
     );
 
-    // 検索ボックスの追加
+    // ダークモード切替ボタンの追加
     html.push_str(
-        "<div id=\"search-container\">\n\
+        "<button onclick=\"toggleDarkMode()\">Toggle Dark Mode</button>\n\
+        <div id=\"search-container\">\n\
         <input type=\"text\" id=\"search-box\" placeholder=\"Search comments...\"></input>\n\
         </div>\n",
     );
@@ -199,14 +206,12 @@ fn generate_html_from_comments(&mut self) -> String {
 
     // コメントを行ごとに処理
     for ((line, column), comments) in &self.context.comment_lists {
-        // 行番号と列番号をリンクとして表示
         html.push_str(&format!(
             "<div class=\"comment-container\">\n\
             <a href=\"#\" class=\"comment-link\" onclick=\"toggleComments({},{})\">Line {} Column {}</a>\n",
             line, column, line, column
         ));
 
-        // 各コメントをHTMLの要素として追加
         html.push_str("<div id=\"comments-");
         html.push_str(&format!("{:02}-{:02}\" class=\"slide hide\">", line, column));
         for comment in comments {
@@ -215,9 +220,15 @@ fn generate_html_from_comments(&mut self) -> String {
         html.push_str("</div>\n</div>\n");
     }
 
-    html.push_str("</div>\n");
+    // ページネーション
+    html.push_str("<div class=\"pagination\">\n\
+        <a href=\"#\" class=\"active\">1</a>\n\
+        <a href=\"#\">2</a>\n\
+        <a href=\"#\">3</a>\n\
+        <!-- Add more pages as needed -->\n\
+        </div>\n");
 
-    // JavaScriptでコメント表示を制御と検索機能の追加
+    // JavaScriptでコメント表示を制御、検索機能、ダークモード切り替え、ページネーション
     html.push_str(
         "<script>\n\
         function toggleComments(line, column) {\n\
@@ -246,6 +257,9 @@ fn generate_html_from_comments(&mut self) -> String {
                 comment.style.display = commentText.includes(searchValue) ? '' : 'none';\n\
             });\n\
         });\n\
+        function toggleDarkMode() {\n\
+            document.body.classList.toggle('dark-mode');\n\
+        }\n\
         </script>\n"
     );
 

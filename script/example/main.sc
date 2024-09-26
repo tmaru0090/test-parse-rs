@@ -1,3 +1,5 @@
+/*example/main.sc*/
+// テスト用
 @include "std.sc"
 @include "example/test.sc"
 
